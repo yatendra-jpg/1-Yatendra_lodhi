@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login — Fast Mailer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="card">
+  <div class="logo">📧</div>
+  <h2>Welcome Back</h2>
+  <p class="subtitle">Login to continue</p>
+
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+
+  <button id="loginBtn">Login</button>
+  <p id="loginStatus"></p>
+</div>
+
+<script>
+document.getElementById('loginBtn').addEventListener('click', () => {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  fetch('/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username,password})
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.success) {
+      // success => go to launcher
+      window.location.replace('/launcher');
+    } else {
+      // show message (invalid credentials)
+      document.getElementById('loginStatus').innerText = data.message;
+    }
+  })
+  .catch(err=>{
+    document.getElementById('loginStatus').innerText = '✖ ' + (err.message || 'Network error');
+  });
+});
+</script>
+</body>
+</html>
