@@ -10,17 +10,17 @@ window.addEventListener('storage', (e) => {
   }
 });
 
-// Logout: double-click required
+// Logout on double-click
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
   logoutBtn.addEventListener('dblclick', () => {
     fetch('/logout', { method: 'POST' })
-      .then(() => { broadcastLogout(); window.location.replace('/'); })
-      .catch(() => { broadcastLogout(); window.location.replace('/'); });
+      .then(()=>{ broadcastLogout(); window.location.replace('/'); })
+      .catch(()=>{ broadcastLogout(); window.location.replace('/'); });
   });
 }
 
-// Send mails (fast)
+// Send button handler (UI)
 document.getElementById('sendBtn')?.addEventListener('click', () => {
   const senderName = document.getElementById('senderName').value;
   const email = document.getElementById('email').value.trim();
@@ -49,7 +49,15 @@ document.getElementById('sendBtn')?.addEventListener('click', () => {
   .then(data=>{
     if (data.success) {
       status.innerText = '✅ ' + (data.message || 'Mail sent');
-      alert('✅ Mail sent successfully!');
+      // show adaptive details
+      if (data.adaptive) {
+        console.info('Adaptive:', data.adaptive);
+      }
+      if (data.details && data.details.length) {
+        // show top 3 errors in console for debugging
+        console.warn('Details:', data.details.slice(0,3));
+      }
+      alert('✅ Mail send finished: ' + (data.message || 'Done'));
     } else {
       status.innerText = '✖ ' + (data.message || 'Failed to send');
       alert('❌ ' + (data.message || 'Failed to send'));
