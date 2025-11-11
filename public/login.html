@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Login — Fast Mailer</title>
+<title>Login — Bulk Mailer</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,22 +20,16 @@
 
 <script>
 document.getElementById('loginBtn').addEventListener('click', () => {
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
+  const u = username.value.trim();
+  const p = password.value.trim();
 
   fetch('/login', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username,password})
+    body:JSON.stringify({username:u,password:p})
   })
   .then(r=>r.json())
-  .then(data=>{
-    if(data.success) window.location.replace('/launcher');
-    else document.getElementById('loginStatus').innerText = data.message;
-  })
-  .catch(err=>{
-    document.getElementById('loginStatus').innerText = '✖ ' + (err.message || 'Network error');
-  });
+  .then(d=> d.success ? location.href='/launcher' : loginStatus.innerText = d.message);
 });
 </script>
 </body>
