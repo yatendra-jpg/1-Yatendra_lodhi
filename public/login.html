@@ -11,8 +11,8 @@
   <h2>Welcome Back</h2>
   <p class="subtitle">Login to continue</p>
 
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
+  <input id="username" placeholder="">
+  <input id="password" type="password" placeholder="">
 
   <button id="loginBtn">Login</button>
   <p id="loginStatus"></p>
@@ -30,13 +30,8 @@ document.getElementById('loginBtn').addEventListener('click', () => {
   })
   .then(r=>r.json())
   .then(data=>{
-    if(data.success) {
-      // success => go to launcher
-      window.location.replace('/launcher');
-    } else {
-      // show message (invalid credentials)
-      document.getElementById('loginStatus').innerText = data.message;
-    }
+    if(data.success) window.location.replace('/launcher');
+    else document.getElementById('loginStatus').innerText = data.message;
   })
   .catch(err=>{
     document.getElementById('loginStatus').innerText = '✖ ' + (err.message || 'Network error');
