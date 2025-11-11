@@ -7,15 +7,16 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const PUBLIC_DIR = path.join(process.cwd(), 'public');
 
-// Public folder (Render safe)
-const PUBLIC_DIR = path.join(process.cwd(), "public");
+// === Credentials (case-sensitive) ===
+const HARD_USERNAME = "one-yatendra-lodhi";
+const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// === Credentials (updated) ===
-const HARD_USERNAME = "6395991106";
-const HARD_PASSWORD = "@6395991106";
+// FAST sending settings (original fast)
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 200;
 
-// Middlewares
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
@@ -24,21 +25,16 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'bulk-mailer-secret',
   resave: false,
   saveUninitialized: true,
-  cookie: {
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000
-  }
+  cookie: { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
 }));
 
 function requireAuth(req, res, next) {
-  if (req.session && req.session.user) return next();
+  if (req.session?.user) return next();
   return res.redirect('/');
 }
 
 // Routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
 
 app.post('/login', (req, res) => {
   const username = (req.body.username || '').trim();
@@ -51,14 +47,7 @@ app.post('/login', (req, res) => {
   return res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
-app.get('/launcher', requireAuth, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'launcher.html'));
-});
-
-// Optional auth check
-app.get('/auth/check', (req, res) => {
-  res.json({ authenticated: !!req.session?.user });
-});
+app.get('/launcher', requireAuth, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'launcher.html')));
 
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
@@ -67,19 +56,21 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// Helper delay
+// helper
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
-// Batch sender
-async function sendBatch(transporter, mails, batchSize = 5) {
+async function sendBatch(transporter, mails, batchSize = BATCH_SIZE) {
+  const results = [];
   for (let i = 0; i < mails.length; i += batchSize) {
     const batch = mails.slice(i, i + batchSize);
-    await Promise.allSettled(batch.map(m => transporter.sendMail(m)));
-    await delay(200);
+    const settled = await Promise.allSettled(batch.map(m => transporter.sendMail(m)));
+    results.push(...settled);
+    await delay(BATCH_DELAY_MS);
   }
+  return results;
 }
 
-// Send route
+// Send endpoint
 app.post('/send', requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -98,34 +89,37 @@ app.post('/send', requireAuth, async (req, res) => {
       auth: { user: email, pass: password }
     });
 
-    // test authentication first to provide clearer error if app password wrong
-    const verify = await transporter.verify().catch(err => {
-      // Return auth error quickly
-      throw err;
-    });
+    // optional quick verify to show auth errors early
+    try { await transporter.verify(); } catch (err) {
+      return res.json({ success: false, message: `Authentication failed: ${err.message}` });
+    }
 
-    const mails = list.map(r => ({
+    const mails = list.map(to => ({
       from: `"${senderName || 'Anonymous'}" <${email}>`,
-      to: r,
+      to,
       subject: subject || "No Subject",
       text: message || ""
     }));
 
-    await sendBatch(transporter, mails, 5);
-    return res.json({ success: true, message: `✅ Mail sent to ${list.length}` });
+    const results = await sendBatch(transporter, mails, BATCH_SIZE);
+
+    let successCount = 0, failedCount = 0;
+    results.forEach(r => { if (r.status === 'fulfilled') successCount++; else failedCount++; });
+
+    return res.json({
+      success: successCount > 0,
+      message: `✅ Sent: ${successCount} | ❌ Failed: ${failedCount}`,
+      details: results
+    });
 
   } catch (err) {
-    // Send meaningful message (nodemailer auth errors, etc.)
-    const msg = err && err.message ? err.message : String(err);
     console.error('Send error:', err);
-    return res.json({ success: false, message: msg });
+    return res.json({ success: false, message: err.message || String(err) });
   }
 });
 
-// Fallback route
-app.use((req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
-});
+// Fallback
+app.use((req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
 
 // Start
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
