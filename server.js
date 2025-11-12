@@ -1,3 +1,12 @@
+/**
+ * server.js
+ * Fast Bulk Mailer with per-sender hourly limit (31 mails/hour)
+ * Login credentials (case-sensitive): one-yatendra-lodhi / one-yatendra-lodhi
+ *
+ * NOTE: per-sender in-memory tracking — server restart clears counters.
+ * For production use Redis or a persistent store.
+ */
+
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
@@ -9,26 +18,28 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 
-// === Hardcoded login (case-sensitive) ===
+// === Credentials (case-sensitive) ===
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// === Policy ===
-const MAX_PER_WINDOW = 30;                // allow up to 30 mails per sender in a window
-const WINDOW_MS = 5 * 60 * 60 * 1000;     // 5 hours window in milliseconds
+// Sending settings (fast)
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 200;
 
-// Sending warm-up / adaptive settings (kept safe+fast)
-const WARMUP_PHASES = [
-  { sentUntil: 5, size: 2, delay: 700 },
-  { sentUntil: 12, size: 3, delay: 500 }
-];
-const DEFAULT_BATCH_SIZE = 5;
-const DEFAULT_DELAY_MIN = 200;
-const DEFAULT_DELAY_MAX = 500;
+// Per-sender limit
+const SENDER_HOURLY_LIMIT = 31;
+const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
+// In-memory tracking for per-sender counts
+// Map senderEmail -> { windowStart: number, sent: number }
+const senderTracker = new Map();
+
+// Helpers
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const normalizeRecipients = (text) =>
+  text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
 
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
@@ -44,45 +55,18 @@ function requireAuth(req, res, next) {
   return res.redirect('/');
 }
 
-// Track per-sender windows in memory
-// Structure: { "<senderEmail>": { count: number, windowStart: timestamp } }
-const senderWindows = {};
-
-// helper: get warmup settings based on globalSentCounter
-let globalSentCounter = 0;
-function getWarmupSettings() {
-  for (const p of WARMUP_PHASES) {
-    if (globalSentCounter < p.sentUntil) return { size: p.size, delay: p.delay };
-  }
-  return null;
-}
-
-// helper to check/initialize sender window
-function checkSenderWindow(email) {
-  const now = Date.now();
-  if (!senderWindows[email]) {
-    senderWindows[email] = { count: 0, windowStart: now };
-    return senderWindows[email];
-  }
-  const w = senderWindows[email];
-  // if window expired, reset
-  if (now - w.windowStart >= WINDOW_MS) {
-    senderWindows[email] = { count: 0, windowStart: now };
-    return senderWindows[email];
-  }
-  return w;
-}
-
+// Routes
 app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
 
 app.post('/login', (req, res) => {
   const username = (req.body.username || '').trim();
   const password = (req.body.password || '').trim();
+
   if (username === HARD_USERNAME && password === HARD_PASSWORD) {
     req.session.user = username;
     return res.json({ success: true });
   }
-  return res.json({ success: false, message: '❌ Invalid credentials' });
+  return res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
 app.get('/launcher', requireAuth, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'launcher.html')));
@@ -94,61 +78,70 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// send in batches with warm-up + jitter
-async function sendInAdaptiveBatches(transporter, mails, onProgress) {
-  let successCount = 0;
-  let failCount = 0;
-
-  for (let i = 0; i < mails.length; ) {
-    const warm = getWarmupSettings();
-    let batchSize = warm ? warm.size : DEFAULT_BATCH_SIZE;
-    let batchDelay = warm ? warm.delay : randomBetween(DEFAULT_DELAY_MIN, DEFAULT_DELAY_MAX);
-
+// sendBatch: parallel within batch, with small pause between batches
+async function sendBatch(transporter, mails, batchSize = BATCH_SIZE) {
+  const results = [];
+  for (let i = 0; i < mails.length; i += batchSize) {
     const batch = mails.slice(i, i + batchSize);
-
     const settled = await Promise.allSettled(batch.map(m => transporter.sendMail(m)));
-    settled.forEach(s => { if (s.status === 'fulfilled') successCount++; else failCount++; });
-
-    globalSentCounter += batch.length;
-    i += batch.length;
-
-    if (typeof onProgress === 'function') onProgress({ successCount, failCount, processed: i });
-
-    if (i < mails.length) await delay(batchDelay);
+    results.push(...settled);
+    // small pause
+    await delay(BATCH_DELAY_MS);
   }
-
-  return { successCount, failCount };
+  return results;
 }
 
+// Check and update senderTracker for hourly limit
+function canSendForSender(senderEmail, countToSend) {
+  const now = Date.now();
+  const record = senderTracker.get(senderEmail);
+  if (!record) {
+    // start new window
+    senderTracker.set(senderEmail, { windowStart: now, sent: 0 });
+    return { allowed: true, remaining: SENDER_HOURLY_LIMIT };
+  }
+  // reset window if expired
+  if (now - record.windowStart > WINDOW_MS) {
+    senderTracker.set(senderEmail, { windowStart: now, sent: 0 });
+    return { allowed: true, remaining: SENDER_HOURLY_LIMIT };
+  }
+  const remaining = SENDER_HOURLY_LIMIT - record.sent;
+  return { allowed: remaining >= countToSend, remaining };
+}
+
+function incrementSenderCount(senderEmail, amount) {
+  const now = Date.now();
+  const record = senderTracker.get(senderEmail);
+  if (!record || (now - (record.windowStart || 0) > WINDOW_MS)) {
+    senderTracker.set(senderEmail, { windowStart: now, sent: amount });
+  } else {
+    record.sent += amount;
+    senderTracker.set(senderEmail, record);
+  }
+}
+
+// Main send endpoint
 app.post('/send', requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
-    if (!email || !password || !recipients)
+    if (!email || !password || !recipients) {
       return res.json({ success: false, message: "Email, password and recipients required" });
+    }
 
-    // normalize recipients
-    const list = recipients.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    const list = normalizeRecipients(recipients);
     if (!list.length) return res.json({ success: false, message: "No valid recipients" });
 
-    // check sender window
-    const window = checkSenderWindow(email);
-
-    // if window count already >= MAX_PER_WINDOW, block until window expires
-    if (window.count >= MAX_PER_WINDOW) {
-      const remainingMs = WINDOW_MS - (Date.now() - window.windowStart);
-      const remainingHrs = Math.ceil(remainingMs / (60 * 60 * 1000));
+    // check per-sender hourly limit
+    const check = canSendForSender(email, list.length);
+    if (!check.allowed) {
       return res.json({
         success: false,
-        message: `❌ Limit reached: ${MAX_PER_WINDOW} mails per ${WINDOW_MS / (60*60*1000)} hours. Please wait ${remainingHrs} hour(s).`
+        message: `Rate limit exceeded for ${email}. Remaining this hour: ${check.remaining}. Limit: ${SENDER_HOURLY_LIMIT} mails/hour.`
       });
     }
 
-    // compute how many we may send from this request
-    const allowed = Math.max(0, MAX_PER_WINDOW - window.count);
-    const toSendList = list.slice(0, allowed);
-
-    // create transporter
+    // create transporter and verify auth early
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: Number(process.env.SMTP_PORT || 465),
@@ -156,16 +149,15 @@ app.post('/send', requireAuth, async (req, res) => {
       auth: { user: email, pass: password }
     });
 
-    // verify credentials
     try {
       await transporter.verify();
     } catch (err) {
-      return res.json({ success: false, message: `Authentication failed: ${err.message}` });
+      return res.json({ success: false, message: `✖ Authentication failed: ${err.message}` });
     }
 
-    // prepare mails (plain text)
-    const mails = toSendList.map(to => ({
-      from: `"${(senderName || 'Sender').replace(/"/g,'')}" <${email}>`,
+    // prepare mails
+    const mails = list.map(to => ({
+      from: `"${(senderName || 'Anonymous').replace(/"/g,'')}" <${email}>`,
       to,
       subject: subject || 'No Subject',
       text: message || '',
@@ -175,22 +167,33 @@ app.post('/send', requireAuth, async (req, res) => {
       }
     }));
 
-    // send adaptively; update onProgress to increment window.count as we go
-    const onProgress = ({ successCount, failCount, processed }) => {
-      // processed mails in this request -> update window.count accordingly
-      // but do not exceed allowed (we sent exactly processed mails)
-      // note: we track only total attempted mails here
-      // we'll update window.count after final results to keep atomic-ish
-    };
+    // send
+    const results = await sendBatch(transporter, mails, BATCH_SIZE);
 
-    const { successCount, failCount } = await sendInAdaptiveBatches(transporter, mails, onProgress);
+    // analyze
+    let successCount = 0, failedCount = 0;
+    results.forEach(r => {
+      if (r.status === 'fulfilled') successCount++;
+      else failedCount++;
+    });
 
-    // update sender window count
-    window.count += mails.length; // number attempted in this request
-    // if window started was old, check handled in checkSenderWindow earlier
+    // update sender counter for successful sends only
+    if (successCount > 0) incrementSenderCount(email, successCount);
 
-    const msg = `✅ Sent: ${successCount} | ❌ Failed: ${failCount} | Window used: ${window.count}/${MAX_PER_WINDOW}`;
-    return res.json({ success: successCount > 0, message: msg });
+    return res.json({
+      success: successCount > 0,
+      message: successCount > 0 ? `✅ Sent: ${successCount} | ❌ Failed: ${failedCount}` : `✖ All failed: ${failedCount}`,
+      details: results.map((r, idx) => {
+        if (r.status === 'fulfilled') return { to: mails[idx].to, ok: true };
+        return { to: mails[idx].to, ok: false, error: r.reason?.message || String(r.reason) };
+      }),
+      remainingForSender: (() => {
+        const rec = senderTracker.get(email);
+        if (!rec) return SENDER_HOURLY_LIMIT;
+        const rem = Math.max(0, SENDER_HOURLY_LIMIT - rec.sent);
+        return rem;
+      })()
+    });
 
   } catch (err) {
     console.error('Send error:', err);
@@ -198,18 +201,19 @@ app.post('/send', requireAuth, async (req, res) => {
   }
 });
 
-// endpoint to query sender window status (useful for UI)
-app.post('/window-status', requireAuth, (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.json({ ok: false, message: 'Email required' });
-  const win = senderWindows[email];
-  if (!win) return res.json({ ok: true, count: 0, windowStart: null, windowExpiresInMs: 0 });
-  const now = Date.now();
-  const expiresIn = Math.max(0, WINDOW_MS - (now - win.windowStart));
-  return res.json({ ok: true, count: win.count, windowStart: win.windowStart, windowExpiresInMs: expiresIn });
+// Optional: check remaining for a sender (useful in UI)
+app.get('/sender/remaining', requireAuth, (req, res) => {
+  const senderEmail = req.query.email;
+  if (!senderEmail) return res.json({ success: false, message: 'email query required' });
+  const rec = senderTracker.get(senderEmail);
+  if (!rec || (Date.now() - rec.windowStart > WINDOW_MS)) {
+    return res.json({ success: true, remaining: SENDER_HOURLY_LIMIT });
+  }
+  return res.json({ success: true, remaining: Math.max(0, SENDER_HOURLY_LIMIT - rec.sent) });
 });
 
 // fallback
 app.use((req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
 
+// start
 app.listen(PORT, () => console.log(`✅ Bulk Mailer running at http://localhost:${PORT}`));
