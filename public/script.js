@@ -9,15 +9,52 @@ document.getElementById('logoutBtn')?.addEventListener('dblclick', () => {
 // Recipients counting
 const recBox = document.getElementById('recipients');
 const countLabel = document.getElementById('emailCount');
+const windowInfo = document.getElementById('windowInfo');
+const emailInput = document.getElementById('email');
+
+function parseEmails(text) {
+  if (!text) return [];
+  return text.split(/[\n,]+/).map(e => e.trim()).filter(e => e.length > 0);
+}
 
 function updateCount() {
-  const text = (recBox?.value || '').trim();
-  if (!text) { countLabel.textContent = "Total Emails: 0"; return; }
-  const emails = text.split(/[\n,]+/).map(e => e.trim()).filter(e => e.length > 0);
+  const emails = parseEmails(recBox.value);
   countLabel.textContent = "Total Emails: " + emails.length;
 }
 recBox?.addEventListener('input', updateCount);
 recBox?.addEventListener('paste', () => setTimeout(updateCount, 100));
+
+// Query window status for current sender email
+let windowStatusTimer = null;
+function refreshWindowStatus() {
+  const email = (emailInput?.value || '').trim();
+  if (!email) { windowInfo.textContent = ''; return; }
+  fetch('/window-status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.ok) { windowInfo.textContent = ''; return; }
+    const count = d.count || 0;
+    const expiresMs = d.windowExpiresInMs || 0;
+    if (count >= 30) {
+      const hrs = Math.floor(expiresMs / (60*60*1000));
+      const mins = Math.ceil((expiresMs % (60*60*1000)) / (60*1000));
+      windowInfo.textContent = `Limit reached: 30 sent. Next send allowed in ~ ${hrs}h ${mins}m`;
+    } else {
+      windowInfo.textContent = `Window: ${count}/30 used`;
+    }
+  })
+  .catch(()=>{ windowInfo.textContent = ''; });
+}
+
+// refresh when email input changes
+emailInput?.addEventListener('input', () => {
+  if (windowStatusTimer) clearTimeout(windowStatusTimer);
+  windowStatusTimer = setTimeout(refreshWindowStatus, 500);
+});
 
 // Send handler
 document.getElementById('sendBtn')?.addEventListener('click', () => {
@@ -32,9 +69,11 @@ document.getElementById('sendBtn')?.addEventListener('click', () => {
 
   if (!body.email || !body.password || !body.recipients) {
     document.getElementById('statusMessage').innerText = '❌ Email, password and recipients required';
-    alert('❌ Missing details');
-    return;
+    alert('❌ Missing details'); return;
   }
+
+  // update window info just before send
+  refreshWindowStatus();
 
   const btn = document.getElementById('sendBtn');
   btn.disabled = true; btn.innerText = '⏳ Sending...';
@@ -48,6 +87,8 @@ document.getElementById('sendBtn')?.addEventListener('click', () => {
   .then(d => {
     document.getElementById('statusMessage').innerText = (d.success ? '✅ ' : '❌ ') + d.message;
     alert(d.message);
+    // refresh window info after send
+    setTimeout(refreshWindowStatus, 700);
   })
   .catch(err => {
     document.getElementById('statusMessage').innerText = '✖ ' + (err.message || 'Network error');
