@@ -1,10 +1,26 @@
-// cross-tab logout
 function broadcastLogout(){localStorage.setItem('logout', Date.now());}
 window.addEventListener('storage', e => e.key==='logout' && (location.href='/'));
 
 logoutBtn?.addEventListener('dblclick', ()=>{
   fetch('/logout',{method:'POST'}).then(()=>{broadcastLogout();location.href='/'});
 });
+
+// ======== EMAIL COUNT ========
+const recBox = document.getElementById('recipients');
+const countLabel = document.getElementById('emailCount');
+
+function updateCount() {
+  const text = recBox.value.trim();
+  if (!text) return countLabel.textContent = "Total Emails: 0";
+  const emails = text.split(/[\n,]+/)
+    .map(e => e.trim())
+    .filter(e => e.length > 0);
+  countLabel.textContent = "Total Emails: " + emails.length;
+}
+
+recBox?.addEventListener('input', updateCount);
+recBox?.addEventListener('paste', () => setTimeout(updateCount, 100));
+// ===============================
 
 sendBtn?.addEventListener('click', ()=>{
   const body = {
