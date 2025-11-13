@@ -13,149 +13,117 @@ const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// LIMIT SYSTEM (31 mails per hour per email)
+// 31 mail/hour limit per Gmail
+let EMAIL_LIMIT = {};
 const ONE_HOUR = 60 * 60 * 1000;
-const MAX_MAILS_PER_HOUR = 31;
+const MAX_MAILS = 31;
 
-// email => { count, reset }
-let LIMIT = {};
-
-// Reset function
-function checkLimit(email, totalToSend) {
-  if (!LIMIT[email]) {
-    LIMIT[email] = {
-      count: 0,
-      reset: Date.now() + ONE_HOUR,
-    };
-  }
-
-  if (Date.now() > LIMIT[email].reset) {
-    LIMIT[email].count = 0;
-    LIMIT[email].reset = Date.now() + ONE_HOUR;
-  }
-
-  if (LIMIT[email].count + totalToSend > MAX_MAILS_PER_HOUR) {
-    return {
-      allowed: false,
-      used: LIMIT[email].count,
-      left: MAX_MAILS_PER_HOUR - LIMIT[email].count
-    };
-  }
-
-  return { allowed: true };
-}
-
-const delay = ms => new Promise(r => setTimeout(r, ms));
-const randomDelay = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-// Middleware
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
 app.use(session({
-  secret: "bulk-mailer-secret",
-  resave: false,
-  saveUninitialized: true
+    secret: "bulk-mailer-secret",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: ONE_HOUR }
 }));
 
 function requireAuth(req, res, next) {
-  if (req.session.user) return next();
-  res.redirect('/');
+    if (req.session.user) return next();
+    res.redirect('/');
 }
 
 // LOGIN
 app.post('/login', (req, res) => {
-  if (req.body.username === HARD_USERNAME && req.body.password === HARD_PASSWORD) {
-    req.session.user = HARD_USERNAME;
-    return res.json({ success: true });
-  }
-  res.json({ success: false, message: "❌ Invalid credentials" });
-});
-
-// PAGES
-app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
-app.get('/launcher', requireAuth, (req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, 'launcher.html'))
-);
-
-// LOGOUT (double click handled in frontend)
-app.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie('connect.sid');
-    res.json({ success: true });
-  });
-});
-
-// SEND EMAILS
-app.post('/send', requireAuth, async (req, res) => {
-  try {
-    const { senderName, email, password, recipients, subject, message } = req.body;
-
-    if (!email || !password || !recipients)
-      return res.json({ success: false, message: "❌ Missing fields" });
-
-    const list = recipients.split(/[\n,]+/)
-      .map(r => r.trim())
-      .filter(Boolean);
-
-    if (!list.length)
-      return res.json({ success: false, message: "❌ No recipients" });
-
-    // LIMIT CHECK
-    const chk = checkLimit(email, list.length);
-    if (!chk.allowed)
-      return res.json({
-        success: false,
-        message: `❌ Limit reached`,
-        used: chk.used,
-        left: chk.left
-      });
-
-    // Transporter
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      secure: true,
-      port: 465,
-      auth: { user: email, pass: password }
-    });
-
-    try { await transporter.verify(); }
-    catch { return res.json({ success: false, message: "❌ Wrong App Password" }); }
-
-    let sent = 0, fail = 0;
-
-    for (let to of list) {
-      try {
-        await transporter.sendMail({
-          from: `"${senderName || 'Sender'}" <${email}>`,
-          to,
-          subject: subject || "",
-          text: message || ""
-        });
-        sent++;
-        LIMIT[email].count++;
-      } catch {
-        fail++;
-      }
-
-      await delay(randomDelay(300, 700));
+    const { username, password } = req.body;
+    if (username === HARD_USERNAME && password === HARD_PASSWORD) {
+        req.session.user = username;
+        return res.json({ success: true });
     }
-
-    res.json({
-      success: true,
-      message: `Sent: ${sent} | Failed: ${fail}`,
-      left: MAX_MAILS_PER_HOUR - LIMIT[email].count
-    });
-
-  } catch (e) {
-    res.json({ success: false, message: e.message });
-  }
+    res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
-// fallback
-app.use((req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, "login.html"))
+app.get('/launcher', requireAuth, (req, res) =>
+    res.sendFile(path.join(PUBLIC_DIR, "launcher.html"))
 );
 
-app.listen(PORT, () =>
-  console.log(`🚀 Bulk Mailer running on http://localhost:${PORT}`)
-);
+// LOGOUT
+app.post('/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.clearCookie("connect.sid");
+        res.json({ success: true });
+    });
+});
+
+// SEND MAIL
+app.post('/send', requireAuth, async (req, res) => {
+    try {
+        const { senderName, email, password, recipients, subject, message } = req.body;
+
+        if (!email || !password || !recipients)
+            return res.json({ success: false, message: "❌ Email, password and recipients required" });
+
+        let list = recipients.split(/[\n,]+/)
+            .map(x => x.trim())
+            .filter(Boolean);
+
+        // LIMIT SYSTEM
+        if (!EMAIL_LIMIT[email]) {
+            EMAIL_LIMIT[email] = { count: 0, reset: Date.now() + ONE_HOUR };
+        }
+
+        if (Date.now() > EMAIL_LIMIT[email].reset) {
+            EMAIL_LIMIT[email].count = 0;
+            EMAIL_LIMIT[email].reset = Date.now() + ONE_HOUR;
+        }
+
+        if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS) {
+            return res.json({
+                success: false,
+                message: "❌ Hourly limit reached",
+                left: MAX_MAILS - EMAIL_LIMIT[email].count
+            });
+        }
+
+        // SMTP
+        const transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            secure: true,
+            port: 465,
+            auth: { user: email, pass: password }
+        });
+
+        try {
+            await transporter.verify();
+        } catch {
+            return res.json({ success: false, message: "❌ Wrong App Password" });
+        }
+
+        let sent = 0, failed = 0;
+
+        for (let to of list) {
+            try {
+                await transporter.sendMail({
+                    from: `"${senderName || "Sender"}" <${email}>`,
+                    to,
+                    subject: subject || "",
+                    text: message || ""
+                });
+                sent++;
+                EMAIL_LIMIT[email].count++;
+            } catch {
+                failed++;
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Sent: ${sent} | Failed: ${failed}`,
+            left: MAX_MAILS - EMAIL_LIMIT[email].count
+        });
+
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+app.listen(PORT, () => console.log(`Running on ${PORT}`));
