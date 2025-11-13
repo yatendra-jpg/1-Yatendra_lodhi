@@ -1,13 +1,19 @@
-// LOGOUT
+// LOGOUT (double click)
 logoutBtn.addEventListener("dblclick", ()=>{
-  fetch("/logout",{method:"POST"})
-    .then(()=>location.href="/");
+  fetch("/logout",{method:"POST"}).then(()=>location.href="/");
 });
 
-// COUNTING
+// COUNT EMAILS
 recipients.addEventListener("input", ()=>{
   const list = recipients.value.split(/[\n,]+/).map(a=>a.trim()).filter(Boolean);
   emailCount.textContent = "Total Emails: " + list.length;
+});
+
+// INSERT COLOR CODE
+addColorBtn.addEventListener("click", ()=>{
+  const color = colorPicker.value;
+  const insert = `<span style="color:${color};">Your Text</span>`;
+  message.value += "\n" + insert;
 });
 
 // SEND
@@ -16,7 +22,7 @@ sendBtn.addEventListener("click", ()=>{
     senderName: senderName.value,
     email: email.value.trim(),
     password: pass.value.trim(),
-    subject: subject.value,
+    subject: subject.value.trim(),
     message: message.value,
     recipients: recipients.value.trim(),
     htmlMode: htmlMode.checked
@@ -32,8 +38,8 @@ sendBtn.addEventListener("click", ()=>{
   })
   .then(r=>r.json())
   .then(d=>{
-    statusMessage.textContent = d.message;
     alert(d.message);
+    statusMessage.textContent = d.message;
   })
   .finally(()=>{
     sendBtn.disabled = false;
