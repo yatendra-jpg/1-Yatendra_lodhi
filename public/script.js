@@ -1,12 +1,20 @@
+// Count Recipients
 recipients.addEventListener("input", () => {
-  const emails = recipients.value
+  const list = recipients.value
     .split(/[\n,]+/)
-    .map(e => e.trim())
+    .map(x => x.trim())
     .filter(Boolean);
 
-  emailCount.innerText = "Total Emails: " + emails.length;
+  emailCount.innerText = "Total Emails: " + list.length;
 });
 
+// Double Click Logout
+logoutBtn.addEventListener("dblclick", () => {
+  fetch("/logout", { method: "POST" })
+    .then(() => location.href = "/");
+});
+
+// Send Emails
 sendBtn.addEventListener("click", () => {
 
   const data = {
