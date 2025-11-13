@@ -1,91 +1,71 @@
-*{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
-body{
+/* LOGIN PAGE */
+.login-container{
+  width:100%;
+  height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  height:100vh;
   background:#eef3ff;
-  padding:20px;
 }
 
-/* MAIN CONTAINER */
-.container{
+.login-card{
   background:#fff;
-  padding:30px;
-  border-radius:16px;
-  width:900px;
-  box-shadow:0 12px 32px rgba(0,0,0,0.12);
-}
-.container h2{
+  padding:40px;
+  width:420px;
+  border-radius:20px;
   text-align:center;
-  margin-bottom:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.12);
+}
+
+.login-logo{
+  font-size:55px;
+  margin-bottom:10px;
+}
+
+.login-card h2{
   color:#111827;
+  margin-bottom:6px;
 }
 
-/* ROWS */
-.row{
-  display:flex;
-  gap:15px;
-  margin-bottom:15px;
+.subtitle{
+  color:#6b7280;
+  font-size:15px;
+  margin-bottom:25px;
 }
 
-.row input,
-.row textarea,
-.row button{
-  flex:1;
-  padding:12px;
-  border-radius:8px;
+.login-card input{
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  border-radius:10px;
   border:1px solid #cbd5e1;
-  font-size:14px;
+  font-size:15px;
 }
 
-.row input:focus,
-.row textarea:focus{
+.login-card input:focus{
   border-color:#3b82f6;
   box-shadow:0 0 6px rgba(59,130,246,0.3);
 }
 
-/* BOTH TEXTAREAS SAME SIZE */
-.bigbox{
-  min-height:160px;
+.login-card button{
   width:100%;
-  resize:vertical;
-  border:1px solid #cbd5e1;
-  border-radius:8px;
-  padding:12px;
-  font-size:14px;
-}
-
-.two-box textarea{
-  height:160px;
-}
-
-/* BUTTONS */
-.row button{
-  border:none;
+  padding:14px;
   background:#3b82f6;
   color:#fff;
-  font-weight:600;
+  border:none;
+  border-radius:10px;
   cursor:pointer;
-  transition:0.3s;
-  padding:12px 18px;
-  border-radius:8px;
+  font-size:17px;
+  font-weight:600;
+  margin-top:10px;
 }
-.row button:hover{
+
+.login-card button:hover{
   background:#2563eb;
 }
 
-/* SMALL INFO BELOW RECIPIENTS */
-.small-info{
-  font-size:13px;
-  color:#1a73e8;
-  margin-top:6px;
-  text-align:right;
-}
-
-#statusMessage{
-  font-size:13px;
+#loginStatus{
+  margin-top:10px;
   color:#ef4444;
-  margin-top:6px;
-  text-align:center;
+  font-size:14px;
 }
