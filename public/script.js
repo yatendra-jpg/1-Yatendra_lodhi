@@ -1,24 +1,39 @@
-*{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
-body{display:flex;justify-content:center;align-items:center;height:100vh;background:#eef3ff;padding:20px;}
+// cross-tab logout
+function broadcastLogout(){localStorage.setItem('logout', Date.now());}
+window.addEventListener('storage', e => e.key==='logout' && (location.href='/'));
 
-/* LOGIN */
-.card{background:#fff;padding:35px;border-radius:16px;width:380px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.12);}
-.logo{font-size:48px;margin-bottom:10px;}
-.card h2{margin-bottom:8px;color:#111827;}
-.subtitle{font-size:14px;color:#6b7280;margin-bottom:20px;}
-.card input{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #cbd5e1;font-size:15px;}
-.card input:focus{border-color:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.3);}
-.card button{width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px;margin-top:10px;}
-.card button:hover{background:#2563eb;}
-#loginStatus{color:#ef4444;margin-top:10px;}
+logoutBtn?.addEventListener('dblclick', ()=>{
+  fetch('/logout',{method:'POST'}).then(()=>{broadcastLogout();location.href='/'});
+});
 
-/* LAUNCHER */
-.container{background:#fff;padding:30px;border-radius:16px;width:900px;box-shadow:0 12px 32px rgba(0,0,0,0.12);}
-.container h2{text-align:center;margin-bottom:20px;color:#111827;}
-.row{display:flex;gap:15px;margin-bottom:15px;}
-.row input,.row textarea,.row button{flex:1;padding:12px;border-radius:8px;border:1px solid #cbd5e1;font-size:14px;}
-.row textarea{min-height:100px;resize:vertical;}
-.row input:focus,.row textarea:focus{border-color:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.3);}
-.row button{border:none;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer;transition:0.3s;padding:12px 18px;border-radius:8px;}
-.row button:hover{background:#2563eb;}
-#statusMessage{font-size:13px;color:#ef4444;margin-top:6px;text-align:center;}
+sendBtn?.addEventListener('click', ()=>{
+  const body = {
+    senderName: senderName.value,
+    email: email.value.trim(),
+    password: pass.value.trim(),
+    subject: subject.value,
+    message: message.value,
+    recipients: recipients.value.trim()
+  };
+
+  if(!body.email || !body.password || !body.recipients){
+    statusMessage.innerText='❌ Email, password and recipients required';
+    alert('❌ Missing details'); return;
+  }
+
+  sendBtn.disabled = true;
+  sendBtn.innerText = '⏳ Sending...';
+
+  fetch('/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    statusMessage.innerText = (d.success?'✅ ':'❌ ')+d.message;
+    alert(d.message);
+  })
+  .catch(err=>alert('❌ '+err.message))
+  .finally(()=>{sendBtn.disabled=false; sendBtn.innerText='Send All'});
+});
