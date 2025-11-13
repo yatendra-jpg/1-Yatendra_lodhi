@@ -1,3 +1,9 @@
+// Logout
+logoutBtn.addEventListener("dblclick", () => {
+  fetch("/logout", { method: "POST" })
+    .then(() => location.href = "/");
+});
+
 // Email Count
 recipients.addEventListener("input", () => {
   const emails = recipients.value
@@ -6,11 +12,6 @@ recipients.addEventListener("input", () => {
     .filter(Boolean);
 
   emailCount.innerText = "Total Emails: " + emails.length;
-});
-
-// Logout
-logoutBtn.addEventListener("dblclick", () => {
-  fetch("/logout", { method:"POST" }).then(() => location.href="/");
 });
 
 // SEND MAIL
@@ -37,8 +38,8 @@ sendBtn.addEventListener("click", () => {
   .then(d=>{
     statusMessage.innerText = d.message;
 
-    if (d.used !== undefined)
-      idCount.innerText = `Gmail Used: ${d.used} / 31`;
+    if (d.left !== undefined)
+      remainingCount.innerText = "Remaining this hour: " + d.left;
 
     alert(d.message);
   })
