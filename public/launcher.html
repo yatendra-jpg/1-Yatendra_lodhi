@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Bulk Mail Launcher</title>
+<title>Fast Mail Launcher</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
 
-  <h2>📧 Bulk Mail Launcher</h2>
+  <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
     <input id="senderName" placeholder="Sender Name">
@@ -22,14 +22,17 @@
   </div>
 
   <div class="row two-box">
+
     <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
 
     <div style="width:100%;">
       <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
 
+      <!-- 👇 Added exactly as required -->
       <p id="emailCount" class="small-info">Total Emails: 0</p>
       <p id="remainingCount" class="small-info">Remaining this hour: 31</p>
     </div>
+
   </div>
 
   <div class="row">
