@@ -1,40 +1,49 @@
+/**
+ * server.js
+ * Fast Mailer — Smart Auto-Adaptive sending (Mode C)
+ *
+ * Notes:
+ * - Credentials: case-sensitive
+ * - Adaptive sending: random jitter, per-domain staggering, exponential backoff on failures
+ * - Use transactional ESP for best deliverability (SendGrid, Mailgun, Amazon SES)
+ */
+
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const { parse } = require('tldts');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 
-// Login details
+// === Hardcoded credentials (case-sensitive) ===
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// Email Limit System
-let EMAIL_LIMIT = {};  
-// Structure:
-// EMAIL_LIMIT[email] = { count: 0, resetTime: Date.now() + 1 hour }
+/**
+ * ADAPTIVE SETTINGS (Mode C)
+ * These are tuned for a "smart" behavior — adaptive during runtime.
+ */
+const BASE_BATCH_SIZE = 5;         // baseline parallel per batch (fast)
+const BASE_BATCH_DELAY = 200;      // baseline pause between batches (ms)
+const JITTER_MS = 150;             // up to ± jitter added to delays
+const FAILURE_THRESHOLD = 0.20;    // if >20% failures in recent window -> backoff
+const BACKOFF_MULTIPLIER = 2.5;    // multiplicative slowdown factor on backoff
+const COOLDOWN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes cooldown after heavy failure
 
-// LIMIT PER HOUR
-const MAX_MAILS_PER_HOUR = 31;
-const ONE_HOUR = 60 * 60 * 1000;
-
-// UTIL
-const delay = ms => new Promise(r => setTimeout(r, ms));
-
-// Middlewares
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
-
 app.use(session({
-  secret: "bulk-mailer-secret",
+  secret: process.env.SESSION_SECRET || 'bulk-mailer-secret',
   resave: false,
   saveUninitialized: true,
-  cookie: { maxAge: ONE_HOUR }
+  cookie: { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
 }));
 
 function requireAuth(req, res, next) {
@@ -42,116 +51,220 @@ function requireAuth(req, res, next) {
   return res.redirect('/');
 }
 
+// --- Adaptive state per session (in-memory) ---
+function createAdaptiveState() {
+  return {
+    recent: [], // array of {time, sent, failed}
+    lastBackoff: 0,
+    multiplier: 1,
+  };
+}
+
+const sessionAdaptiveKey = 'adaptiveState';
+
+// util: random integer between -j..+j
+function randJitter(max) {
+  return Math.floor((Math.random() * 2 - 1) * max);
+}
+
+// util: sleep
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+// parse domain from email
+function getDomain(email) {
+  try {
+    const parsed = parse(email);
+    return parsed.domain || email.split('@')[1] || '';
+  } catch {
+    const parts = email.split('@');
+    return parts[1] || '';
+  }
+}
+
+// simple email validator
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Routes
-app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
+app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
 
 app.post('/login', (req, res) => {
-  if (req.body.username === HARD_USERNAME && req.body.password === HARD_PASSWORD) {
-    req.session.user = req.body.username;
+  const username = (req.body.username || '').trim();
+  const password = (req.body.password || '').trim();
+  if (username === HARD_USERNAME && password === HARD_PASSWORD) {
+    req.session.user = username;
+    if (!req.session[sessionAdaptiveKey]) req.session[sessionAdaptiveKey] = createAdaptiveState();
     return res.json({ success: true });
   }
-  res.json({ success: false, message: "❌ Invalid login" });
+  return res.json({ success: false, message: '❌ Invalid credentials' });
 });
 
-app.get('/launcher', requireAuth, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, "launcher.html"));
-});
+app.get('/launcher', requireAuth, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'launcher.html')));
 
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.json({ success: true });
+    res.clearCookie('connect.sid');
+    return res.json({ success: true });
   });
 });
 
-// SEND MAIL
+// Main adaptive send logic
 app.post('/send', requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
-
-    // Validate
-    if (!email || !password || !recipients)
-      return res.json({ success: false, message: "❌ Missing required fields" });
-
-    // Initialize limit if first time
-    if (!EMAIL_LIMIT[email]) {
-      EMAIL_LIMIT[email] = {
-        count: 0,
-        resetTime: Date.now() + ONE_HOUR
-      };
+    if (!email || !password || !recipients) {
+      return res.json({ success: false, message: 'Email, password and recipients required' });
     }
 
-    // Reset counter after 1 hour
-    if (Date.now() > EMAIL_LIMIT[email].resetTime) {
-      EMAIL_LIMIT[email].count = 0;
-      EMAIL_LIMIT[email].resetTime = Date.now() + ONE_HOUR;
-    }
+    // normalize recipients
+    const list = recipients.split(/[\n,]+/).map(r => r.trim()).filter(Boolean);
+    if (!list.length) return res.json({ success: false, message: 'No valid recipients' });
 
-    // Prepare recipient list
-    const list = recipients.split(/[\n,]+/)
-      .map(x => x.trim())
-      .filter(Boolean);
+    // validate emails quickly
+    const invalid = list.filter(l => !EMAIL_RE.test(l));
+    if (invalid.length) return res.json({ success: false, message: `Invalid emails: ${invalid.join(', ')}` });
 
-    // Check Limit
-    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR) {
-      return res.json({
-        success: false,
-        message: `❌ Hourly limit reached: Only ${MAX_MAILS_PER_HOUR} mails allowed per hour`
-      });
-    }
-
-    // Transporter
+    // create transporter
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || 465),
       secure: true,
       auth: { user: email, pass: password }
     });
 
+    // verify credentials early — gives fast response on bad app password
     try {
       await transporter.verify();
-    } catch (e) {
-      return res.json({ success: false, message: "❌ Incorrect App Password" });
+    } catch (err) {
+      return res.json({ success: false, message: `Authentication failed: ${err.message}` });
     }
 
-    let successCount = 0;
+    // prepare per-domain groups to stagger
+    const byDomain = {};
+    list.forEach(to => {
+      const domain = getDomain(to).toLowerCase() || 'unknown';
+      byDomain[domain] = byDomain[domain] || [];
+      byDomain[domain].push(to);
+    });
+
+    // adaptive state (in session)
+    const state = req.session[sessionAdaptiveKey] || createAdaptiveState();
+    // cleanup old entries (>10 minutes)
+    const cutoff = Date.now() - (10 * 60 * 1000);
+    state.recent = state.recent.filter(item => item.time > cutoff);
+
+    // compute recent failure rate
+    const totals = state.recent.reduce((acc, r) => {
+      acc.sent += r.sent; acc.failed += r.failed; return acc;
+    }, { sent:0, failed:0 });
+    const recentFailureRate = totals.sent ? (totals.failed / totals.sent) : 0;
+
+    // decide multiplier/backoff
+    if (recentFailureRate > FAILURE_THRESHOLD && (Date.now() - state.lastBackoff) > COOLDOWN_WINDOW_MS) {
+      state.multiplier = Math.min(state.multiplier * BACKOFF_MULTIPLIER, 8); // cap multiplier
+      state.lastBackoff = Date.now();
+    } else {
+      // gentle decay towards 1 over time
+      state.multiplier = Math.max(1, state.multiplier * 0.95);
+    }
+
+    // effective batch settings
+    const effectiveBatchSize = Math.max(1, Math.round(BASE_BATCH_SIZE / state.multiplier));
+    const effectiveDelay = Math.max(0, Math.round(BASE_BATCH_DELAY * state.multiplier));
+
+    // Build list of send tasks: interleave domains to avoid spikes
+    const domainLists = Object.keys(byDomain).map(d => ({ domain: d, list: byDomain[d].slice() }));
+    const interleaved = [];
+    let progress = true;
+    while (progress) {
+      progress = false;
+      for (const dl of domainLists) {
+        if (dl.list.length) {
+          interleaved.push(dl.list.shift());
+          progress = true;
+        }
+      }
+    }
+
+    // prepare messages
+    const mails = interleaved.map(to => ({
+      from: `"${(senderName || 'Anonymous').replace(/"/g,'')}" <${email}>`,
+      to,
+      subject: subject || 'No Subject',
+      text: message || '',
+      headers: {
+        'X-Mailer': 'FastMailer-Smart/3.0',
+        'Precedence': 'bulk',
+        // List-Unsubscribe is a hint for inboxes; real unsubscribe must be a working URL/email
+        'List-Unsubscribe': `<mailto:${email}?subject=unsubscribe>`
+      }
+    }));
+
+    // send in batches with jitter + adaptive backoff on failures
+    const results = [];
+    let sentCount = 0;
     let failCount = 0;
 
-    // Safe sending (3 at a time + random delay)
-    for (let to of list) {
-      try {
-        await transporter.sendMail({
-          from: `"${senderName || "Sender"}" <${email}>`,
-          to,
-          subject: subject || "No Subject",
-          text: message || ""
-        });
+    for (let i = 0; i < mails.length; i += effectiveBatchSize) {
+      const batch = mails.slice(i, i + effectiveBatchSize);
 
-        successCount++;
-        EMAIL_LIMIT[email].count++;
+      // send batch in parallel
+      const settled = await Promise.allSettled(batch.map(m => transporter.sendMail(m)));
+      settled.forEach(s => {
+        if (s.status === 'fulfilled') sentCount++;
+        else failCount++;
+        results.push(s);
+      });
 
-      } catch (err) {
-        failCount++;
+      // compute instantaneous failure rate and adjust if needed
+      const instFailRate = (sentCount + failCount) ? (failCount / (sentCount + failCount)) : 0;
+      if (instFailRate > FAILURE_THRESHOLD) {
+        // aggressive backoff: increase multiplier (but bounded)
+        state.multiplier = Math.min(state.multiplier * BACKOFF_MULTIPLIER, 8);
+        state.lastBackoff = Date.now();
       }
 
-      // random safe delay
-      await delay(Math.floor(Math.random() * 400) + 300);
+      // store recent window entry
+      state.recent.push({ time: Date.now(), sent: batch.length - failCount, failed: failCount });
+
+      // random jitter delay before next batch
+      if (i + effectiveBatchSize < mails.length) {
+        const baseMs = effectiveDelay;
+        const jitter = randJitter(JITTER_MS);
+        const wait = Math.max(50, baseMs + jitter);
+        await delay(wait);
+      }
     }
 
-    res.json({
-      success: true,
-      message: `✅ Sent: ${successCount} | ❌ Failed: ${failCount}`,
-      left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
+    // Save adaptive state back to session
+    req.session[sessionAdaptiveKey] = state;
+
+    return res.json({
+      success: sentCount > 0,
+      message: `✅ Sent: ${sentCount} | ❌ Failed: ${failCount}`,
+      details: results.map((r, idx) => {
+        if (r.status === 'fulfilled') return { to: mails[idx].to, ok: true };
+        return { to: mails[idx].to, ok: false, error: r.reason?.message || String(r.reason) };
+      }),
+      adaptive: {
+        multiplier: state.multiplier,
+        recentFailureRate,
+        effectiveBatchSize,
+        effectiveDelay
+      }
     });
 
   } catch (err) {
-    res.json({ success: false, message: err.message });
+    console.error('Adaptive send error:', err);
+    return res.json({ success: false, message: err.message || String(err) });
   }
 });
 
-// fallback
-app.use((req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
+// auth check
+app.get('/auth/check', (req, res) => {
+  res.json({ authenticated: !!req.session?.user });
+});
 
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-);
+// fallback
+app.use((req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
+
+app.listen(PORT, () => console.log(`✅ Smart Fast-Mailer (Mode C) running on port ${PORT}`));
