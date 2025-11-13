@@ -19,20 +19,6 @@
   <p id="loginStatus"></p>
 </div>
 
-<script>
-loginBtn.addEventListener("click", () => {
-  fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      username: username.value.trim(),
-      password: password.value.trim()
-    })
-  })
-  .then(r=>r.json())
-  .then(d=> d.success ? location.href="/launcher" : loginStatus.innerText = d.message);
-});
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
