@@ -9,7 +9,7 @@
 
 <div class="container">
 
-  <h2>Bulk Mail Launcher</h2>
+  <h2 class="title">📧 Bulk Mail Launcher</h2>
 
   <div class="row">
     <input id="senderName" placeholder="Sender Name">
@@ -25,29 +25,8 @@
 
     <textarea id="message" placeholder="Message Body"></textarea>
 
-    <div style="flex:1;">
+    <div class="rec-box">
       <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
 
-      <p id="emailCount" style="text-align:right;font-size:14px;color:#1a73e8;margin-top:4px;">
-        Total Emails: 0
-      </p>
-
-      <p id="idCount" style="text-align:right;font-size:14px;color:#d00;margin-top:2px;">
-        Gmail Used: 0 / 31
-      </p>
-
-    </div>
-  </div>
-
-  <div class="row">
-    <button id="sendBtn">Send All</button>
-    <button id="logoutBtn" title="Double-click to logout">Logout</button>
-  </div>
-
-  <p id="statusMessage"></p>
-
-</div>
-
-<script src="script.js"></script>
-</body>
-</html>
+      <p id="emailCount" class="count">Total Emails: 0</p>
+      <p id="remainingCount"
