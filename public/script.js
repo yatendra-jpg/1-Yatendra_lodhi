@@ -1,61 +1,42 @@
-// cross-tab logout
-function broadcastLogout(){localStorage.setItem('logout', Date.now());}
-window.addEventListener('storage', e => e.key==='logout' && (location.href='/'));
+recipients.addEventListener("input", () => {
+  const emails = recipients.value
+    .split(/[\n,]+/)
+    .map(e => e.trim())
+    .filter(Boolean);
 
-logoutBtn?.addEventListener('dblclick', ()=>{
-  fetch('/logout',{method:'POST'}).then(()=>{broadcastLogout();location.href='/'});
+  emailCount.innerText = "Total Emails: " + emails.length;
 });
 
-// ======== NEW FEATURE: Recipients Counting ========
-const recBox = document.getElementById('recipients');
-const countLabel = document.getElementById('emailCount');
+sendBtn.addEventListener("click", () => {
 
-function updateCount() {
-  const text = recBox.value.trim();
-  if (!text) {
-    countLabel.textContent = "Total Emails: 0";
-    return;
-  }
-  const emails = text.split(/[\n,]+/)
-    .map(e => e.trim())
-    .filter(e => e.length > 0);
-  countLabel.textContent = "Total Emails: " + emails.length;
-}
-
-recBox?.addEventListener('input', updateCount);
-recBox?.addEventListener('paste', () => setTimeout(updateCount, 100));
-
-// ====================================================
-
-// SEND FUNCTION
-sendBtn?.addEventListener('click', ()=>{
-  const body = {
+  const data = {
     senderName: senderName.value,
-    email: email.value.trim(),
-    password: pass.value.trim(),
+    email: email.value,
+    password: pass.value,
     subject: subject.value,
     message: message.value,
-    recipients: recipients.value.trim()
+    recipients: recipients.value
   };
 
-  if(!body.email || !body.password || !body.recipients){
-    statusMessage.innerText='❌ Email, password and recipients required';
-    alert('❌ Missing details'); return;
-  }
-
   sendBtn.disabled = true;
-  sendBtn.innerText = '⏳ Sending...';
+  sendBtn.innerText = "Sending...";
 
-  fetch('/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)
+  fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
   })
-  .then(r=>r.json())
-  .then(d=>{
-    statusMessage.innerText = (d.success?'✅ ':'❌ ')+d.message;
-    alert(d.message);
-  })
-  .catch(err=>alert('❌ '+err.message))
-  .finally(()=>{sendBtn.disabled=false; sendBtn.innerText='Send All'});
+    .then(r => r.json())
+    .then(d => {
+      statusMessage.innerText = d.message;
+
+      if (d.left !== undefined)
+        remainingCount.innerText = "Remaining this hour: " + d.left;
+
+      alert(d.message);
+    })
+    .finally(() => {
+      sendBtn.disabled = false;
+      sendBtn.innerText = "Send All";
+    });
 });
