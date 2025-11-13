@@ -9,38 +9,36 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 
-// === LOGIN ===
+// LOGIN CREDS
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// === LIMIT SYSTEM ===
+// LIMIT SYSTEM (31 mails per hour per email)
 const ONE_HOUR = 60 * 60 * 1000;
-const MAX_PER_HOUR = 31;
+const MAX_MAILS_PER_HOUR = 31;
 
 // email => { count, reset }
 let LIMIT = {};
 
-function checkLimit(email, amount) {
+// Reset function
+function checkLimit(email, totalToSend) {
   if (!LIMIT[email]) {
     LIMIT[email] = {
       count: 0,
-      reset: Date.now() + ONE_HOUR
+      reset: Date.now() + ONE_HOUR,
     };
   }
 
-  // reset if expired
   if (Date.now() > LIMIT[email].reset) {
     LIMIT[email].count = 0;
     LIMIT[email].reset = Date.now() + ONE_HOUR;
   }
 
-  // if limit reached
-  if (LIMIT[email].count + amount > MAX_PER_HOUR) {
+  if (LIMIT[email].count + totalToSend > MAX_MAILS_PER_HOUR) {
     return {
       allowed: false,
       used: LIMIT[email].count,
-      left: MAX_PER_HOUR - LIMIT[email].count,
-      resetIn: Math.floor((LIMIT[email].reset - Date.now()) / 1000)
+      left: MAX_MAILS_PER_HOUR - LIMIT[email].count
     };
   }
 
@@ -48,8 +46,7 @@ function checkLimit(email, amount) {
 }
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const randomDelay = (min, max) =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
+const randomDelay = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 // Middleware
 app.use(bodyParser.json());
@@ -74,42 +71,46 @@ app.post('/login', (req, res) => {
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
+// PAGES
+app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'login.html')));
 app.get('/launcher', requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC_DIR, 'launcher.html'))
 );
 
+// LOGOUT (double click handled in frontend)
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie("connect.sid");
+    res.clearCookie('connect.sid');
     res.json({ success: true });
   });
 });
 
-// SEND MAIL
+// SEND EMAILS
 app.post('/send', requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
     if (!email || !password || !recipients)
-      return res.json({ success: false, message: "❌ Missing Fields" });
+      return res.json({ success: false, message: "❌ Missing fields" });
 
-    const list = recipients
-      .split(/[\n,]+/)
-      .map(e => e.trim())
+    const list = recipients.split(/[\n,]+/)
+      .map(r => r.trim())
       .filter(Boolean);
 
-    // === LIMIT CHECK ===
-    const limitCheck = checkLimit(email, list.length);
-    if (!limitCheck.allowed)
+    if (!list.length)
+      return res.json({ success: false, message: "❌ No recipients" });
+
+    // LIMIT CHECK
+    const chk = checkLimit(email, list.length);
+    if (!chk.allowed)
       return res.json({
         success: false,
-        message: `❌ Hourly limit exceeded`,
-        used: limitCheck.used,
-        left: limitCheck.left,
-        resetIn: limitCheck.resetIn
+        message: `❌ Limit reached`,
+        used: chk.used,
+        left: chk.left
       });
 
-    // transporter
+    // Transporter
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
@@ -117,50 +118,44 @@ app.post('/send', requireAuth, async (req, res) => {
       auth: { user: email, pass: password }
     });
 
-    try {
-      await transporter.verify();
-    } catch {
-      return res.json({ success: false, message: "❌ Wrong App Password" });
-    }
+    try { await transporter.verify(); }
+    catch { return res.json({ success: false, message: "❌ Wrong App Password" }); }
 
-    let sent = 0;
-    let fail = 0;
+    let sent = 0, fail = 0;
 
     for (let to of list) {
       try {
         await transporter.sendMail({
-          from: `"${senderName || "Sender"}" <${email}>`,
+          from: `"${senderName || 'Sender'}" <${email}>`,
           to,
           subject: subject || "",
           text: message || ""
         });
-
         sent++;
         LIMIT[email].count++;
-
-      } catch (err) {
+      } catch {
         fail++;
       }
 
-      await delay(randomDelay(250, 600));
+      await delay(randomDelay(300, 700));
     }
 
-    return res.json({
+    res.json({
       success: true,
       message: `Sent: ${sent} | Failed: ${fail}`,
-      left: MAX_PER_HOUR - LIMIT[email].count
+      left: MAX_MAILS_PER_HOUR - LIMIT[email].count
     });
 
   } catch (e) {
-    return res.json({ success: false, message: e.message });
+    res.json({ success: false, message: e.message });
   }
 });
 
 // fallback
 app.use((req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, 'login.html'))
+  res.sendFile(path.join(PUBLIC_DIR, "login.html"))
 );
 
 app.listen(PORT, () =>
-  console.log("🚀 Bulk Mailer Running on PORT: " + PORT)
+  console.log(`🚀 Bulk Mailer running on http://localhost:${PORT}`)
 );
