@@ -1,10 +1,11 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
 body{display:flex;justify-content:center;align-items:center;height:100vh;background:#eef3ff;padding:20px;}
 .container{background:#fff;padding:30px;border-radius:16px;width:900px;box-shadow:0 12px 32px rgba(0,0,0,0.12);}
-h2{text-align:center;margin-bottom:20px;color:#111827;}
+.container h2{text-align:center;margin-bottom:20px;color:#111827;}
 .row{display:flex;gap:15px;margin-bottom:15px;}
 .row input,.row textarea,.row button{flex:1;padding:12px;border-radius:8px;border:1px solid #cbd5e1;font-size:14px;}
 .row textarea{min-height:100px;resize:vertical;}
-.row button{border:none;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer;transition:0.3s;}
+.row input:focus,.row textarea:focus{border-color:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.3);}
+.row button{border:none;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer;transition:0.3s;padding:12px 18px;border-radius:8px;}
 .row button:hover{background:#2563eb;}
-#statusMessage{text-align:center;font-size:14px;margin-top:10px;color:#e11d48;}
+#statusMessage{font-size:13px;color:#ef4444;margin-top:6px;text-align:center;}
