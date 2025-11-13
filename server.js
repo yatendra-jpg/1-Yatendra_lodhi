@@ -110,3 +110,37 @@ app.post('/send', requireAuth, async (req, res) => {
           from: `"${senderName || 'Sender'}" <${email}>`,
           to,
           subject: subject || "",
+          text: message || ""
+        });
+
+        sent++;
+        EMAIL_LIMIT[email].count++;
+
+      } catch (err) {
+        fail++;
+      }
+
+      // safe delay
+      await delay(rand(300, 700));
+    }
+
+    return res.json({
+      success:true,
+      message:`✅ Sent: ${sent} | ❌ Failed: ${fail}`,
+      used: EMAIL_LIMIT[email].count,
+      left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
+    });
+
+  } catch (e) {
+    return res.json({ success:false, message:e.message });
+  }
+});
+
+// fallback
+app.use((req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "login.html"))
+);
+
+app.listen(PORT, () =>
+  console.log(`🚀 Server running at http://localhost:${PORT}`)
+);
