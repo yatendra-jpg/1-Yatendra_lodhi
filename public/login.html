@@ -1,15 +1,37 @@
-{
-  "name": "fast-mailer",
-  "version": "4.0.1",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "express-session": "^1.17.3",
-    "body-parser": "^1.20.2",
-    "nodemailer": "^6.9.8",
-    "dotenv": "^16.3.1"
-  }
-}
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="card">
+  <h2>Login</h2>
+
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+
+  <button id="loginBtn">Login</button>
+  <p id="loginStatus"></p>
+</div>
+
+<script>
+document.getElementById("loginBtn").addEventListener("click", () => {
+  const u = username.value.trim();
+  const p = password.value.trim();
+
+  fetch("/login", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:u, password:p})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.success) location.href="/launcher";
+    else loginStatus.textContent = d.message;
+  });
+});
+</script>
+
+</body>
+</html>
