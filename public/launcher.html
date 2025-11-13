@@ -1,50 +1,47 @@
-// Count Recipients
-recipients.addEventListener("input", () => {
-  const list = recipients.value
-    .split(/[\n,]+/)
-    .map(x => x.trim())
-    .filter(Boolean);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bulk Mail Launcher</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-  emailCount.innerText = "Total Emails: " + list.length;
-});
+<div class="container">
 
-// Double Click Logout
-logoutBtn.addEventListener("dblclick", () => {
-  fetch("/logout", { method: "POST" })
-    .then(() => location.href = "/");
-});
+  <h2>📧 Bulk Mail Launcher</h2>
 
-// Send Emails
-sendBtn.addEventListener("click", () => {
+  <div class="row">
+    <input id="senderName" placeholder="Sender Name">
+    <input id="email" placeholder="Your Gmail">
+  </div>
 
-  const data = {
-    senderName: senderName.value,
-    email: email.value,
-    password: pass.value,
-    subject: subject.value,
-    message: message.value,
-    recipients: recipients.value
-  };
+  <div class="row">
+    <input id="pass" type="password" placeholder="App Password">
+    <input id="subject" placeholder="Email Subject">
+  </div>
 
-  sendBtn.disabled = true;
-  sendBtn.innerText = "Sending...";
+  <div class="row">
+    <textarea id="message" placeholder="Message Body"></textarea>
 
-  fetch("/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  })
-    .then(r => r.json())
-    .then(d => {
-      statusMessage.innerText = d.message;
+    <div style="flex:1;">
+      <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+      <p id="emailCount" style="text-align:right;color:#1a73e8;margin-top:6px;">Total Emails: 0</p>
+      <p id="remainingCount" style="text-align:right;color:#000;margin-top:2px;">Remaining this hour: 31</p>
+    </div>
+  </div>
 
-      if (d.left !== undefined)
-        remainingCount.innerText = "Remaining this hour: " + d.left;
+  <div class="row">
+    <button id="sendBtn">Send All</button>
+    <button id="logoutBtn">Logout</button>
+  </div>
 
-      alert(d.message);
-    })
-    .finally(() => {
-      sendBtn.disabled = false;
-      sendBtn.innerText = "Send All";
-    });
-});
+  <p id="statusMessage"></p>
+
+</div>
+
+<!-- RIGHT: ONLY THIS -->
+<script src="script.js"></script>
+
+</body>
+</html>
