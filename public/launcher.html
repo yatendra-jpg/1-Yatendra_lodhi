@@ -8,7 +8,6 @@
 <body>
 
 <div class="container">
-
   <h2>📧 Bulk Mail Launcher</h2>
 
   <div class="row">
@@ -18,17 +17,33 @@
 
   <div class="row">
     <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
+    <input id="subject" placeholder="Interface Flow Observed">
   </div>
 
   <div class="row">
+    
     <textarea id="message" placeholder="Message Body"></textarea>
 
     <div style="flex:1;">
       <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
-      <p id="emailCount" style="text-align:right;color:#1a73e8;margin-top:6px;">Total Emails: 0</p>
-      <p id="remainingCount" style="text-align:right;color:#000;margin-top:2px;">Remaining this hour: 31</p>
+
+      <p id="emailCount" style="
+          text-align:right;
+          color:#1a73e8;
+          margin-top:6px;
+          font-size:14px;">
+          Total Emails: 0
+      </p>
+
+      <p id="remainingCount" style="
+          text-align:right;
+          color:#333;
+          margin-top:4px;
+          font-size:14px;">
+          Remaining this hour: 31
+      </p>
     </div>
+
   </div>
 
   <div class="row">
@@ -37,11 +52,8 @@
   </div>
 
   <p id="statusMessage"></p>
-
 </div>
 
-<!-- RIGHT: ONLY THIS -->
 <script src="script.js"></script>
-
 </body>
 </html>
