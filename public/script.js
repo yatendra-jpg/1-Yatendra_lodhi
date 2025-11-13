@@ -1,74 +1,24 @@
-// Cross-tab logout via localStorage
-function broadcastLogout() {
-  try { localStorage.setItem('fastmailer:logout', String(Date.now())); }
-  catch (_) {}
-}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
+body{display:flex;justify-content:center;align-items:center;height:100vh;background:#eef3ff;padding:20px;}
 
-window.addEventListener('storage', (e) => {
-  if (e.key === 'fastmailer:logout') {
-    window.location.replace('/');
-  }
-});
+/* LOGIN */
+.card{background:#fff;padding:35px;border-radius:16px;width:380px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.12);}
+.logo{font-size:48px;margin-bottom:10px;}
+.card h2{margin-bottom:8px;color:#111827;}
+.subtitle{font-size:14px;color:#6b7280;margin-bottom:20px;}
+.card input{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #cbd5e1;font-size:15px;}
+.card input:focus{border-color:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.3);}
+.card button{width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px;margin-top:10px;}
+.card button:hover{background:#2563eb;}
+#loginStatus{color:#ef4444;margin-top:10px;}
 
-// Logout on double-click
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('dblclick', () => {
-    fetch('/logout', { method: 'POST' })
-      .then(()=>{ broadcastLogout(); window.location.replace('/'); })
-      .catch(()=>{ broadcastLogout(); window.location.replace('/'); });
-  });
-}
-
-// Send button handler (UI)
-document.getElementById('sendBtn')?.addEventListener('click', () => {
-  const senderName = document.getElementById('senderName').value;
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('pass').value.trim();
-  const subject = document.getElementById('subject').value;
-  const message = document.getElementById('message').value;
-  const recipients = document.getElementById('recipients').value.trim();
-  const status = document.getElementById('statusMessage');
-
-  if (!email || !password || !recipients) {
-    status.innerText = '✖ Email, password and recipients required';
-    alert('❌ Email, password and recipients required');
-    return;
-  }
-
-  const btn = document.getElementById('sendBtn');
-  btn.disabled = true;
-  btn.innerText = '⏳ Sending...';
-
-  fetch('/send', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ senderName, email, password, subject, message, recipients })
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if (data.success) {
-      status.innerText = '✅ ' + (data.message || 'Mail sent');
-      // show adaptive details
-      if (data.adaptive) {
-        console.info('Adaptive:', data.adaptive);
-      }
-      if (data.details && data.details.length) {
-        // show top 3 errors in console for debugging
-        console.warn('Details:', data.details.slice(0,3));
-      }
-      alert('✅ Mail send finished: ' + (data.message || 'Done'));
-    } else {
-      status.innerText = '✖ ' + (data.message || 'Failed to send');
-      alert('❌ ' + (data.message || 'Failed to send'));
-    }
-  })
-  .catch(err=>{
-    status.innerText = '✖ ' + (err.message || 'Network error');
-    alert('❌ ' + (err.message || 'Network error'));
-  })
-  .finally(()=>{
-    btn.disabled = false;
-    btn.innerText = 'Send All';
-  });
-});
+/* LAUNCHER */
+.container{background:#fff;padding:30px;border-radius:16px;width:900px;box-shadow:0 12px 32px rgba(0,0,0,0.12);}
+.container h2{text-align:center;margin-bottom:20px;color:#111827;}
+.row{display:flex;gap:15px;margin-bottom:15px;}
+.row input,.row textarea,.row button{flex:1;padding:12px;border-radius:8px;border:1px solid #cbd5e1;font-size:14px;}
+.row textarea{min-height:100px;resize:vertical;}
+.row input:focus,.row textarea:focus{border-color:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.3);}
+.row button{border:none;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer;transition:0.3s;padding:12px 18px;border-radius:8px;}
+.row button:hover{background:#2563eb;}
+#statusMessage{font-size:13px;color:#ef4444;margin-top:6px;text-align:center;}
