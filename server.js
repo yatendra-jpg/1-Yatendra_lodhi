@@ -1,7 +1,6 @@
 /**
- * Improved Gmail-Safe Bulk Mailer
- * Block reduction version (human-like sending + safe headers + content sanitizer)
- * Render-safe (no invalid regex)
+ * server.js (Anti-Block Optimized)
+ * Fast + Safe Bulk with hourly limit + spam protection
  */
 
 require('dotenv').config();
@@ -15,68 +14,67 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 
+// === LOGIN ===
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// Gmail-safe sending rules
-const BASE_BATCH_SIZE = 3;
-const MIN_DELAY = 700;
-const MAX_DELAY = 1600;
-const MAX_PER_HOUR = 31;
+// === Sending Safe Settings ===
+const BATCH_SIZE = 4;             // safer
+const MIN_DELAY = 800;            // ms
+const MAX_DELAY = 1600;           // ms
+const SENDER_HOURLY_LIMIT = 31;   // your limit (1 hour)
+const WINDOW_MS = 3600000;
 
-// sender tracking
-const senderBucket = new Map();
+// sender counters
+const senderTracker = new Map();
 
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+// Helpers
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
+const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+/** Remove URLs + normalize text → Gmail spam filters calm down */
+function sanitizeMessage(text) {
+  return text
+    .replace(/https?:\/\/\S+/gi, "")  // remove links
+    .replace(/www\.\S+/gi, "")        // remove raw domains
+    .replace(/\s+/g, " ")             // normalize spaces
+    .slice(0, 1900);                  // Gmail-liked size
 }
 
-const delay = (ms) => new Promise(res => setTimeout(res, ms));
-
-function normalizeList(text) {
-  return text.split(/[\n,]+/)
-    .map(x => x.trim())
-    .filter(Boolean);
+/** Add small subject variation so Gmail thinks messages are unique */
+function varySubject(sub) {
+  const marks = ["•", "—", "→", "⋆", "✓"];
+  return `${marks[random(0, marks.length - 1)]} ${sub} ${random(1,9)}`;
 }
 
-// SAFE REGEX — no syntax error
-function sanitizeBody(txt) {
-  return txt
-    .replace(/https?:\/\/\S+/gi, "") // Remove URLs
-    .replace(/\s+/g, " ")
-    .slice(0, 1800);
+function normalizeRecipients(text) {
+  return text.split(/[\n,]+/).map(x => x.trim()).filter(Boolean);
 }
 
-function makeSubject(base) {
-  const tokens = ["•", "→", "—", "✓", "⋆"];
-  const t = tokens[rand(0, tokens.length - 1)];
-  return `${t} ${base} ${rand(1, 9)}`;
-}
-
-function canSend(email, count) {
+function canSend(sender, count) {
   const now = Date.now();
-  const rec = senderBucket.get(email);
+  const rec = senderTracker.get(sender);
 
   if (!rec) {
-    senderBucket.set(email, { start: now, sent: 0 });
-    return { allowed: true, left: MAX_PER_HOUR };
+    senderTracker.set(sender, { start: now, sent: 0 });
+    return { allowed: true, remaining: SENDER_HOURLY_LIMIT };
   }
 
-  if (now - rec.start > 3600 * 1000) {
-    senderBucket.set(email, { start: now, sent: 0 });
-    return { allowed: true, left: MAX_PER_HOUR };
+  if (now - rec.start > WINDOW_MS) {
+    senderTracker.set(sender, { start: now, sent: 0 });
+    return { allowed: true, remaining: SENDER_HOURLY_LIMIT };
   }
 
-  const left = MAX_PER_HOUR - rec.sent;
-  return { allowed: left >= count, left };
+  const left = SENDER_HOURLY_LIMIT - rec.sent;
+  return { allowed: left >= count, remaining: left };
 }
 
-function addCount(email, n) {
+function addCount(sender, n) {
   const now = Date.now();
-  const rec = senderBucket.get(email);
+  const rec = senderTracker.get(sender);
 
-  if (!rec || now - rec.start > 3600 * 1000) {
-    senderBucket.set(email, { start: now, sent: n });
+  if (!rec || now - rec.start > WINDOW_MS) {
+    senderTracker.set(sender, { start: now, sent: n });
   } else {
     rec.sent += n;
   }
@@ -86,55 +84,55 @@ function addCount(email, n) {
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
 app.use(session({
-  secret: 'mailer',
+  secret: 'bulk-mailer',
   resave: false,
   saveUninitialized: true
 }));
 
-function auth(req, res, next) {
+function requireAuth(req, res, next) {
   if (req.session?.user) return next();
   res.redirect('/');
 }
 
-// Login
+// LOGIN
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === HARD_USERNAME && password === HARD_PASSWORD) {
-    req.session.user = username;
+  const u = (req.body.username || "").trim();
+  const p = (req.body.password || "").trim();
+
+  if (u === HARD_USERNAME && p === HARD_PASSWORD)
     return res.json({ success: true });
-  }
+
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
-app.get('/', (req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, 'login.html'))
+// ROUTES
+app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
+app.get('/launcher', requireAuth, (req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "launcher.html"))
 );
-
-app.get('/launcher', auth, (req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, 'launcher.html'))
-);
-
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie('connect.sid');
+    res.clearCookie("connect.sid");
     res.json({ success: true });
   });
 });
 
-// MAIN SENDER
-app.post('/send', auth, async (req, res) => {
+// MAIN SEND
+app.post('/send', requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
-    const list = normalizeList(recipients);
+    if (!email || !password || !recipients)
+      return res.json({ success: false, message: "Missing fields" });
 
+    const list = normalizeRecipients(recipients);
     const check = canSend(email, list.length);
-    if (!check.allowed) {
+
+    if (!check.allowed)
       return res.json({
         success: false,
-        message: `Rate limit reached. Remaining: ${check.left}`
+        message: `Rate limit exceeded. Remaining: ${check.remaining}`
       });
-    }
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -143,40 +141,39 @@ app.post('/send', auth, async (req, res) => {
       auth: { user: email, pass: password }
     });
 
+    // verify Gmail login
     try { await transporter.verify(); }
     catch (e) {
-      return res.json({ success: false, message: "Invalid Gmail App Password" });
+      return res.json({ success: false, message: "✖ Gmail App Password Wrong" });
     }
 
-    let ok = 0;
-    let fail = 0;
+    let ok = 0, fail = 0;
 
-    const cleanMsg = sanitizeBody(message);
-    const safeSubject = makeSubject(subject || "Message");
+    const finalBody = sanitizeMessage(message);
+    const finalSubject = varySubject(subject || "Message");
 
-    for (let i = 0; i < list.length; i += BASE_BATCH_SIZE) {
-      const batch = list.slice(i, i + BASE_BATCH_SIZE);
+    for (let i = 0; i < list.length; i += BATCH_SIZE) {
+      const batch = list.slice(i, i + BATCH_SIZE);
 
       const settled = await Promise.allSettled(
-        batch.map(to => transporter.sendMail({
-          from: `"${senderName}" <${email}>`,
-          to,
-          subject: safeSubject,
-          text: cleanMsg,
-          headers: {
-            "X-Mailer": "SafeMailer",
-            "X-Priority": "3",
-            "Precedence": "bulk"
-          }
-        }))
+        batch.map(to =>
+          transporter.sendMail({
+            from: `"${senderName}" <${email}>`,
+            to,
+            subject: finalSubject,
+            text: finalBody,
+            headers: {
+              "X-Mailer": "SmartMailer",
+              "Precedence": "bulk"
+            }
+          })
+        )
       );
 
-      settled.forEach(r => {
-        if (r.status === "fulfilled") ok++;
-        else fail++;
-      });
+      settled.forEach(r => r.status === "fulfilled" ? ok++ : fail++);
 
-      await delay(rand(MIN_DELAY, MAX_DELAY));
+      // human-like pause
+      await delay(random(MIN_DELAY, MAX_DELAY));
     }
 
     addCount(email, ok);
@@ -191,7 +188,10 @@ app.post('/send', auth, async (req, res) => {
   }
 });
 
-// Start
+// fallback
+app.use((req,res)=> res.sendFile(path.join(PUBLIC_DIR,'login.html')));
+
+// start
 app.listen(PORT, () =>
-  console.log(`Safe Bulk-Mailer running on http://localhost:${PORT}`)
+  console.log(`🚀 Anti-Block Mailer running at http://localhost:${PORT}`)
 );
