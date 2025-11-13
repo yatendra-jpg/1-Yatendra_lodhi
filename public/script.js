@@ -1,20 +1,16 @@
-function broadcastLogout(){localStorage.setItem('logout', Date.now());}
-window.addEventListener('storage', e=>e.key==='logout' && location.href='/');
-
-logoutBtn?.addEventListener('dblclick', ()=>{
-  fetch('/logout',{method:"POST"}).then(()=>{
-    broadcastLogout();
-    location.href='/';
-  });
+// LOGOUT
+logoutBtn.addEventListener("dblclick", ()=>{
+  fetch("/logout",{method:"POST"})
+    .then(()=>location.href="/");
 });
 
-// Count emails
+// COUNTING
 recipients.addEventListener("input", ()=>{
   const list = recipients.value.split(/[\n,]+/).map(a=>a.trim()).filter(Boolean);
   emailCount.textContent = "Total Emails: " + list.length;
 });
 
-// Send
+// SEND
 sendBtn.addEventListener("click", ()=>{
   const body = {
     senderName: senderName.value,
@@ -23,16 +19,11 @@ sendBtn.addEventListener("click", ()=>{
     subject: subject.value,
     message: message.value,
     recipients: recipients.value.trim(),
-    htmlMode: document.getElementById("htmlMode").checked
+    htmlMode: htmlMode.checked
   };
 
-  if(!body.email || !body.password || !body.recipients){
-    alert("Missing details");
-    return;
-  }
-
   sendBtn.disabled = true;
-  sendBtn.innerHTML = "⏳ Sending...";
+  sendBtn.textContent = "Sending...";
 
   fetch("/send", {
     method:"POST",
@@ -41,11 +32,11 @@ sendBtn.addEventListener("click", ()=>{
   })
   .then(r=>r.json())
   .then(d=>{
-    alert(d.message);
     statusMessage.textContent = d.message;
+    alert(d.message);
   })
   .finally(()=>{
     sendBtn.disabled = false;
-    sendBtn.innerHTML = "Send All";
+    sendBtn.textContent = "Send All";
   });
 });
