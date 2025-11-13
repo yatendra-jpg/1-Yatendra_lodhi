@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Login — Bulk Mailer</title>
+<title>Login — Fast Mailer</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="card">
-  <div class="logo">📧</div>
-  <h2>Welcome Back</h2>
-  <p class="subtitle">Login to continue</p>
+  <h2>Bulk Mailer Login</h2>
 
   <input id="username" placeholder="">
   <input id="password" type="password" placeholder="">
@@ -19,18 +17,18 @@
 </div>
 
 <script>
-document.getElementById('loginBtn').addEventListener('click', () => {
-  const u = username.value.trim();
-  const p = password.value.trim();
-
-  fetch('/login', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:u,password:p})
+loginBtn.onclick = () => {
+  fetch("/login", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      username:username.value.trim(),
+      password:password.value.trim()
+    })
   })
   .then(r=>r.json())
-  .then(d=> d.success ? location.href='/launcher' : loginStatus.innerText = d.message);
-});
+  .then(d=> d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
+};
 </script>
 </body>
 </html>
