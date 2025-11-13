@@ -1,39 +1,49 @@
-// cross-tab logout
-function broadcastLogout(){localStorage.setItem('logout', Date.now());}
-window.addEventListener('storage', e => e.key==='logout' && (location.href='/'));
+// Email Count
+recipients.addEventListener("input", () => {
+  const emails = recipients.value
+    .split(/[\n,]+/)
+    .map(e => e.trim())
+    .filter(Boolean);
 
-logoutBtn?.addEventListener('dblclick', ()=>{
-  fetch('/logout',{method:'POST'}).then(()=>{broadcastLogout();location.href='/'});
+  emailCount.innerText = "Total Emails: " + emails.length;
 });
 
-sendBtn?.addEventListener('click', ()=>{
-  const body = {
+// Logout
+logoutBtn.addEventListener("dblclick", () => {
+  fetch("/logout", { method:"POST" }).then(() => location.href="/");
+});
+
+// SEND MAIL
+sendBtn.addEventListener("click", () => {
+
+  const data = {
     senderName: senderName.value,
-    email: email.value.trim(),
-    password: pass.value.trim(),
+    email: email.value,
+    password: pass.value,
     subject: subject.value,
     message: message.value,
-    recipients: recipients.value.trim()
+    recipients: recipients.value
   };
 
-  if(!body.email || !body.password || !body.recipients){
-    statusMessage.innerText='❌ Email, password and recipients required';
-    alert('❌ Missing details'); return;
-  }
-
   sendBtn.disabled = true;
-  sendBtn.innerText = '⏳ Sending...';
+  sendBtn.innerText = "Sending...";
 
-  fetch('/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)
+  fetch("/send", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
   })
   .then(r=>r.json())
   .then(d=>{
-    statusMessage.innerText = (d.success?'✅ ':'❌ ')+d.message;
+    statusMessage.innerText = d.message;
+
+    if (d.used !== undefined)
+      idCount.innerText = `Gmail Used: ${d.used} / 31`;
+
     alert(d.message);
   })
-  .catch(err=>alert('❌ '+err.message))
-  .finally(()=>{sendBtn.disabled=false; sendBtn.innerText='Send All'});
+  .finally(()=>{
+    sendBtn.disabled = false;
+    sendBtn.innerText = "Send All";
+  });
 });
