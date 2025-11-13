@@ -7,12 +7,8 @@
 </head>
 <body>
 
-<div class="login-container">
-
-  <div class="login-card">
-
+<div class="login-card">
     <div class="login-logo">📧</div>
-
     <h2>Welcome Back</h2>
     <p class="subtitle">Login to continue</p>
 
@@ -20,34 +16,24 @@
     <input id="password" type="password" placeholder="Password">
 
     <button id="loginBtn">Login</button>
-
     <p id="loginStatus"></p>
-
-  </div>
-
 </div>
 
 <script>
 document.getElementById('loginBtn').addEventListener('click', () => {
-  const u = username.value.trim();
-  const p = password.value.trim();
-
-  fetch('/login', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:u,password:p})
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.success) {
-      window.location.href = "/launcher";
-    } else {
-      loginStatus.innerText = data.message;
-    }
-  })
-  .catch(err => {
-    loginStatus.innerText = "Network error!";
-  });
+    fetch('/login', {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            username: username.value.trim(),
+            password: password.value.trim()
+        })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        if(d.success) location.href="/launcher";
+        else loginStatus.innerText=d.message;
+    });
 });
 </script>
 
