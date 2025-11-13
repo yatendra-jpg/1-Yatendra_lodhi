@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <title>Bulk Mail Launcher</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div class="container">
 
   <h2>Bulk Mail Launcher</h2>
@@ -17,45 +17,30 @@
 
   <div class="row">
     <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Subject">
+    <input id="subject" placeholder="Email Subject">
   </div>
 
-  <div class="row big-row">
+  <div class="row">
+    <textarea id="message" placeholder="Message Body"></textarea>
 
-    <!-- MESSAGE / TEMPLATE BOX -->
-    <div class="box-col">
-      <textarea id="message" class="big-box" placeholder="Write Plain or HTML"></textarea>
+    <div style="flex:1;">
+      <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
 
-      <!-- COLOR PICKER -->
-      <div class="color-row">
-        <label>Select Color: </label>
-        <input type="color" id="colorPicker">
-        <button id="addColorBtn">Insert Color Code</button>
-      </div>
+      <p id="emailCount"
+         style="text-align:right;font-size:14px;color:#2563eb;margin-top:5px;">
+         Total Emails: 0
+      </p>
     </div>
-
-    <!-- RECIPIENTS BOX (MATCHING STYLE) -->
-    <div class="box-col">
-      <textarea id="recipients" class="big-box" placeholder="Bulk Email IDs (comma or newline)"></textarea>
-      <p id="emailCount">Total Emails: 0</p>
-    </div>
-
   </div>
 
   <div class="row">
     <button id="sendBtn">Send All</button>
-    <button id="logoutBtn">Logout</button>
+    <button id="logoutBtn" title="Double-click logout">Logout</button>
   </div>
 
-  <label class="html-label">
-    <input type="checkbox" id="htmlMode">
-    Enable HTML Email
-  </label>
-
   <p id="statusMessage"></p>
+
 </div>
-
 <script src="script.js"></script>
-
 </body>
 </html>
