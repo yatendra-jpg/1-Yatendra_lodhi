@@ -2,50 +2,52 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Login — Bulk Mailer</title>
+<title>Login — Fast Mail Launcher</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="card">
+<div class="login-container">
 
-  <div class="logo">📧</div>
+  <div class="login-card">
 
-  <h2>Welcome Back</h2>
-  <p class="subtitle">Login to continue</p>
+    <div class="login-logo">📧</div>
 
-  <input id="username" placeholder="" autocomplete="off">
-  <input id="password" type="password" placeholder="" autocomplete="off">
+    <h2>Welcome Back</h2>
+    <p class="subtitle">Login to continue</p>
 
-  <button id="loginBtn">Login</button>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
 
-  <p id="loginStatus"></p>
+    <button id="loginBtn">Login</button>
+
+    <p id="loginStatus"></p>
+
+  </div>
 
 </div>
 
 <script>
-document.getElementById("loginBtn").addEventListener("click", () => {
-  
+document.getElementById('loginBtn').addEventListener('click', () => {
   const u = username.value.trim();
   const p = password.value.trim();
 
-  fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: u, password: p })
+  fetch('/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:u,password:p})
   })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) {
-        window.location.href = "/launcher";
-      } else {
-        loginStatus.innerText = d.message;
-      }
-    })
-    .catch(() => {
-      loginStatus.innerText = "❌ Network error";
-    });
-
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      window.location.href = "/launcher";
+    } else {
+      loginStatus.innerText = data.message;
+    }
+  })
+  .catch(err => {
+    loginStatus.innerText = "Network error!";
+  });
 });
 </script>
 
