@@ -1,64 +1,43 @@
-// Login
-document.getElementById("loginBtn")?.addEventListener("click", () => {
-  fetch("/login", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      username: username.value.trim(),
-      password: password.value.trim()
-    })
-  })
-  .then(r=>r.json())
-  .then(d=> d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
-});
-
-// Count Recipients
-recipients?.addEventListener("input", () => {
-  const list = recipients.value.split(/[\n,]+/)
-    .map(x => x.trim())
-    .filter(Boolean);
-
+// Count emails live
+recipients.addEventListener("input", () => {
+  const list = recipients.value.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
   emailCount.innerText = "Total Emails: " + list.length;
 });
 
-// Double-click Logout
-logoutBtn?.addEventListener("dblclick", () => {
-  fetch("/logout",{method:"POST"})
-    .then(() => location.href="/");
-});
+// Double-click logout
+logoutBtn.ondblclick = () => {
+  fetch("/logout", { method: "POST" })
+    .then(() => location.href = "/");
+};
 
-// SEND MAIL (Frontend safe UI)
-sendBtn?.addEventListener("click", () => {
-
-  const body = {
+// Send
+sendBtn.onclick = () => {
+  const data = {
     senderName: senderName.value,
     email: email.value.trim(),
     password: pass.value.trim(),
     subject: subject.value,
-    message: message.value + "\n\n📩 Secured",
-    recipients: recipients.value.trim()
+    message: message.value,
+    recipients: recipients.value
   };
-
-  if(!body.email || !body.password || !body.recipients){
-    alert("❌ Missing fields");
-    return;
-  }
 
   sendBtn.disabled = true;
   sendBtn.innerText = "⏳ Sending...";
 
   fetch("/send", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(body)
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
   })
-  .then(r=>r.json())
-  .then(d=>{
+  .then(r => r.json())
+  .then(d => {
     statusMessage.innerText = d.message;
-    alert("✅ Mail Sent Successfully!");
+    remainCount.innerText = "Remaining this hour: " + d.left;
+
+    alert("✅ " + d.message);
   })
-  .finally(()=>{
+  .finally(() => {
     sendBtn.disabled = false;
     sendBtn.innerText = "Send All";
   });
-});
+};
