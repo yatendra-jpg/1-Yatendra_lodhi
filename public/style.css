@@ -1,71 +1,20 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
-body{
-  display:flex;justify-content:center;align-items:flex-start;
-  min-height:100vh;background:#eef3ff;padding:40px;
-}
-
-.container{
-  background:#fff;width:90%;max-width:1100px;
-  padding:40px;border-radius:20px;
-  box-shadow:0 12px 32px rgba(0,0,0,0.12);
-}
-
-.title{
-  text-align:center;margin-bottom:25px;
-  font-size:32px;color:#111827;
-  font-weight:600;
-}
-
-.row{
-  display:flex;gap:20px;margin-bottom:20px;
-}
-
-.row input,
-.row textarea{
-  flex:1;padding:14px;
-  border-radius:10px;border:1px solid #d0d7e2;
-  font-size:15px;
-}
-
-textarea{
-  min-height:170px;resize:vertical;
-}
-
-.row input:focus,
-.row textarea:focus{
-  border-color:#3b82f6;
-  box-shadow:0 0 6px rgba(59,130,246,0.3);
-}
-
-.rec-box{
-  flex:1;display:flex;flex-direction:column;
-}
-
-.count{
-  text-align:right;margin-top:6px;
-  font-size:14px;color:#1a73e8;
-}
-
-.remain{
-  text-align:right;margin-top:3px;
-  font-size:14px;color:#333;
-}
-
-.btn-row{
-  display:flex;justify-content:center;gap:25px;margin-top:20px;
-}
-
-.btn-row button{
-  flex:0 0 260px;
-  padding:14px;border:none;
-  background:#3b82f6;color:#fff;font-weight:600;
-  border-radius:10px;font-size:18px;
-  cursor:pointer;transition:0.3s;
-}
-
-.btn-row button:hover{ background:#2563eb; }
-
-#statusMessage{
-  margin-top:15px;text-align:center;
-  font-size:15px;color:#d00;font-weight:500;
-}
+body{display:flex;justify-content:center;align-items:center;height:100vh;background:#eef3ff;padding:20px;}
+.card{background:#fff;padding:35px;border-radius:16px;width:380px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.12);}
+.logo{font-size:48px;margin-bottom:10px;}
+.card h2{margin-bottom:8px;color:#111827;}
+.subtitle{font-size:14px;color:#6b7280;margin-bottom:20px;}
+.card input{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #cbd5e1;font-size:15px;}
+.card input:focus{border-color:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.3);}
+.card button{width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px;margin-top:10px;}
+.card button:hover{background:#2563eb;}
+#loginStatus{color:#ef4444;margin-top:10px;}
+.container{background:#fff;padding:30px;border-radius:16px;width:900px;box-shadow:0 12px 32px rgba(0,0,0,0.12);}
+.container h2{text-align:center;margin-bottom:20px;color:#111827;}
+.row{display:flex;gap:15px;margin-bottom:15px;}
+.row input,.row textarea,.row button{flex:1;padding:12px;border-radius:8px;border:1px solid #cbd5e1;font-size:14px;}
+.row textarea{min-height:100px;resize:vertical;}
+.row input:focus,.row textarea:focus{border-color:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.3);}
+.row button{border:none;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer;transition:0.3s;padding:12px 18px;border-radius:8px;}
+.row button:hover{background:#2563eb;}
+#statusMessage{font-size:13px;color:#ef4444;margin-top:6px;text-align:center;}
