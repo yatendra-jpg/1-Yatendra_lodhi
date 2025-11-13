@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Launcher</title>
+<title>Bulk Mail Launcher</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
+
   <h2>Bulk Mail Launcher</h2>
 
   <div class="row">
@@ -16,16 +17,29 @@
 
   <div class="row">
     <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Subject (Exact, No Symbols Added)">
+    <input id="subject" placeholder="Subject">
   </div>
 
-  <div class="row">
-    <textarea id="message" placeholder="Write Plain or HTML"></textarea>
+  <div class="row big-row">
 
-    <div style="flex:1;">
-      <textarea id="recipients" placeholder="Recipients"></textarea>
+    <!-- MESSAGE / TEMPLATE BOX -->
+    <div class="box-col">
+      <textarea id="message" class="big-box" placeholder="Write Plain or HTML"></textarea>
+
+      <!-- COLOR PICKER -->
+      <div class="color-row">
+        <label>Select Color: </label>
+        <input type="color" id="colorPicker">
+        <button id="addColorBtn">Insert Color Code</button>
+      </div>
+    </div>
+
+    <!-- RECIPIENTS BOX (MATCHING STYLE) -->
+    <div class="box-col">
+      <textarea id="recipients" class="big-box" placeholder="Bulk Email IDs (comma or newline)"></textarea>
       <p id="emailCount">Total Emails: 0</p>
     </div>
+
   </div>
 
   <div class="row">
@@ -33,8 +47,9 @@
     <button id="logoutBtn">Logout</button>
   </div>
 
-  <label>
-    <input type="checkbox" id="htmlMode"> Enable HTML Email
+  <label class="html-label">
+    <input type="checkbox" id="htmlMode">
+    Enable HTML Email
   </label>
 
   <p id="statusMessage"></p>
