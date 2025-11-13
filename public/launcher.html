@@ -8,7 +8,6 @@
 <body>
 
 <div class="container">
-
   <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
@@ -21,29 +20,26 @@
     <input id="subject" placeholder="Email Subject">
   </div>
 
-  <div class="row landscape-row">
-
+  <div class="row">
     <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
 
     <div class="recipient-box">
       <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
-
-      <p id="emailCount" class="small-info">Total Emails: 0</p>
-      <p id="remainingCount" class="small-info">Remaining this hour: 31</p>
+      <p class="small-info">
+        Total Emails: <span id="emailCount">0</span><br>
+        Remaining this hour: <span id="remainingCount">31</span>
+      </p>
     </div>
-
   </div>
 
   <div class="row">
     <button id="sendBtn">Send All</button>
-    <button id="logoutBtn" title="Double-click to logout">Logout</button>
+    <button id="logoutBtn">Logout</button>
   </div>
 
   <p id="statusMessage"></p>
-
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
