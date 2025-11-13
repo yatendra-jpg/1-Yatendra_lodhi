@@ -6,31 +6,48 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <div class="card">
+
   <div class="logo">📧</div>
+
   <h2>Welcome Back</h2>
   <p class="subtitle">Login to continue</p>
 
-  <input id="username" placeholder="">
-  <input id="password" type="password" placeholder="">
+  <input id="username" placeholder="" autocomplete="off">
+  <input id="password" type="password" placeholder="" autocomplete="off">
 
   <button id="loginBtn">Login</button>
+
   <p id="loginStatus"></p>
+
 </div>
 
 <script>
-document.getElementById('loginBtn').addEventListener('click', () => {
+document.getElementById("loginBtn").addEventListener("click", () => {
+  
   const u = username.value.trim();
   const p = password.value.trim();
 
-  fetch('/login', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:u,password:p})
+  fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: u, password: p })
   })
-  .then(r=>r.json())
-  .then(d=> d.success ? location.href='/launcher' : loginStatus.innerText = d.message);
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        window.location.href = "/launcher";
+      } else {
+        loginStatus.innerText = d.message;
+      }
+    })
+    .catch(() => {
+      loginStatus.innerText = "❌ Network error";
+    });
+
 });
 </script>
+
 </body>
 </html>
