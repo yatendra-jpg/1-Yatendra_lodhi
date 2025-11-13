@@ -1,4 +1,4 @@
-// Count Recipients
+// Count recipients live
 recipients.addEventListener("input", () => {
   const list = recipients.value
     .split(/[\n,]+/)
@@ -8,7 +8,7 @@ recipients.addEventListener("input", () => {
   emailCount.innerText = "Total Emails: " + list.length;
 });
 
-// Double Click Logout
+// Logout (double-click)
 logoutBtn.addEventListener("dblclick", () => {
   fetch("/logout", { method: "POST" })
     .then(() => location.href = "/");
@@ -19,15 +19,21 @@ sendBtn.addEventListener("click", () => {
 
   const data = {
     senderName: senderName.value,
-    email: email.value,
-    password: pass.value,
+    email: email.value.trim(),
+    password: pass.value.trim(),
     subject: subject.value,
     message: message.value,
-    recipients: recipients.value
+    recipients: recipients.value.trim()
   };
 
+  if (!data.email || !data.password || !data.recipients) {
+    statusMessage.innerText = "❌ Email, password and recipients required";
+    alert("❌ Missing details");
+    return;
+  }
+
   sendBtn.disabled = true;
-  sendBtn.innerText = "Sending...";
+  sendBtn.innerHTML = "⏳ Sending...";
 
   fetch("/send", {
     method: "POST",
