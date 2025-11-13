@@ -1,6 +1,14 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
-body{display:flex;justify-content:center;align-items:center;height:100vh;background:#eef3ff;padding:20px;}
+body{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  background:#eef3ff;
+  padding:20px;
+}
 
+/* MAIN CONTAINER */
 .container{
   background:#fff;
   padding:30px;
@@ -8,13 +16,13 @@ body{display:flex;justify-content:center;align-items:center;height:100vh;backgro
   width:900px;
   box-shadow:0 12px 32px rgba(0,0,0,0.12);
 }
-
 .container h2{
   text-align:center;
   margin-bottom:20px;
   color:#111827;
 }
 
+/* ROWS */
 .row{
   display:flex;
   gap:15px;
@@ -37,7 +45,7 @@ body{display:flex;justify-content:center;align-items:center;height:100vh;backgro
   box-shadow:0 0 6px rgba(59,130,246,0.3);
 }
 
-/* --- SAME SIZE Boxes --- */
+/* BOTH TEXTAREAS SAME SIZE */
 .bigbox{
   min-height:160px;
   width:100%;
@@ -52,7 +60,7 @@ body{display:flex;justify-content:center;align-items:center;height:100vh;backgro
   height:160px;
 }
 
-/* --- Buttons --- */
+/* BUTTONS */
 .row button{
   border:none;
   background:#3b82f6;
@@ -63,11 +71,11 @@ body{display:flex;justify-content:center;align-items:center;height:100vh;backgro
   padding:12px 18px;
   border-radius:8px;
 }
-
 .row button:hover{
   background:#2563eb;
 }
 
+/* SMALL INFO BELOW RECIPIENTS */
 .small-info{
   font-size:13px;
   color:#1a73e8;
