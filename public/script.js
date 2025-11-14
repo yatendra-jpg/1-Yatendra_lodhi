@@ -1,41 +1,99 @@
-// LOGIN
-document.getElementById("loginBtn")?.addEventListener("click", () => {
+/* ---------------- LOGIN ---------------- */
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const sendBtn = document.getElementById("sendBtn");
+const recipientsBox = document.getElementById("recipients");
+
+/* LOGIN */
+loginBtn?.addEventListener("click", () => {
   const u = username.value.trim();
   const p = password.value.trim();
 
   if (!u || !p) {
-    loginStatus.innerText = "❌ Username & password required";
+    loginStatus.innerText = "❌ Username & Password required";
     return;
   }
 
-  // Frontend only
-  alert("⚠ Backend not available.\nThis is UI only.");
+  fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: u, password: p })
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        location.href = "/launcher";
+      } else {
+        loginStatus.innerText = d.message;
+      }
+    })
+    .catch(() => {
+      loginStatus.innerText = "❌ Server error";
+    });
 });
 
-// COUNT RECIPIENTS
-document.getElementById("recipients")?.addEventListener("input", () => {
-  const list = recipients.value
+/* ---------------- LOGOUT ---------------- */
+logoutBtn?.addEventListener("dblclick", () => {
+  fetch("/logout", { method: "POST" })
+    .then(() => {
+      location.href = "/";
+    });
+});
+
+/* ---------------- COUNT RECIPIENTS ---------------- */
+recipientsBox?.addEventListener("input", () => {
+  const list = recipientsBox.value
     .split(/[\n,]+/)
-    .map(x => x.trim())
+    .map(e => e.trim())
     .filter(Boolean);
 
-  emailCount.innerText = "Total Emails: " + list.length;
+  document.getElementById("emailCount").innerText =
+    "Total Emails: " + list.length;
 });
 
-// LOGOUT
-document.getElementById("logoutBtn")?.addEventListener("dblclick", () => {
-  alert("Logged out (UI only)");
-  location.href = "login.html";
-});
+/* ---------------- SEND MAILS ---------------- */
+sendBtn?.addEventListener("click", () => {
+  const data = {
+    senderName: senderName.value,
+    email: email.value.trim(),
+    password: pass.value.trim(),
+    subject: subject.value,
+    message: message.value,
+    recipients: recipients.value.trim()
+  };
 
-// SEND BUTTON (UI ONLY)
-document.getElementById("sendBtn")?.addEventListener("click", () => {
+  if (!data.email || !data.password || !data.recipients) {
+    statusMessage.innerText = "❌ Email, password & recipients required";
+    return;
+  }
+
   sendBtn.disabled = true;
   sendBtn.innerText = "⏳ Sending...";
 
-  setTimeout(() => {
-    alert("📩 Secured\n\n(Not actually sent — UI only)");
-    sendBtn.disabled = false;
-    sendBtn.innerText = "Send All";
-  }, 1500);
+  fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+    .then(r => r.json())
+    .then(d => {
+      statusMessage.innerText = d.message;
+
+      // SUCCESS POPUP
+      if (d.success) {
+        alert("✅ Mail Sent Successfully\n📩 Secured");
+      } else {
+        alert("❌ " + d.message);
+      }
+
+      // Remaining limit
+      if (d.left !== undefined) {
+        document.getElementById("remainCount").innerText =
+          "Remaining this hour: " + d.left;
+      }
+    })
+    .finally(() => {
+      sendBtn.disabled = false;
+      sendBtn.innerText = "Send All";
+    });
 });
