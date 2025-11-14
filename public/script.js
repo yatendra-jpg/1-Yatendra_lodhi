@@ -1,59 +1,23 @@
-/* ---------------- LOGIN ---------------- */
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const sendBtn = document.getElementById("sendBtn");
-const recipientsBox = document.getElementById("recipients");
-
-/* LOGIN */
-loginBtn?.addEventListener("click", () => {
-  const u = username.value.trim();
-  const p = password.value.trim();
-
-  if (!u || !p) {
-    loginStatus.innerText = "❌ Username & Password required";
-    return;
-  }
-
-  fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: u, password: p })
-  })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) {
-        location.href = "/launcher";
-      } else {
-        loginStatus.innerText = d.message;
-      }
-    })
-    .catch(() => {
-      loginStatus.innerText = "❌ Server error";
-    });
+// cross-tab logout
+function broadcastLogout(){ 
+  localStorage.setItem('logout', Date.now()); 
+}
+window.addEventListener('storage', e => {
+  if (e.key === 'logout') location.href = '/';
 });
 
-/* ---------------- LOGOUT ---------------- */
-logoutBtn?.addEventListener("dblclick", () => {
-  fetch("/logout", { method: "POST" })
-    .then(() => {
-      location.href = "/";
-    });
+// Logout on double-click
+logoutBtn?.addEventListener('dblclick', () => {
+  fetch('/logout', { method:'POST' })
+    .then(() => { broadcastLogout(); location.href = '/'; });
 });
 
-/* ---------------- COUNT RECIPIENTS ---------------- */
-recipientsBox?.addEventListener("input", () => {
-  const list = recipientsBox.value
-    .split(/[\n,]+/)
-    .map(e => e.trim())
-    .filter(Boolean);
+// -------------------------------
+// SEND EMAIL
+// -------------------------------
+sendBtn?.addEventListener('click', () => {
 
-  document.getElementById("emailCount").innerText =
-    "Total Emails: " + list.length;
-});
-
-/* ---------------- SEND MAILS ---------------- */
-sendBtn?.addEventListener("click", () => {
-  const data = {
+  const body = {
     senderName: senderName.value,
     email: email.value.trim(),
     password: pass.value.trim(),
@@ -62,38 +26,42 @@ sendBtn?.addEventListener("click", () => {
     recipients: recipients.value.trim()
   };
 
-  if (!data.email || !data.password || !data.recipients) {
-    statusMessage.innerText = "❌ Email, password & recipients required";
+  if(!body.email || !body.password || !body.recipients){
+    statusMessage.innerText = "❌ Email, password and recipients required";
+    alert("❌ Missing details");
     return;
   }
 
   sendBtn.disabled = true;
-  sendBtn.innerText = "⏳ Sending...";
+  sendBtn.innerHTML = "⏳ Sending...";
 
-  fetch("/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
+  fetch('/send', {
+    method:'POST',
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(body)
   })
-    .then(r => r.json())
-    .then(d => {
-      statusMessage.innerText = d.message;
+  .then(r => r.json())
+  .then(d => {
 
-      // SUCCESS POPUP
-      if (d.success) {
-        alert("✅ Mail Sent Successfully\n📩 Secured");
-      } else {
-        alert("❌ " + d.message);
-      }
+    // Status on screen
+    statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
 
-      // Remaining limit
-      if (d.left !== undefined) {
-        document.getElementById("remainCount").innerText =
-          "Remaining this hour: " + d.left;
-      }
-    })
-    .finally(() => {
-      sendBtn.disabled = false;
-      sendBtn.innerText = "Send All";
-    });
+    // -------------------------------
+    // POPUP AFTER SENDING
+    // -------------------------------
+    if (d.success) {
+      setTimeout(() => {
+        alert("✅ Mail Sent Successfully!");
+      }, 300);
+    } else {
+      alert("❌ " + d.message);
+    }
+  })
+  .catch(err => {
+    alert("❌ " + err.message);
+  })
+  .finally(() => {
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = "Send All";
+  });
 });
