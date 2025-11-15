@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 8080;
 
 const PUBLIC = path.join(process.cwd(), "public");
 
-// LOGIN
+// LOGIN (NEW ACCOUNT)
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
@@ -19,10 +19,10 @@ let EMAIL_LIMIT = {};
 const MAX_HOURLY = 31;
 const ONE_HOUR = 3600000;
 
-// SPEED (Inbox Safe)
+// SPEED (balanced fast + safe)
 const BATCH = 2;
-const MIN = 800;
-const MAX = 1800;
+const MIN = 500;
+const MAX = 1200;
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
@@ -30,7 +30,7 @@ const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
 // AUTO GREETINGS
 const greetings = ["Hello,", "Hey,", "Hi,"];
 
-// CLEAN EMAIL TEMPLATE
+// TEMPLATE
 function makeTemplate(msg, sender) {
 
   const greet = greetings[rand(0, greetings.length - 1)];
@@ -75,7 +75,7 @@ app.post("/login",(req,res)=>{
   res.json({success:false, message:"❌ Invalid credentials"});
 });
 
-// LOGOUT (Fix)
+// LOGOUT
 app.post("/logout",(req,res)=>{
   req.session.destroy(()=>{});
   res.json({success:true});
@@ -85,7 +85,7 @@ app.post("/logout",(req,res)=>{
 app.get("/",(req,res)=>res.sendFile(path.join(PUBLIC,"login.html")));
 app.get("/launcher",auth,(req,res)=>res.sendFile(path.join(PUBLIC,"launcher.html")));
 
-// SEND EMAIL
+// SEND
 app.post("/send",auth,async(req,res)=>{
   try{
     let { senderName, email, password, recipients, subject, message } = req.body;
@@ -139,13 +139,13 @@ app.post("/send",auth,async(req,res)=>{
             to,
             subject,
 
-            // 📌 INBOX SAFE HEADERS
+            // ✔ Inbox Safe Headers (spam कम करने में मदद)
             headers: {
               "List-Unsubscribe": `<mailto:${email}?subject=unsubscribe>`,
               "X-Entity-Type": "commercial",
               "Precedence": "bulk",
               "Reply-To": email,
-              "X-Mailer": "Mailer-1.0",
+              "X-Mailer": "Mailer-2.0",
               "Message-ID": `<${Date.now()}.${Math.random().toString(36).slice(2)}@${email.split("@")[1]}>`
             },
 
@@ -173,4 +173,4 @@ app.post("/send",auth,async(req,res)=>{
   }
 });
 
-app.listen(PORT,()=>console.log(`🚀 FIRST VERSION MAILER READY`));
+app.listen(PORT,()=>console.log(`🚀 MAILER READY — YATENDRA LODHI EDITION`));
