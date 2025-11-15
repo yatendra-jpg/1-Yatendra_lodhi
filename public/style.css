@@ -11,7 +11,6 @@ body{
   padding:20px;
 }
 
-/* LOGIN */
 .login-card{
   background:#fff;
   padding:35px;
@@ -36,11 +35,8 @@ body{
   border-radius:8px;
   cursor:pointer;
 }
-#loginStatus{
-  color:#ef4444;margin-top:8px;
-}
+#loginStatus{color:#ef4444;margin-top:8px;}
 
-/* MAIN */
 .container{
   background:#fff;
   padding:40px;
