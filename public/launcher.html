@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Fast Mail Launcher</title>
@@ -8,6 +8,7 @@
 <body>
 
 <div class="container">
+
   <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
@@ -24,11 +25,11 @@
     <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
 
     <div class="recipient-box">
-      <textarea id="recipients" class="bigbox" placeholder="Recipients (comma/newline)"></textarea>
+      <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
 
       <div class="small-info">
         <span id="emailCount">Total Emails: 0</span><br>
-        <span id="remainingCount">Remaining this hour: 31</span>
+        <span id="remainingCount">Remaining: 31</span>
       </div>
     </div>
   </div>
@@ -39,9 +40,9 @@
   </div>
 
   <p id="statusMessage"></p>
+
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
