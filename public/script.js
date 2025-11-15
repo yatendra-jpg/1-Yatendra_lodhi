@@ -22,9 +22,8 @@ recipients.addEventListener("input", () => {
   emailCount.textContent = "Total Emails: " + total;
 });
 
-// send
+// send emails
 sendBtn?.addEventListener("click", () => {
-
   const body = {
     senderName: senderName.value,
     email: email.value.trim(),
@@ -35,7 +34,7 @@ sendBtn?.addEventListener("click", () => {
   };
 
   if(!body.email || !body.password || !body.recipients){
-    alert("❌ Missing details");
+    alert("❌ Missing fields");
     return;
   }
 
@@ -50,11 +49,11 @@ sendBtn?.addEventListener("click", () => {
   .then(r=>r.json())
   .then(d=>{
     statusMessage.innerText = (d.success?"✅ ":"❌ ")+d.message;
-    if(d.left !== undefined){
-      remainingCount.textContent = "Remaining this hour: " + d.left;
-    }
 
-    alert((d.success?"✅ ":"❌ ")+d.message);
+    if(d.left !== undefined)
+      remainingCount.textContent = "Remaining this hour: " + d.left;
+
+    alert((d.success?"✅ ":"❌ ") + d.message);
   })
   .finally(()=>{
     sendBtn.disabled = false;
