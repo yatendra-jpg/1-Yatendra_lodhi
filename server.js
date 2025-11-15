@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 8080;
 
 const PUBLIC = path.join(process.cwd(), "public");
 
-// LOGIN DETAILS
+// LOGIN
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
@@ -30,12 +30,14 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC));
 
-app.use(session({
-  secret: "mailer-session",
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: ONE_HOUR }
-}));
+app.use(
+  session({
+    secret: "clean-mailer-system",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: ONE_HOUR }
+  })
+);
 
 function auth(req, res, next) {
   if (req.session.user) return next();
@@ -44,7 +46,10 @@ function auth(req, res, next) {
 
 // LOGIN
 app.post("/login", (req, res) => {
-  if (req.body.username === HARD_USERNAME && req.body.password === HARD_PASSWORD) {
+  if (
+    req.body.username === HARD_USERNAME &&
+    req.body.password === HARD_PASSWORD
+  ) {
     req.session.user = HARD_USERNAME;
     return res.json({ success: true });
   }
@@ -57,40 +62,36 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// LOGOUT
-app.post("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.json({ success: true });
-  });
-});
+// CLEAN HTML TEMPLATE
+const greetings = ["Hello,", "Hey,", "Hi,"];
+const footers = ["Thanks,", "Regards,", "Best,"];
 
-// PROFESSIONAL HTML TEMPLATE + FOOTER SIZE 10PX
-const makeHtml = (msg) => `
-<div style="font-family: Arial, sans-serif; font-size:15px; color:#111; line-height:1.6;">
+function cleanTemplate(msg, sender) {
+  const greet = greetings[Math.floor(Math.random() * greetings.length)];
+  const footer = footers[Math.floor(Math.random() * footers.length)];
 
-  <p>Hello,</p>
-
+  return `
+<div style="font-family:Arial; font-size:15px; color:#111; line-height:1.6;">
+  <p>${greet}</p>
   <p>${msg}</p>
-
   <br>
-
-  <p style="font-size:10px; color:#777;">
-    📩 Scanned & Secured — www.avast.com
-  </p>
-
-</div>
-`;
+  <p>${footer}<br>${sender}</p>
+</div>`;
+}
 
 // SEND EMAIL
 app.post("/send", auth, async (req, res) => {
   try {
-    const { senderName, email, password, recipients, subject, message } = req.body;
+    const { senderName, email, password, recipients, subject, message } =
+      req.body;
 
     if (!email || !password || !recipients)
       return res.json({ success: false, message: "❌ Missing fields" });
 
-    const list = recipients.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
+    const list = recipients
+      .split(/[\n,]+/)
+      .map(e => e.trim())
+      .filter(Boolean);
 
     if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
@@ -133,19 +134,18 @@ app.post("/send", auth, async (req, res) => {
       const results = await Promise.allSettled(
         batch.map(to =>
           transporter.sendMail({
-            from: `"${senderName || "Sender"}" <${email}>`,
+            from: `"${senderName}" <${email}>`,
             to,
             subject,
-            html: makeHtml(message)
+            html: cleanTemplate(message, senderName)
           })
         )
       );
 
-      results.forEach(r => r.status === "fulfilled" ? sent++ : fail++);
-
+      results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
       EMAIL_LIMIT[email].count += batch.length;
-      i += batch.length;
 
+      i += batch.length;
       await wait(rand(MIN, MAX));
     }
 
@@ -154,13 +154,11 @@ app.post("/send", auth, async (req, res) => {
       message: `Sent: ${sent} | Failed: ${fail}`,
       left: MAX_HOURLY - EMAIL_LIMIT[email].count
     });
-
-  } catch (e) {
-    res.json({ success: false, message: e.message });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
   }
 });
 
-// START SERVER
 app.listen(PORT, () =>
-  console.log(`🚀 FAST MAILER V6 running on port ${PORT}`)
+  console.log(`🚀 CLEAN MAILER V6 Running on PORT ${PORT}`)
 );
