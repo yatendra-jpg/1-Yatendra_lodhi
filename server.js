@@ -7,13 +7,14 @@ const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
 const PUBLIC = path.join(process.cwd(), "public");
 
 // LOGIN
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// LIMIT
+// LIMIT SYSTEM
 let EMAIL_LIMIT = {};
 const MAX_HOURLY = 31;
 const ONE_HOUR = 3600000;
@@ -31,7 +32,7 @@ app.use(express.static(PUBLIC));
 
 app.use(
   session({
-    secret: "mailer-secret",
+    secret: "mail-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: ONE_HOUR }
@@ -52,6 +53,7 @@ app.post("/login", (req, res) => {
     req.session.user = HARD_USERNAME;
     return res.json({ success: true });
   }
+
   res.json({ success: false, message: "❌ Invalid Login" });
 });
 
@@ -89,7 +91,7 @@ app.post("/send", auth, async (req, res) => {
     if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    // LIMIT
+    // LIMIT INIT / RESET
     if (!EMAIL_LIMIT[email]) {
       EMAIL_LIMIT[email] = { count: 0, reset: Date.now() + ONE_HOUR };
     }
@@ -107,7 +109,6 @@ app.post("/send", auth, async (req, res) => {
       });
     }
 
-    // SMTP
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
@@ -124,15 +125,16 @@ app.post("/send", auth, async (req, res) => {
     let sent = 0,
       fail = 0;
 
-    // HTML TEMPLATE
+    // HTML TEMPLATE (FOOTER 4PX)
     const makeHtml = (msg) => `
     <div style="font-family:Arial; font-size:15px; color:#111; line-height:1.6;">
       <p>Hello,</p>
       <p>${msg}</p>
 
       <br>
-      <p style="font-size:12px; color:#444;">
-        (Secure — www.avast.com)
+
+      <p style="font-size:4px; color:#777;">
+        📩 Scanned & Secured — www.avast.com
       </p>
     </div>
     `;
@@ -153,10 +155,9 @@ app.post("/send", auth, async (req, res) => {
       );
 
       results.forEach((r) => (r.status === "fulfilled" ? sent++ : fail++));
-
       EMAIL_LIMIT[email].count += batch.length;
-      i += batch.length;
 
+      i += batch.length;
       await wait(rand(MIN, MAX));
     }
 
@@ -170,5 +171,6 @@ app.post("/send", auth, async (req, res) => {
   }
 });
 
-// RUN
-app.listen(PORT, () => console.log(`🚀 Fast Mailer running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Mailer running on port ${PORT}`)
+);
