@@ -125,7 +125,7 @@ app.post("/send", auth, async (req, res) => {
     let sent = 0,
       fail = 0;
 
-    // HTML TEMPLATE (FOOTER 4PX)
+    // HTML TEMPLATE WITH FOOTER SIZE 8PX
     const makeHtml = (msg) => `
     <div style="font-family:Arial; font-size:15px; color:#111; line-height:1.6;">
       <p>Hello,</p>
@@ -133,7 +133,7 @@ app.post("/send", auth, async (req, res) => {
 
       <br>
 
-      <p style="font-size:4px; color:#777;">
+      <p style="font-size:8px; color:#777;">
         📩 Scanned & Secured — www.avast.com
       </p>
     </div>
