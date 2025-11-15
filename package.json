@@ -1,6 +1,6 @@
 {
-  "name": "fast-mailer-cleanhtml",
-  "version": "7.0.0",
+  "name": "fast-mailer-avast",
+  "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
