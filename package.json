@@ -1,6 +1,6 @@
 {
-  "name": "fast-mailer-clean-v6",
-  "version": "10.0.0",
+  "name": "fast-mailer-clean-v7",
+  "version": "11.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
