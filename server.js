@@ -13,12 +13,12 @@ const PUBLIC_DIR = path.join(process.cwd(), "public");
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// Hour-limit system
+// Hour limit system
 let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// Batch sending
+// Batch settings
 const BASE_BATCH_SIZE = 5;
 const SAFE_DELAY_MIN = 150;
 const SAFE_DELAY_MAX = 400;
@@ -29,12 +29,14 @@ const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
 
-app.use(session({
-  secret: "launcher-secret",
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: ONE_HOUR }
-}));
+app.use(
+  session({
+    secret: "launcher-secret",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: ONE_HOUR }
+  })
+);
 
 function requireAuth(req, res, next) {
   if (req.session.user) return next();
@@ -44,14 +46,16 @@ function requireAuth(req, res, next) {
 // LOGIN
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
+
   if (username === HARD_USERNAME && password === HARD_PASSWORD) {
     req.session.user = username;
     return res.json({ success: true });
   }
+
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
-// Pages
+// PAGES
 app.get("/", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "login.html"));
 });
@@ -68,7 +72,7 @@ app.post("/logout", (req, res) => {
   });
 });
 
-// SEND MAIL (CLEAN — NO AUTO GREETINGS)
+// SEND MAIL
 app.post("/send", requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -76,30 +80,39 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!email || !password || !recipients)
       return res.json({ success: false, message: "❌ Missing fields" });
 
+    // Prepare recipient list
     const list = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
       .filter(Boolean);
 
-    if (list.length === 0)
+    if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    // Limit reset
-    if (!EMAIL_LIMIT[email])
-      EMAIL_LIMIT[email] = { count: 0, resetTime: Date.now() + ONE_HOUR };
+    // LIMIT INIT
+    if (!EMAIL_LIMIT[email]) {
+      EMAIL_LIMIT[email] = {
+        count: 0,
+        resetTime: Date.now() + ONE_HOUR
+      };
+    }
 
+    // RESET HOUR
     if (Date.now() > EMAIL_LIMIT[email].resetTime) {
       EMAIL_LIMIT[email].count = 0;
       EMAIL_LIMIT[email].resetTime = Date.now() + ONE_HOUR;
     }
 
-    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR)
+    // CHECK HOURLY LIMIT
+    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR) {
       return res.json({
         success: false,
         message: "❌ Hourly limit reached",
         left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
       });
+    }
 
+    // Gmail Transporter
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
@@ -113,9 +126,11 @@ app.post("/send", requireAuth, async (req, res) => {
       return res.json({ success: false, message: "❌ Wrong App Password" });
     }
 
-    let sent = 0, fail = 0;
+    let sent = 0;
+    let fail = 0;
 
-    for (let i = 0; i < list.length;) {
+    // BATCH SENDING
+    for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
       const results = await Promise.allSettled(
@@ -124,12 +139,23 @@ app.post("/send", requireAuth, async (req, res) => {
             from: `"${senderName || "Sender"}" <${email}>`,
             to,
             subject: subject || "",
-            text: message || "" // CLEAN, NOTHING AUTO ADDED
+
+            // ↓ Final Clean HTML + footer size 11px (not bold)
+            html: `
+              <div style="font-size:15px; line-height:1.5;">
+                ${message || ""}
+              </div>
+
+              <div style="font-size:11px; color:#666; margin-top:18px;">
+                📩 Scanned & Secured — www.avast.com
+              </div>
+            `
           })
         )
       );
 
-      results.forEach(r => r.status === "fulfilled" ? sent++ : fail++);
+      results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
+
       EMAIL_LIMIT[email].count += batch.length;
       i += batch.length;
 
@@ -147,4 +173,5 @@ app.post("/send", requireAuth, async (req, res) => {
   }
 });
 
+// SERVER START
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
