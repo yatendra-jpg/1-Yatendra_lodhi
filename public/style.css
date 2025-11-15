@@ -1,6 +1,4 @@
-*{
-  margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;
-}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
 
 body{
   display:flex;
@@ -20,6 +18,8 @@ body{
   text-align:center;
   box-shadow:0 10px 30px rgba(0,0,0,0.12);
 }
+
+.login-logo{font-size:48px;margin-bottom:10px;}
 .login-card input{
   width:100%;
   padding:12px;
@@ -38,7 +38,7 @@ body{
 }
 #loginStatus{color:#ef4444;margin-top:8px;}
 
-/* MAIN */
+/* MAIN PANEL */
 .container{
   background:#fff;
   padding:40px;
@@ -51,7 +51,6 @@ body{
 .container h2{
   text-align:center;
   margin-bottom:20px;
-  color:#111;
   font-size:32px;
 }
 
@@ -61,48 +60,42 @@ body{
   margin-bottom:20px;
 }
 
-.bigbox{
-  min-height:180px;
-  resize:vertical;
-}
-
-.recipient-box{
-  flex:1; display:flex; flex-direction:column;
-}
-
-.small-info{
-  text-align:right;
-  font-size:14px;
-  color:#1a73e8;
-  margin-top:6px;
-}
-
-.row input,
-.row textarea,
-.row button{
+.row input, .row textarea, .row button{
   flex:1;
   padding:14px;
   border-radius:10px;
   border:1px solid #cbd5e1;
-  font-size:15px;
+}
+
+.landscape-row{
+  align-items:flex-start;
+}
+
+.bigbox{
+  min-height:200px;
+  resize:vertical;
+}
+
+.recipient-box{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.small-info{
+  text-align:right;
+  margin-top:6px;
+  font-size:14px;
+  color:#1a73e8;
 }
 
 .row button{
   background:#3b82f6;
   color:#fff;
   border:none;
-  border-radius:10px;
   font-size:18px;
-  font-weight:600;
   cursor:pointer;
 }
+.row button:hover{background:#2563eb;}
 
-.row button:hover{
-  background:#2563eb;
-}
-
-#statusMessage{
-  text-align:center;
-  margin-top:5px;
-  color:#ef4444;
-}
+#statusMessage{text-align:center;color:#ef4444;}
