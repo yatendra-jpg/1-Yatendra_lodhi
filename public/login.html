@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Login</title>
+<title>Login — Fast Mailer</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="login-card">
+  <div class="login-logo">📧</div>
+
   <h2>Fast Mail Launcher</h2>
+  <p class="subtitle">Login to continue</p>
 
   <input id="username" placeholder="Username">
   <input id="password" type="password" placeholder="Password">
 
   <button id="loginBtn">Login</button>
+
   <p id="loginStatus"></p>
 </div>
 
@@ -21,14 +25,18 @@
 loginBtn.addEventListener("click", () => {
   fetch("/login", {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       username: username.value.trim(),
-      password: password.value.trim()
-    })
+      password: password.value.trim(),
+    }),
   })
-  .then(r=>r.json())
-  .then(d=> d.success ? location.href="/launcher" : loginStatus.innerText = d.message);
+    .then((r) => r.json())
+    .then((d) =>
+      d.success
+        ? (location.href = "/launcher")
+        : (loginStatus.innerText = d.message)
+    );
 });
 </script>
 
