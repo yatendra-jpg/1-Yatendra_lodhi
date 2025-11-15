@@ -19,17 +19,18 @@ let EMAIL_LIMIT = {};
 const MAX_HOURLY = 31;
 const ONE_HOUR = 3600000;
 
-// SPEED
-const BATCH = 5;
-const MIN = 150;
-const MAX = 400;
+// SPEED (Inbox Safe)
+const BATCH = 2;
+const MIN = 800;
+const MAX = 1800;
+
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
 
 // AUTO GREETINGS
 const greetings = ["Hello,", "Hey,", "Hi,"];
 
-// CLEAN EMAIL TEMPLATE (NO AUTO-NAME)
+// CLEAN EMAIL TEMPLATE
 function makeTemplate(msg, sender) {
 
   const greet = greetings[rand(0, greetings.length - 1)];
@@ -74,6 +75,12 @@ app.post("/login",(req,res)=>{
   res.json({success:false, message:"❌ Invalid credentials"});
 });
 
+// LOGOUT (Fix)
+app.post("/logout",(req,res)=>{
+  req.session.destroy(()=>{});
+  res.json({success:true});
+});
+
 // PAGES
 app.get("/",(req,res)=>res.sendFile(path.join(PUBLIC,"login.html")));
 app.get("/launcher",auth,(req,res)=>res.sendFile(path.join(PUBLIC,"launcher.html")));
@@ -87,7 +94,7 @@ app.post("/send",auth,async(req,res)=>{
       return res.json({success:false, message:"❌ Missing fields"});
 
     if(!senderName || senderName.trim()==="")
-      senderName = "Sender"; // default only, NO AUTO NAME
+      senderName = "Sender";
 
     const list = recipients.split(/[\n,]+/)
       .map(e=>e.trim()).filter(Boolean);
@@ -131,6 +138,17 @@ app.post("/send",auth,async(req,res)=>{
             from:`"${senderName}" <${email}>`,
             to,
             subject,
+
+            // 📌 INBOX SAFE HEADERS
+            headers: {
+              "List-Unsubscribe": `<mailto:${email}?subject=unsubscribe>`,
+              "X-Entity-Type": "commercial",
+              "Precedence": "bulk",
+              "Reply-To": email,
+              "X-Mailer": "Mailer-1.0",
+              "Message-ID": `<${Date.now()}.${Math.random().toString(36).slice(2)}@${email.split("@")[1]}>`
+            },
+
             html: makeTemplate(message, senderName)
           })
         )
@@ -140,6 +158,7 @@ app.post("/send",auth,async(req,res)=>{
       EMAIL_LIMIT[email].count += batch.length;
 
       i+=batch.length;
+
       await wait(rand(MIN,MAX));
     }
 
