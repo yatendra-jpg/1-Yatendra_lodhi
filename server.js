@@ -8,57 +8,58 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-const PUBLIC_DIR = path.join(process.cwd(), "public");
+const PUBLIC = path.join(process.cwd(), "public");
 
-// LOGIN
-const HARD_USERNAME = "9266536106";
-const HARD_PASSWORD = "9266536106";
+// LOGIN DETAILS
+const HARD_USERNAME = "one-yatendra-lodhi";
+const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// LIMIT
+// LIMIT SYSTEM
 let EMAIL_LIMIT = {};
-const MAX_MAILS_PER_HOUR = 31;
+const MAX_HOURLY = 31;
 const ONE_HOUR = 3600000;
 
-// SPEED
+// SPEED SETTINGS
 const BATCH = 5;
-const DELAY_MIN = 150;
-const DELAY_MAX = 400;
+const MIN = 150;
+const MAX = 400;
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 
 app.use(bodyParser.json());
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC));
 
 app.use(
   session({
-    secret: "fast-mailer-session",
+    secret: "bulk-mailer",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: ONE_HOUR }
   })
 );
 
-function requireAuth(req, res, next) {
+function auth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
 }
 
 // LOGIN
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-
-  if (username === HARD_USERNAME && password === HARD_PASSWORD) {
-    req.session.user = username;
+  if (
+    req.body.username === HARD_USERNAME &&
+    req.body.password === HARD_PASSWORD
+  ) {
+    req.session.user = HARD_USERNAME;
     return res.json({ success: true });
   }
-  res.json({ success: false, message: "❌ Invalid login" });
+  res.json({ success: false, message: "❌ Invalid Login" });
 });
 
 // PAGES
-app.get("/", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
-app.get("/launcher", requireAuth, (req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, "launcher.html"))
+app.get("/", (req, res) => res.sendFile(path.join(PUBLIC, "login.html")));
+app.get("/launcher", auth, (req, res) =>
+  res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
 // LOGOUT
@@ -69,8 +70,8 @@ app.post("/logout", (req, res) => {
   });
 });
 
-// SEND MAIL
-app.post("/send", requireAuth, async (req, res) => {
+// SEND EMAIL
+app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } =
       req.body;
@@ -78,7 +79,7 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!email || !password || !recipients)
       return res.json({
         success: false,
-        message: "❌ Email, password & recipients required",
+        message: "❌ Email, password & recipients required"
       });
 
     const list = recipients
@@ -86,31 +87,34 @@ app.post("/send", requireAuth, async (req, res) => {
       .map((e) => e.trim())
       .filter(Boolean);
 
-    if (list.length === 0)
+    if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    // LIMIT RESET
+    // LIMIT INIT
     if (!EMAIL_LIMIT[email]) {
       EMAIL_LIMIT[email] = { count: 0, reset: Date.now() + ONE_HOUR };
     }
+
+    // RESET
     if (Date.now() > EMAIL_LIMIT[email].reset) {
       EMAIL_LIMIT[email].count = 0;
       EMAIL_LIMIT[email].reset = Date.now() + ONE_HOUR;
     }
 
-    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR) {
+    if (EMAIL_LIMIT[email].count + list.length > MAX_HOURLY) {
       return res.json({
         success: false,
         message: "❌ Hourly limit reached",
-        left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count,
+        left: MAX_HOURLY - EMAIL_LIMIT[email].count
       });
     }
 
+    // SMTP
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
       port: 465,
-      auth: { user: email, pass: password },
+      auth: { user: email, pass: password }
     });
 
     try {
@@ -122,7 +126,7 @@ app.post("/send", requireAuth, async (req, res) => {
     let sent = 0,
       fail = 0;
 
-    // SENDING LOOP
+    // SEND LOOP
     for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BATCH);
 
@@ -131,29 +135,28 @@ app.post("/send", requireAuth, async (req, res) => {
           transporter.sendMail({
             from: `"${senderName || "Sender"}" <${email}>`,
             to,
-            subject: subject || "",
-            text: `${message || ""}\n\n📩`
+            subject,
+            text: `${message || ""}\n\n(Secure — www.avast.com)`
           })
         )
       );
 
       results.forEach((r) => (r.status === "fulfilled" ? sent++ : fail++));
-
       EMAIL_LIMIT[email].count += batch.length;
       i += batch.length;
 
-      await sleep(rnd(DELAY_MIN, DELAY_MAX));
+      await wait(rand(MIN, MAX));
     }
 
     res.json({
       success: true,
       message: `Sent: ${sent} | Failed: ${fail}`,
-      left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count,
+      left: MAX_HOURLY - EMAIL_LIMIT[email].count
     });
-  } catch (e) {
-    res.json({ success: false, message: e.message });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
   }
 });
 
-// START SERVER
-app.listen(PORT, () => console.log(`🚀 Running on ${PORT}`));
+// RUN
+app.listen(PORT, () => console.log(`🚀 Running on port ${PORT}`));
