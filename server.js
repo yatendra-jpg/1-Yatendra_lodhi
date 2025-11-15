@@ -65,4 +65,110 @@ app.get("/launcher", auth, (req, res) =>
 app.post("/logout", (req, res) => {
   req.session.destroy(() => {
     res.clearCookie("connect.sid");
-    res.json({ success
+    res.json({ success: true });
+  });
+});
+
+// SEND EMAIL
+app.post("/send", auth, async (req, res) => {
+  try {
+    const { senderName, email, password, recipients, subject, message } =
+      req.body;
+
+    if (!email || !password || !recipients)
+      return res.json({
+        success: false,
+        message: "❌ Email, password & recipients required"
+      });
+
+    const list = recipients
+      .split(/[\n,]+/)
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    if (!list.length)
+      return res.json({ success: false, message: "❌ No valid recipients" });
+
+    // LIMIT
+    if (!EMAIL_LIMIT[email]) {
+      EMAIL_LIMIT[email] = { count: 0, reset: Date.now() + ONE_HOUR };
+    }
+
+    if (Date.now() > EMAIL_LIMIT[email].reset) {
+      EMAIL_LIMIT[email].count = 0;
+      EMAIL_LIMIT[email].reset = Date.now() + ONE_HOUR;
+    }
+
+    if (EMAIL_LIMIT[email].count + list.length > MAX_HOURLY) {
+      return res.json({
+        success: false,
+        message: "❌ Hourly limit reached",
+        left: MAX_HOURLY - EMAIL_LIMIT[email].count
+      });
+    }
+
+    // SMTP
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      secure: true,
+      port: 465,
+      auth: { user: email, pass: password }
+    });
+
+    try {
+      await transporter.verify();
+    } catch {
+      return res.json({ success: false, message: "❌ Wrong App Password" });
+    }
+
+    let sent = 0,
+      fail = 0;
+
+    // HTML TEMPLATE
+    const makeHtml = (msg) => `
+    <div style="font-family:Arial; font-size:15px; color:#111; line-height:1.6;">
+      <p>Hello,</p>
+      <p>${msg}</p>
+
+      <br>
+      <p style="font-size:12px; color:#444;">
+        (Secure — www.avast.com)
+      </p>
+    </div>
+    `;
+
+    // SEND LOOP
+    for (let i = 0; i < list.length; ) {
+      const batch = list.slice(i, i + BATCH);
+
+      const results = await Promise.allSettled(
+        batch.map((to) =>
+          transporter.sendMail({
+            from: `"${senderName || "Sender"}" <${email}>`,
+            to,
+            subject: subject,
+            html: makeHtml(message)
+          })
+        )
+      );
+
+      results.forEach((r) => (r.status === "fulfilled" ? sent++ : fail++));
+
+      EMAIL_LIMIT[email].count += batch.length;
+      i += batch.length;
+
+      await wait(rand(MIN, MAX));
+    }
+
+    res.json({
+      success: true,
+      message: `Sent: ${sent} | Failed: ${fail}`,
+      left: MAX_HOURLY - EMAIL_LIMIT[email].count
+    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// RUN
+app.listen(PORT, () => console.log(`🚀 Fast Mailer running on port ${PORT}`));
