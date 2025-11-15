@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// Hard Login
+// LOGIN DETAILS (AS YOU SAID)
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
@@ -80,7 +80,6 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!email || !password || !recipients)
       return res.json({ success: false, message: "❌ Missing fields" });
 
-    // Prepare recipient list
     const list = recipients
       .split(/[\n,]+/)
       .map(e => e.trim())
@@ -91,10 +90,7 @@ app.post("/send", requireAuth, async (req, res) => {
 
     // LIMIT INIT
     if (!EMAIL_LIMIT[email]) {
-      EMAIL_LIMIT[email] = {
-        count: 0,
-        resetTime: Date.now() + ONE_HOUR
-      };
+      EMAIL_LIMIT[email] = { count: 0, resetTime: Date.now() + ONE_HOUR };
     }
 
     // RESET HOUR
@@ -103,7 +99,6 @@ app.post("/send", requireAuth, async (req, res) => {
       EMAIL_LIMIT[email].resetTime = Date.now() + ONE_HOUR;
     }
 
-    // CHECK HOURLY LIMIT
     if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR) {
       return res.json({
         success: false,
@@ -129,7 +124,7 @@ app.post("/send", requireAuth, async (req, res) => {
     let sent = 0;
     let fail = 0;
 
-    // BATCH SENDING
+    // BATCH SEND
     for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
@@ -140,9 +135,9 @@ app.post("/send", requireAuth, async (req, res) => {
             to,
             subject: subject || "",
 
-            // ↓ Final Clean HTML + footer size 11px (not bold)
+            // 🔥 FIXED: TEMPLATE 15px + FOOTER 11px
             html: `
-              <div style="font-size:15px; line-height:1.5;">
+              <div style="font-size:15px; line-height:1.6; color:#222;">
                 ${message || ""}
               </div>
 
@@ -155,10 +150,9 @@ app.post("/send", requireAuth, async (req, res) => {
       );
 
       results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
-
       EMAIL_LIMIT[email].count += batch.length;
-      i += batch.length;
 
+      i += batch.length;
       await delay(rand(SAFE_DELAY_MIN, SAFE_DELAY_MAX));
     }
 
