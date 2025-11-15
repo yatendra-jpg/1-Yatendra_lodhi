@@ -11,6 +11,7 @@ body{
   padding:20px;
 }
 
+/* LOGIN */
 .login-card{
   background:#fff;
   padding:35px;
@@ -37,6 +38,7 @@ body{
 }
 #loginStatus{color:#ef4444;margin-top:8px;}
 
+/* MAIN */
 .container{
   background:#fff;
   padding:40px;
@@ -59,6 +61,22 @@ body{
   margin-bottom:20px;
 }
 
+.bigbox{
+  min-height:180px;
+  resize:vertical;
+}
+
+.recipient-box{
+  flex:1; display:flex; flex-direction:column;
+}
+
+.small-info{
+  text-align:right;
+  font-size:14px;
+  color:#1a73e8;
+  margin-top:6px;
+}
+
 .row input,
 .row textarea,
 .row button{
@@ -67,24 +85,6 @@ body{
   border-radius:10px;
   border:1px solid #cbd5e1;
   font-size:15px;
-}
-
-.bigbox{
-  min-height:180px;
-  resize:vertical;
-}
-
-.recipient-box{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
-.small-info{
-  text-align:right;
-  font-size:14px;
-  color:#1a73e8;
-  margin-top:6px;
 }
 
 .row button{
