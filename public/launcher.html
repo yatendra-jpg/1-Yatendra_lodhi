@@ -2,13 +2,14 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Fast Mail Launcher</title>
+  <title>Mail Launcher</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
-  <h2>📧 Fast Mail Launcher</h2>
+
+  <h2>📧 SAFE MAIL LAUNCHER</h2>
 
   <div class="row">
     <input id="senderName" placeholder="Sender Name">
@@ -20,24 +21,17 @@
     <input id="subject" placeholder="Email Subject">
   </div>
 
-  <div class="row landscape-row">
+  <div class="row landscape">
     <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
-
-    <div class="recipient-box">
-      <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
-      <div class="small-info">
-        <span id="emailCount">Total Emails: 0</span><br>
-        <span id="remainingCount">Remaining this hour: 31</span>
-      </div>
-    </div>
+    <textarea id="recipients" class="bigbox" placeholder="Recipients (one per line)"></textarea>
   </div>
 
   <div class="row">
-    <button id="sendBtn">Send All</button>
-    <button id="logoutBtn">Logout</button>
+    <button id="sendBtn">Send Emails</button>
   </div>
 
   <p id="statusMessage"></p>
+
 </div>
 
 <script src="script.js"></script>
