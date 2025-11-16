@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// LOGIN DETAILS (AS YOU SAID)
+// LOGIN DETAILS
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
@@ -18,10 +18,10 @@ let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// Batch settings
-const BASE_BATCH_SIZE = 5;
-const SAFE_DELAY_MIN = 150;
-const SAFE_DELAY_MAX = 400;
+// SPEED BOOST ⚡
+const BASE_BATCH_SIZE = 7;      // Faster batch
+const SAFE_DELAY_MIN = 80;      
+const SAFE_DELAY_MAX = 160;     
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -88,26 +88,24 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    // LIMIT INIT
+    // Hour limit
     if (!EMAIL_LIMIT[email]) {
       EMAIL_LIMIT[email] = { count: 0, resetTime: Date.now() + ONE_HOUR };
     }
 
-    // RESET HOUR
     if (Date.now() > EMAIL_LIMIT[email].resetTime) {
       EMAIL_LIMIT[email].count = 0;
       EMAIL_LIMIT[email].resetTime = Date.now() + ONE_HOUR;
     }
 
-    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR) {
+    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR)
       return res.json({
         success: false,
         message: "❌ Hourly limit reached",
         left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
       });
-    }
 
-    // Gmail Transporter
+    // SMTP
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
@@ -124,7 +122,7 @@ app.post("/send", requireAuth, async (req, res) => {
     let sent = 0;
     let fail = 0;
 
-    // BATCH SEND
+    // SEND (FASTER NOW)
     for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
@@ -135,7 +133,7 @@ app.post("/send", requireAuth, async (req, res) => {
             to,
             subject: subject || "",
 
-            // 🔥 FIXED: TEMPLATE 15px + FOOTER 11px
+            // HTML TEMPLATE (SIZE FIXED)
             html: `
               <div style="font-size:15px; line-height:1.6; color:#222;">
                 ${message || ""}
@@ -153,6 +151,7 @@ app.post("/send", requireAuth, async (req, res) => {
       EMAIL_LIMIT[email].count += batch.length;
 
       i += batch.length;
+
       await delay(rand(SAFE_DELAY_MIN, SAFE_DELAY_MAX));
     }
 
