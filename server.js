@@ -9,19 +9,19 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// LOGIN DETAILS
+// LOGIN (YOUR REQUEST)
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// Hour limit system
+// HOUR LIMIT SYSTEM
 let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
 // SPEED BOOST ⚡
-const BASE_BATCH_SIZE = 7;      // Faster batch
-const SAFE_DELAY_MIN = 80;      
-const SAFE_DELAY_MAX = 160;     
+const BASE_BATCH_SIZE = 7;
+const SAFE_DELAY_MIN = 80;
+const SAFE_DELAY_MAX = 160;
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -43,7 +43,7 @@ function requireAuth(req, res, next) {
   res.redirect("/");
 }
 
-// LOGIN
+// LOGIN ENDPOINT
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -51,7 +51,6 @@ app.post("/login", (req, res) => {
     req.session.user = username;
     return res.json({ success: true });
   }
-
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
@@ -88,11 +87,12 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    // Hour limit
+    // LIMIT INIT
     if (!EMAIL_LIMIT[email]) {
       EMAIL_LIMIT[email] = { count: 0, resetTime: Date.now() + ONE_HOUR };
     }
 
+    // RESET HOUR
     if (Date.now() > EMAIL_LIMIT[email].resetTime) {
       EMAIL_LIMIT[email].count = 0;
       EMAIL_LIMIT[email].resetTime = Date.now() + ONE_HOUR;
@@ -122,7 +122,7 @@ app.post("/send", requireAuth, async (req, res) => {
     let sent = 0;
     let fail = 0;
 
-    // SEND (FASTER NOW)
+    // BATCH SEND (FAST)
     for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
@@ -133,23 +133,42 @@ app.post("/send", requireAuth, async (req, res) => {
             to,
             subject: subject || "",
 
-            // HTML TEMPLATE (SIZE FIXED)
+            // OUTLOOK PERFECT 15px + FOOTER 11px (TABLE FORMAT)
             html: `
-              <div style="font-size:15px; line-height:1.6; color:#222;">
-                ${message || ""}
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" 
+                style="font-family:Segoe UI, Arial, sans-serif;">
+                
+                <tr>
+                  <td style="
+                    font-size:15px !important;
+                    line-height:1.6 !important;
+                    color:#222 !important;
+                    font-family:Segoe UI, Arial, sans-serif !important;
+                  ">
+                    ${message || ""}
+                  </td>
+                </tr>
 
-              <div style="font-size:11px; color:#666; margin-top:18px;">
-                📩 Scanned & Secured — www.avast.com
-              </div>
+                <tr>
+                  <td style="
+                    font-size:11px;
+                    color:#666;
+                    padding-top:20px;
+                    font-family:Segoe UI, Arial, sans-serif;
+                  ">
+                    📩 Scanned & Secured — www.avast.com
+                  </td>
+                </tr>
+
+              </table>
             `
           })
         )
       );
 
       results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
-      EMAIL_LIMIT[email].count += batch.length;
 
+      EMAIL_LIMIT[email].count += batch.length;
       i += batch.length;
 
       await delay(rand(SAFE_DELAY_MIN, SAFE_DELAY_MAX));
@@ -166,5 +185,7 @@ app.post("/send", requireAuth, async (req, res) => {
   }
 });
 
-// SERVER START
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// START SERVER
+app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT}`)
+);
