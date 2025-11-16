@@ -9,16 +9,16 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// LOGIN (YOUR REQUEST)
+// LOGIN DETAILS
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// HOUR LIMIT SYSTEM
+// HOURLY LIMIT
 let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// SPEED BOOST ⚡
+// SPEED BOOST
 const BASE_BATCH_SIZE = 7;
 const SAFE_DELAY_MIN = 80;
 const SAFE_DELAY_MAX = 160;
@@ -43,7 +43,7 @@ function requireAuth(req, res, next) {
   res.redirect("/");
 }
 
-// LOGIN ENDPOINT
+// LOGIN
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -71,21 +71,21 @@ app.post("/logout", (req, res) => {
   });
 });
 
-// SEND MAIL
+// SEND EMAIL
 app.post("/send", requireAuth, async (req, res) => {
   try {
-    const { senderName, email, password, recipients, subject, message } = req.body;
+    let { senderName, email, password, recipients, subject, message } = req.body;
 
     if (!email || !password || !recipients)
       return res.json({ success: false, message: "❌ Missing fields" });
 
     const list = recipients
       .split(/[\n,]+/)
-      .map(e => e.trim())
+      .map(r => r.trim())
       .filter(Boolean);
 
     if (!list.length)
-      return res.json({ success: false, message: "❌ No valid recipients" });
+      return res.json({ success: false, message: "❌ No recipients" });
 
     // LIMIT INIT
     if (!EMAIL_LIMIT[email]) {
@@ -99,93 +99,4 @@ app.post("/send", requireAuth, async (req, res) => {
     }
 
     if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR)
-      return res.json({
-        success: false,
-        message: "❌ Hourly limit reached",
-        left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
-      });
-
-    // SMTP
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      secure: true,
-      port: 465,
-      auth: { user: email, pass: password }
-    });
-
-    try {
-      await transporter.verify();
-    } catch {
-      return res.json({ success: false, message: "❌ Wrong App Password" });
-    }
-
-    let sent = 0;
-    let fail = 0;
-
-    // BATCH SEND (FAST)
-    for (let i = 0; i < list.length; ) {
-      const batch = list.slice(i, i + BASE_BATCH_SIZE);
-
-      const results = await Promise.allSettled(
-        batch.map(to =>
-          transporter.sendMail({
-            from: `"${senderName || "Sender"}" <${email}>`,
-            to,
-            subject: subject || "",
-
-            // OUTLOOK PERFECT 15px + FOOTER 11px (TABLE FORMAT)
-            html: `
-              <table cellpadding="0" cellspacing="0" border="0" width="100%" 
-                style="font-family:Segoe UI, Arial, sans-serif;">
-                
-                <tr>
-                  <td style="
-                    font-size:15px !important;
-                    line-height:1.6 !important;
-                    color:#222 !important;
-                    font-family:Segoe UI, Arial, sans-serif !important;
-                  ">
-                    ${message || ""}
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="
-                    font-size:11px;
-                    color:#666;
-                    padding-top:20px;
-                    font-family:Segoe UI, Arial, sans-serif;
-                  ">
-                    📩 Scanned & Secured — www.avast.com
-                  </td>
-                </tr>
-
-              </table>
-            `
-          })
-        )
-      );
-
-      results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
-
-      EMAIL_LIMIT[email].count += batch.length;
-      i += batch.length;
-
-      await delay(rand(SAFE_DELAY_MIN, SAFE_DELAY_MAX));
-    }
-
-    res.json({
-      success: true,
-      message: `Sent: ${sent} | Failed: ${fail}`,
-      left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
-    });
-
-  } catch (err) {
-    res.json({ success: false, message: err.message });
-  }
-});
-
-// START SERVER
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+      re
