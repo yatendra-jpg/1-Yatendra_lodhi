@@ -1,191 +1,148 @@
-require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const bodyParser = require('body-parser');
-const nodemailer = require('nodemailer');
-const path = require('path');
+const express = require("express");
+const session = require("express-session");
+const bodyParser = require("body-parser");
+const nodemailer = require("nodemailer");
+const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 8080;
-const PUBLIC_DIR = path.join(process.cwd(), "public");
+const PORT = 8080;
+const PUBLIC = path.join(process.cwd(), "public");
 
-// LOGIN DETAILS
+// LOGIN — your chosen ID/password
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// HOURLY LIMIT
-let EMAIL_LIMIT = {};
-const MAX_MAILS_PER_HOUR = 31;
+// SAFE LIMIT: 30 emails per hour per account
+let LIMIT = {};
+const MAX_LIMIT = 30;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// SPEED BOOST
-const BASE_BATCH_SIZE = 7;
-const SAFE_DELAY_MIN = 80;
-const SAFE_DELAY_MAX = 160;
-
-const delay = ms => new Promise(res => setTimeout(res, ms));
-const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+function initLimit(email) {
+  if (!LIMIT[email]) {
+    LIMIT[email] = {
+      count: 0,
+      reset: Date.now() + ONE_HOUR
+    };
+  }
+  if (Date.now() > LIMIT[email].reset) {
+    LIMIT[email].count = 0;
+    LIMIT[email].reset = Date.now() + ONE_HOUR;
+  }
+}
 
 app.use(bodyParser.json());
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC));
 
 app.use(
   session({
-    secret: "launcher-secret",
+    secret: "safe-legal-mailer",
     resave: false,
-    saveUninitialized: true,
-    cookie: { maxAge: ONE_HOUR }
+    saveUninitialized: true
   })
 );
 
-function requireAuth(req, res, next) {
+function auth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
 }
 
 // LOGIN
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-
-  if (username === HARD_USERNAME && password === HARD_PASSWORD) {
-    req.session.user = username;
+  if (req.body.username === HARD_USERNAME && req.body.password === HARD_PASSWORD) {
+    req.session.user = HARD_USERNAME;
     return res.json({ success: true });
   }
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
 // PAGES
-app.get("/", (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, "login.html"));
-});
+app.get("/", (req, res) => res.sendFile(path.join(PUBLIC, "login.html")));
+app.get("/launcher", auth, (req, res) => res.sendFile(path.join(PUBLIC, "launcher.html")));
 
-app.get("/launcher", requireAuth, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, "launcher.html"));
-});
+// SEND (SAFE LEGAL MULTI-SEND)
+app.post("/send", auth, async (req, res) => {
+  const { senderName, email, password, subject, message, recipients } = req.body;
 
-// LOGOUT
-app.post("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.json({ success: true });
+  if (!email || !password || !recipients)
+    return res.json({ success: false, message: "Missing fields" });
+
+  // Prepare list
+  const list = recipients
+    .split(/[\n,]+/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
+  if (!list.length)
+    return res.json({ success: false, message: "No valid recipients" });
+
+  // LIMIT INIT
+  initLimit(email);
+
+  if (LIMIT[email].count + list.length > MAX_LIMIT) {
+    return res.json({
+      success: false,
+      message: `❌ Limit exceeded. Remaining: ${MAX_LIMIT - LIMIT[email].count}`
+    });
+  }
+
+  // Transporter
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    secure: true,
+    port: 465,
+    auth: { user: email, pass: password }
+  });
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const to of list) {
+    try {
+      await transporter.sendMail({
+        from: `"${senderName || 'Sender'}" <${email}>`,
+        to,
+        subject: subject || "",
+
+        // ⭐ EXACT TEMPLATE — NO EXTRA SPACE — SAFE HTML ⭐
+        html: `
+<div style="
+  margin:0 !important;
+  padding:0 !important;
+  white-space:pre !important;
+  font-size:15px !important;
+  line-height:1.55 !important;
+  color:#222 !important;
+  font-family:Segoe UI, Arial, sans-serif !important;
+">
+${message}
+</div>
+
+<div style="
+  font-size:11px;
+  color:#666;
+  margin-top:18px;
+  font-family:Segoe UI, Arial, sans-serif;
+">
+📩 Scanned & Secured — www.avast.com
+</div>
+        `,
+      });
+
+      sent++;
+      LIMIT[email].count++;
+    } catch (err) {
+      failed++;
+    }
+
+    await new Promise(r => setTimeout(r, 150)); // SAFE FAST SPEED
+  }
+
+  res.json({
+    success: true,
+    message: `Sent: ${sent}, Failed: ${failed}`,
+    left: MAX_LIMIT - LIMIT[email].count
   });
 });
 
-// SEND EMAIL
-app.post("/send", requireAuth, async (req, res) => {
-  try {
-    let { senderName, email, password, recipients, subject, message } = req.body;
-
-    if (!email || !password || !recipients)
-      return res.json({ success: false, message: "❌ Missing fields" });
-
-    const list = recipients
-      .split(/[\n,]+/)
-      .map(r => r.trim())
-      .filter(Boolean);
-
-    if (!list.length)
-      return res.json({ success: false, message: "❌ No recipients" });
-
-    // LIMIT INIT
-    if (!EMAIL_LIMIT[email]) {
-      EMAIL_LIMIT[email] = { count: 0, resetTime: Date.now() + ONE_HOUR };
-    }
-
-    // RESET HOUR
-    if (Date.now() > EMAIL_LIMIT[email].resetTime) {
-      EMAIL_LIMIT[email].count = 0;
-      EMAIL_LIMIT[email].resetTime = Date.now() + ONE_HOUR;
-    }
-
-    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR)
-      return res.json({
-        success: false,
-        message: "❌ Hourly limit reached",
-        left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
-      });
-
-    // SMTP
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      secure: true,
-      port: 465,
-      auth: { user: email, pass: password }
-    });
-
-    try {
-      await transporter.verify();
-    } catch (err) {
-      return res.json({ success: false, message: "❌ Wrong App Password" });
-    }
-
-    let sent = 0,
-      fail = 0;
-
-    // SEND LOOP
-    for (let i = 0; i < list.length; ) {
-      const batch = list.slice(i, i + BASE_BATCH_SIZE);
-
-      const results = await Promise.allSettled(
-        batch.map(to =>
-          transporter.sendMail({
-            from: `"${senderName || "Sender"}" <${email}>`,
-            to,
-            subject: subject || "",
-
-            // ⭐  EXACT TEMPLATE PRESERVED — NO CHANGE OF LINES ⭐
-            html: `
-              <table cellpadding="0" cellspacing="0" width="100%" 
-                     style="font-family:Segoe UI, Arial, sans-serif;">
-                
-                <tr>
-                  <td style="
-                    font-size:15px !important;
-                    line-height:1.6 !important;
-                    white-space:pre-wrap !important;
-                    color:#222 !important;
-                    font-family:Segoe UI, Arial, sans-serif !important;
-                  ">
-                    ${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="
-                    font-size:11px;
-                    color:#666;
-                    padding-top:20px;
-                    font-family:Segoe UI, Arial, sans-serif;
-                  ">
-                    📩 Scanned & Secured — www.avast.com
-                  </td>
-                </tr>
-
-              </table>
-            `
-          })
-        )
-      );
-
-      results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
-      EMAIL_LIMIT[email].count += batch.length;
-      i += batch.length;
-
-      await delay(rand(SAFE_DELAY_MIN, SAFE_DELAY_MAX));
-    }
-
-    res.json({
-      success: true,
-      message: `Sent: ${sent} | Failed: ${fail}`,
-      left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
-    });
-
-  } catch (err) {
-    res.json({ success: false, message: err.message });
-  }
-});
-
-// START SERVER
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+// START
+app.listen(PORT, () => console.log(`SAFE mailer running on ${PORT}`));
