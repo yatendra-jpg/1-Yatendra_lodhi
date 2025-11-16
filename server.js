@@ -99,4 +99,93 @@ app.post("/send", requireAuth, async (req, res) => {
     }
 
     if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR)
-      re
+      return res.json({
+        success: false,
+        message: "❌ Hourly limit reached",
+        left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
+      });
+
+    // SMTP
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      secure: true,
+      port: 465,
+      auth: { user: email, pass: password }
+    });
+
+    try {
+      await transporter.verify();
+    } catch (err) {
+      return res.json({ success: false, message: "❌ Wrong App Password" });
+    }
+
+    let sent = 0,
+      fail = 0;
+
+    // SEND LOOP
+    for (let i = 0; i < list.length; ) {
+      const batch = list.slice(i, i + BASE_BATCH_SIZE);
+
+      const results = await Promise.allSettled(
+        batch.map(to =>
+          transporter.sendMail({
+            from: `"${senderName || "Sender"}" <${email}>`,
+            to,
+            subject: subject || "",
+
+            // ⭐  EXACT TEMPLATE PRESERVED — NO CHANGE OF LINES ⭐
+            html: `
+              <table cellpadding="0" cellspacing="0" width="100%" 
+                     style="font-family:Segoe UI, Arial, sans-serif;">
+                
+                <tr>
+                  <td style="
+                    font-size:15px !important;
+                    line-height:1.6 !important;
+                    white-space:pre-wrap !important;
+                    color:#222 !important;
+                    font-family:Segoe UI, Arial, sans-serif !important;
+                  ">
+                    ${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="
+                    font-size:11px;
+                    color:#666;
+                    padding-top:20px;
+                    font-family:Segoe UI, Arial, sans-serif;
+                  ">
+                    📩 Scanned & Secured — www.avast.com
+                  </td>
+                </tr>
+
+              </table>
+            `
+          })
+        )
+      );
+
+      results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
+      EMAIL_LIMIT[email].count += batch.length;
+      i += batch.length;
+
+      await delay(rand(SAFE_DELAY_MIN, SAFE_DELAY_MAX));
+    }
+
+    res.json({
+      success: true,
+      message: `Sent: ${sent} | Failed: ${fail}`,
+      left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
+    });
+
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// START SERVER
+app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT}`)
+);
