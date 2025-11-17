@@ -46,8 +46,6 @@ sendBtn.onclick = () => {
   });
 };
 
-
-// TIMER FUNCTION
 function startResetTimer(ms) {
   if (resetTimerInterval) clearInterval(resetTimerInterval);
 
