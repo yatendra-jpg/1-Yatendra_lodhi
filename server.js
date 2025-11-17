@@ -23,22 +23,35 @@ app.use(
   })
 );
 
-// ⭐ 30 EMAIL / HOUR LIMIT
-let mailCount = 0;
-let resetTime = Date.now() + 60 * 60 * 1000;
+/* -----------------------------------------
+⭐ NEW CHANGE:
+Limit will work separately for EACH EMAIL ID.
+------------------------------------------- */
+let limitMap = {}; // { email: { count: X, resetTime: Y } }
 
 function limitCheck(req, res, next) {
-  const now = Date.now();
+  const sender = req.body.email;
+  if (!sender) return res.json({ success: false, message: "Email missing." });
 
-  if (now >= resetTime) {
-    mailCount = 0;
-    resetTime = now + 60 * 60 * 1000;
+  if (!limitMap[sender]) {
+    limitMap[sender] = {
+      count: 0,
+      resetTime: Date.now() + 60 * 60 * 1000
+    };
   }
 
-  if (mailCount >= 30) {
+  const info = limitMap[sender];
+  const now = Date.now();
+
+  if (now >= info.resetTime) {
+    info.count = 0;
+    info.resetTime = now + 60 * 60 * 1000;
+  }
+
+  if (info.count >= 30) {
     return res.json({
       success: false,
-      message: "⚠ Hourly limit reached (30 mails). Auto reset after 1 hour."
+      message: `⚠ Limit complete for ${sender} (30/hour). Auto reset in 1 hour.`
     });
   }
 
@@ -54,12 +67,10 @@ function requireAuth(req, res, next) {
 // LOGIN
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
-
   if (username === HARD_USERNAME && password === HARD_PASSWORD) {
     req.session.user = username;
     return res.json({ success: true });
   }
-
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
@@ -69,7 +80,7 @@ app.get("/launcher", requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// ⭐ SEND (BULK + FIXED SPEED + LIMIT CONTROL)
+// SEND (bulk)
 app.post("/send", requireAuth, limitCheck, async (req, res) => {
   const { senderName, email, password, to, subject, message } = req.body;
 
@@ -85,15 +96,12 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
     auth: { user: email, pass: password }
   });
 
+  const info = limitMap[email];
   let sentCount = 0;
 
   for (let r of recipients) {
-    if (mailCount >= 30) {
-      return res.json({
-        success: true,
-        message: `Sent: ${sentCount}. Remaining: 0`
-      });
-    }
+
+    if (info.count >= 30) break;
 
     try {
       await transporter.sendMail({
@@ -101,29 +109,27 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
         to: r,
         subject,
         html: `
-<div style="white-space:pre;font-size:15px;color:#222;font-family:Segoe UI;">
+<div style="white-space:pre; font-size:15px; font-family:Segoe UI; color:#222">
 ${message}
 </div>
 <div style="font-size:11px;color:#666;margin-top:18px;">📩 Scanned & Secured — www.avast.com</div>
 `
       });
 
+      info.count++;
       sentCount++;
-      mailCount++;
 
-      // ⭐ MEDIUM-FAST SPEED (150ms delay)
-      await new Promise(res => setTimeout(res, 150));
+      // ⭐ NEW SPEED — FAST SAFE SPEED
+      await new Promise(res => setTimeout(res, 70));
 
     } catch (err) {}
   }
 
   res.json({
     success: true,
-    message: `Sent: ${sentCount}. Remaining: ${30 - mailCount}`
+    message: `ID: ${email} | Sent: ${sentCount} | Remaining: ${30 - info.count}`
   });
 });
 
 // START
-app.listen(PORT, () =>
-  console.log("SAFE BULK MAIL SERVER Running On PORT", PORT)
-);
+app.listen(PORT, () => console.log("FAST BULK MAIL SERVER RUNNING ON PORT", PORT));
