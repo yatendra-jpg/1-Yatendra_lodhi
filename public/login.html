@@ -18,21 +18,21 @@
 </div>
 
 <script>
-  loginBtn.onclick = () => {
-    fetch("/login", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        username:username.value.trim(),
-        password:password.value.trim()
-      })
+loginBtn.onclick = () => {
+  fetch("/login", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      username:username.value.trim(),
+      password:password.value.trim()
     })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) location.href="/launcher";
-      else loginStatus.innerText = d.message;
-    });
-  };
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) location.href="/launcher";
+    else loginStatus.innerText = d.message;
+  });
+};
 </script>
 
 </body>
