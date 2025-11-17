@@ -25,19 +25,15 @@ sendBtn.onclick = () => {
   .then(r => r.json())
   .then(d => {
 
-    if (d.success) {
-
-      // Popup clean
-      alert("Mail Sent ✅");
-
-      // ⭐ EXACT screenshot style text
-      statusMessage.innerText =
-        `ID: ${d.email} | Sent: ${d.sent} | Remaining: ${d.remaining}`;
-
-    } else {
-      alert(d.message);
+    if (!d.success) {
+      alert(d.message);    // ❌ Wrong password will show here
+      return;
     }
 
+    alert("Mail Sent ✅");
+
+    statusMessage.innerText =
+      `ID: ${d.email} | Sent: ${d.sent} | Remaining: ${d.remaining}`;
   })
   .finally(() => {
     sendBtn.disabled = false;
