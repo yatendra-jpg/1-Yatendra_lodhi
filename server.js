@@ -1,163 +1,87 @@
 const express = require("express");
-const session = require("express-session");
 const bodyParser = require("body-parser");
 const nodemailer = require("nodemailer");
-const path = require("path");
+const Queue = require("bull");
 
 const app = express();
-const PORT = 8080;
-const PUBLIC = path.join(process.cwd(), "public");
-
-// ⭐ 1 HOUR RESET
-const RESET_SECONDS = 3600;
-
-// LOGIN CREDENTIALS
-const HARD_USERNAME = "one-yatendra-lodhi";
-const HARD_PASSWORD = "one-yatendra-lodhi";
-
 app.use(bodyParser.json());
-app.use(express.static(PUBLIC));
 
-app.use(
-  session({
-    secret: "safe-mailer",
-    resave: false,
-    saveUninitialized: false
-  })
-);
-
-// ⭐ LIMIT MAP
-let limitMap = {}; // { email: {count, resetTime} }
-
-function limitCheck(req, res, next) {
-  const sender = req.body.email;
-  const now = Date.now();
-
-  if (!limitMap[sender]) {
-    limitMap[sender] = {
-      count: 0,
-      resetTime: now + RESET_SECONDS * 1000
-    };
-  }
-
-  const info = limitMap[sender];
-
-  if (now >= info.resetTime) {
-    info.count = 0;
-    info.resetTime = now + RESET_SECONDS * 1000;
-  }
-
-  if (info.count >= 30) {
-    return res.json({
-      success: false,
-      message: "⛔ 30 mail limit completed. Reset after 1 hour.",
-      resetIn: info.resetTime - now
-    });
-  }
-
-  next();
-}
-
-// AUTH
-function requireAuth(req, res, next) {
-  if (req.session.user) return next();
-  res.redirect("/");
-}
-
-// LOGIN
-app.post("/login", (req, res) => {
-  if (req.body.username === HARD_USERNAME &&
-      req.body.password === HARD_PASSWORD) {
-    req.session.user = req.body.username;
-    return res.json({ success: true });
-  }
-  res.json({ success: false, message: "❌ Invalid credentials" });
+// ----------------------------
+//  ULTRA FAST QUEUE
+// ----------------------------
+const mailQueue = new Queue("mail-queue", {
+  redis: { host: "127.0.0.1", port: 6379 }
 });
 
-// LOGOUT
-app.get("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.redirect("/");
+// ----------------------------
+//  SMTP CONFIG (ANY PROVIDER)
+// ----------------------------
+// For ULTRA FAST = use SES/Mailgun/SendGrid SMTP
+// For Gmail = use "smtp.gmail.com" (slower)
+
+const createSMTP = (email, password) =>
+  nodemailer.createTransport({
+    host: "smtp.gmail.com",   // ← Replace with SES/Mailgun if needed
+    port: 465,
+    secure: true,
+    pool: true,
+    maxConnections: 5,     // ← Parallel Connections
+    maxMessages: 300,
+    auth: { user: email, pass: password }
   });
+
+// ----------------------------
+//  PROCESS QUEUE (ULTRA FAST)
+// ----------------------------
+mailQueue.process(20, async job => {
+  const { senderName, email, password, to, subject, message } = job.data;
+
+  const transporter = createSMTP(email, password);
+
+  await transporter.sendMail({
+    from: `"${senderName}" <${email}>`,
+    to,
+    subject,
+    html: message
+  });
+
+  return { status: "sent" };
 });
 
-// PAGES
-app.get("/", (req, res) => res.sendFile(path.join(PUBLIC, "login.html")));
-app.get("/launcher", requireAuth, (req, res) =>
-  res.sendFile(path.join(PUBLIC, "launcher.html"))
-);
+// ----------------------------
+//  SEND API
+// ----------------------------
+app.post("/send", async (req, res) => {
+  const { senderName, email, password, recipients, subject, message } = req.body;
 
-// ⭐ SEND EMAILS — HIGH SAFE SPEED + POOLING
-app.post("/send", requireAuth, limitCheck, async (req, res) => {
-  const { senderName, email, password, to, subject, message } = req.body;
+  if (!email || !password || !recipients)
+    return res.json({ success: false, message: "Missing fields" });
 
-  const recipients = to
+  const list = recipients
     .split(/[\n,]+/)
     .map(r => r.trim())
     .filter(Boolean);
 
-  let transporter;
-
-  try {
-    transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      secure: true,
-      port: 465,
-      auth: { user: email, pass: password },
-
-      // ⭐ SPEED BOOST (SAFE)
-      pool: true,
-      maxConnections: 1,
-      maxMessages: 50
+  // Push all emails into queue (ultra fast)
+  list.forEach(to => {
+    mailQueue.add({
+      senderName,
+      email,
+      password,
+      to,
+      subject,
+      message
     });
-
-    await transporter.verify();
-  } catch (err) {
-    return res.json({ success: false, message: "❌ App Password Wrong" });
-  }
-
-  const info = limitMap[email];
-  let sentCount = 0;
-
-  for (let r of recipients) {
-    if (info.count >= 30) break;
-
-    try {
-      await transporter.sendMail({
-        from: `"${senderName || "Sender"}" <${email}>`,
-        to: r,
-        subject,
-        html: `
-<div style="white-space:pre;font-size:15px;color:#222;">
-${message}
-</div>
-<div style="font-size:11px;color:#666;margin-top:18px;">
-📩 Scanned & Secured — www.avast.com
-</div>`
-      });
-
-      info.count++;
-      sentCount++;
-
-      // ⭐ High-Safe Speed Delay (25–40ms)
-      await new Promise(res => setTimeout(res, 30));
-
-    } catch (err) {}
-  }
-
-  const now = Date.now();
+  });
 
   res.json({
     success: true,
-    message: "Mail Sent ✅",
-    email,
-    sent: sentCount,
-    remaining: 30 - info.count,
-    resetIn: info.resetTime - now
+    queued: list.length,
+    message: "Emails Queued for Ultra-Fast Delivery"
   });
 });
 
-app.listen(PORT, () =>
-  console.log("🚀 HIGH-SAFE SPEED MAIL SERVER RUNNING")
+// ----------------------------
+app.listen(8080, () =>
+  console.log("⚡ ULTRA-FAST SMTP ENGINE RUNNING")
 );
