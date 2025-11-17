@@ -92,11 +92,13 @@ app.get("/launcher", requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// ⭐ SEND EMAILS — FASTEST SPEED + WRONG APP PASSWORD CHECK
+// ⭐ SEND EMAILS — MAX SPEED 10ms + WRONG APP PASSWORD CHECK
 app.post("/send", requireAuth, limitCheck, async (req, res) => {
   const { senderName, email, password, to, subject, message } = req.body;
 
-  const recipients = to.split(/[\n,]+/).map(r => r.trim()).filter(Boolean);
+  const recipients = to.split(/[\n,]+/)
+    .map(r => r.trim())
+    .filter(Boolean);
 
   let transporter;
 
@@ -108,7 +110,7 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
       auth: { user: email, pass: password }
     });
 
-    // ⭐ WRONG APP PASSWORD CHECK
+    // WRONG PASSWORD CHECK
     await transporter.verify();
 
   } catch (err) {
@@ -140,8 +142,8 @@ ${message}
       info.count++;
       sentCount++;
 
-      // ⭐ SUPER FAST (SAFE) SPEED
-      await new Promise(r => setTimeout(r, 25));
+      // ⭐ MAX SPEED 10ms
+      await new Promise(r => setTimeout(r, 10));
 
     } catch (err) {}
   }
@@ -156,5 +158,5 @@ ${message}
 });
 
 app.listen(PORT, () =>
-  console.log("🚀 HIGH-SPEED MAIL LAUNCHER RUNNING ON PORT", PORT)
+  console.log("🚀 MAX-SPEED MAIL LAUNCHER RUNNING ON PORT", PORT)
 );
