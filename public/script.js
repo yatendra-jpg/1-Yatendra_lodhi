@@ -1,15 +1,16 @@
 sendBtn.onclick = () => {
+
   const body = {
     senderName: senderName.value,
     email: email.value.trim(),
     password: pass.value.trim(),
     subject: subject.value,
-    message: message.value,
-    recipients: recipients.value
+    to: to.value.trim(),
+    message: message.value
   };
 
-  if (!body.email || !body.password || !body.recipients) {
-    alert("Missing fields");
+  if (!body.email || !body.password || !body.to) {
+    alert("Missing required fields");
     return;
   }
 
@@ -21,13 +22,13 @@ sendBtn.onclick = () => {
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify(body)
   })
-  .then(r=>r.json())
-  .then(d=>{
+  .then(res => res.json())
+  .then(d => {
     statusMessage.innerText = d.message;
-    if (d.success) alert("Mail Sending Done!");
+    if (d.success) alert("Mail Sent Successfully!");
   })
   .finally(()=>{
     sendBtn.disabled = false;
-    sendBtn.innerText = "Send Emails";
+    sendBtn.innerText = "Send Email";
   });
 };
