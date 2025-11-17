@@ -1,3 +1,5 @@
+let resetTimerInterval = null;
+
 sendBtn.onclick = () => {
 
   const body = {
@@ -34,9 +36,37 @@ sendBtn.onclick = () => {
 
     statusMessage.innerText =
       `ID: ${d.email} | Sent: ${d.sent} | Remaining: ${d.remaining}`;
+
+    startResetTimer(d.resetIn);
+
   })
   .finally(() => {
     sendBtn.disabled = false;
     sendBtn.innerText = "Send All";
   });
 };
+
+
+// TIMER FUNCTION
+function startResetTimer(ms) {
+  if (resetTimerInterval) clearInterval(resetTimerInterval);
+
+  let sec = Math.floor(ms / 1000);
+
+  resetTimerInterval = setInterval(() => {
+
+    if (sec <= 0) {
+      timer.innerText = "Reset in (0:00)";
+      clearInterval(resetTimerInterval);
+      return;
+    }
+
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+
+    timer.innerText = `Reset in (${m}:${s.toString().padStart(2,'0')})`;
+
+    sec--;
+
+  }, 1000);
+}
