@@ -19,15 +19,15 @@ app.use(
   session({
     secret: "safe-mailer",
     resave: false,
-    saveUninitialized: true,
-    cookie: { httpOnly: true }
+    saveUninitialized: false,
+    cookie: { secure: false }
   })
 );
 
 /*-----------------------------------------
- ⭐ LIMIT PER EMAIL (30 mails/hour)
+ ⭐ LIMIT PER EMAIL ID (30/hour)
 ------------------------------------------*/
-let limitMap = {}; // { email: {count, resetTime}}
+let limitMap = {}; // { email: {count:0, resetTime:TIMESTAMP}}
 
 function limitCheck(req, res, next) {
   const sender = req.body.email;
@@ -53,14 +53,14 @@ function limitCheck(req, res, next) {
   if (info.count >= 30) {
     return res.json({
       success: false,
-      message: "⛔ 30 mail limit done. Auto reset after 1 hour."
+      message: "⛔ 30 mail limit complete. Auto reset after 1 hour."
     });
   }
 
   next();
 }
 
-// AUTH
+// AUTH MIDDLEWARE
 function requireAuth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
@@ -78,11 +78,11 @@ app.post("/login", (req, res) => {
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
-// LOGOUT (⭐ FULL SESSION PURGE + COOKIE CLEAR)
+// LOGOUT (⭐ TOKEN REFRESH)
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie("connect.sid");   // ⭐ session ID delete
-    res.redirect("/");                // ⭐ login page
+    res.clearCookie("connect.sid");  // ⭐ SESSION ID DELETE
+    res.redirect("/");               // ⭐ Redirection to login
   });
 });
 
@@ -92,11 +92,13 @@ app.get("/launcher", requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// SEND EMAILS (FAST 50ms)
+// SEND EMAILS
 app.post("/send", requireAuth, limitCheck, async (req, res) => {
   const { senderName, email, password, to, subject, message } = req.body;
 
-  const recipients = to.split(/[\n,]+/).map(r => r.trim()).filter(Boolean);
+  const recipients = to.split(/[\n,]+/)
+    .map(r => r.trim())
+    .filter(Boolean);
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -117,33 +119,30 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
         to: r,
         subject,
         html: `
-<div style="white-space:pre;font-size:15px;font-family:Segoe UI;color:#222">
+<div style="white-space:pre;font-size:15px;color:#222;font-family:Segoe UI;">
 ${message}
 </div>
-<div style="font-size:11px;color:#666;margin-top:18px;">
-📩 Scanned & Secured — www.avast.com
-</div>`
+<div style="font-size:11px;color:#666;margin-top:18px;">📩 Scanned & Secured — www.avast.com</div>
+`
       });
 
       info.count++;
       sentCount++;
 
-      // ⭐ SUPER FAST SAFE SPEED
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 50)); // ⭐ FAST SAFE SPEED
 
     } catch (err) {}
   }
 
   res.json({
     success: true,
-    message: "Mail Sent ✅",
     email,
     sent: sentCount,
-    remaining: 30 - info.count
+    remaining: 30 - info.count,
+    message: "Mail Sent ✅"
   });
 });
 
-// START
 app.listen(PORT, () =>
-  console.log("🚀 Fast Bulk Mail Server Running on PORT", PORT)
+  console.log("🚀 FAST MAIL LAUNCHER RUNNING ON PORT", PORT)
 );
