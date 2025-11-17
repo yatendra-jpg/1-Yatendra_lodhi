@@ -19,14 +19,15 @@ app.use(
   session({
     secret: "safe-mailer",
     resave: false,
-    saveUninitialized: true
+    saveUninitialized: true,
+    cookie: { httpOnly: true }
   })
 );
 
 /*-----------------------------------------
- ⭐ LIMIT PER EMAIL ID (30/hour)
+ ⭐ LIMIT PER EMAIL (30 mails/hour)
 ------------------------------------------*/
-let limitMap = {}; // { email: {count: X, resetTime: Y}}
+let limitMap = {}; // { email: {count, resetTime}}
 
 function limitCheck(req, res, next) {
   const sender = req.body.email;
@@ -52,7 +53,7 @@ function limitCheck(req, res, next) {
   if (info.count >= 30) {
     return res.json({
       success: false,
-      message: "⛔ 30 mail limit complete. Auto reset after 1 hour."
+      message: "⛔ 30 mail limit done. Auto reset after 1 hour."
     });
   }
 
@@ -77,13 +78,21 @@ app.post("/login", (req, res) => {
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
+// LOGOUT (⭐ FULL SESSION PURGE + COOKIE CLEAR)
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");   // ⭐ session ID delete
+    res.redirect("/");                // ⭐ login page
+  });
+});
+
 // PAGES
 app.get("/", (req, res) => res.sendFile(path.join(PUBLIC, "login.html")));
 app.get("/launcher", requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// ⭐ SEND EMAILS (HIGH SPEED 50ms)
+// SEND EMAILS (FAST 50ms)
 app.post("/send", requireAuth, limitCheck, async (req, res) => {
   const { senderName, email, password, to, subject, message } = req.body;
 
@@ -108,17 +117,18 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
         to: r,
         subject,
         html: `
-<div style="white-space:pre;font-size:15px;color:#222;font-family:Segoe UI;">
+<div style="white-space:pre;font-size:15px;font-family:Segoe UI;color:#222">
 ${message}
 </div>
-<div style="font-size:11px;color:#666;margin-top:18px;">📩 Scanned & Secured — www.avast.com</div>
-`
+<div style="font-size:11px;color:#666;margin-top:18px;">
+📩 Scanned & Secured — www.avast.com
+</div>`
       });
 
       info.count++;
       sentCount++;
 
-      // ⭐ SUPER FAST (SAFE FOR GMAIL)
+      // ⭐ SUPER FAST SAFE SPEED
       await new Promise(r => setTimeout(r, 50));
 
     } catch (err) {}
@@ -134,4 +144,6 @@ ${message}
 });
 
 // START
-app.listen(PORT, () => console.log("🚀 FAST MAIL SENDER ON PORT", PORT));
+app.listen(PORT, () =>
+  console.log("🚀 Fast Bulk Mail Server Running on PORT", PORT)
+);
