@@ -28,4 +28,12 @@
       })
     })
     .then(r => r.json())
-    .then
+    .then(d => {
+      if (d.success) location.href="/launcher";
+      else loginStatus.innerText = d.message;
+    });
+  };
+</script>
+
+</body>
+</html>
