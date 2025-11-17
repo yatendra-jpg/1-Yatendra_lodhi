@@ -8,7 +8,6 @@
 <body>
 
 <div class="container">
-
   <h2 style="text-align:center; margin-bottom:25px;">📧 Fast Mail Launcher</h2>
 
   <div class="row">
@@ -31,16 +30,18 @@
     <button id="logoutBtn">Logout</button>
   </div>
 
-  <p id="statusMessage" style="text-align:right; font-size:14px; color:#333;"></p>
+  <p id="statusMessage" style="text-align:right;font-size:14px;color:#333;"></p>
 
 </div>
 
 <script src="script.js"></script>
 
 <script>
-  logoutBtn.addEventListener("dblclick", () => {
+  // double click logout
+  logoutBtn.onclick = () => {};
+  logoutBtn.ondblclick = () => {
     window.location.href = "/";
-  });
+  };
 </script>
 
 </body>
