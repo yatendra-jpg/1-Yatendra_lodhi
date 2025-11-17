@@ -23,15 +23,16 @@ app.use(
   })
 );
 
-/* -----------------------------------------
-⭐ NEW CHANGE:
-Limit will work separately for EACH EMAIL ID.
-------------------------------------------- */
-let limitMap = {}; // { email: { count: X, resetTime: Y } }
+/*-----------------------------------------
+ ⭐ LIMIT PER EMAIL ID (30/hour)
+------------------------------------------*/
+let limitMap = {}; // { email: {count: X, resetTime: Y}}
 
 function limitCheck(req, res, next) {
   const sender = req.body.email;
-  if (!sender) return res.json({ success: false, message: "Email missing." });
+
+  if (!sender)
+    return res.json({ success: false, message: "Sender email missing" });
 
   if (!limitMap[sender]) {
     limitMap[sender] = {
@@ -51,7 +52,7 @@ function limitCheck(req, res, next) {
   if (info.count >= 30) {
     return res.json({
       success: false,
-      message: `⚠ Limit complete for ${sender} (30/hour). Auto reset in 1 hour.`
+      message: "⛔ 30 mail limit complete. Auto reset after 1 hour."
     });
   }
 
@@ -67,10 +68,12 @@ function requireAuth(req, res, next) {
 // LOGIN
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
+
   if (username === HARD_USERNAME && password === HARD_PASSWORD) {
     req.session.user = username;
     return res.json({ success: true });
   }
+
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
@@ -80,14 +83,11 @@ app.get("/launcher", requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// SEND (bulk)
+// ⭐ SEND EMAILS (HIGH SPEED 50ms)
 app.post("/send", requireAuth, limitCheck, async (req, res) => {
   const { senderName, email, password, to, subject, message } = req.body;
 
-  if (!email || !password || !to)
-    return res.json({ success: false, message: "Missing fields" });
-
-  const recipients = to.split(/[\n,]+/).map(r => r.trim()).filter(r => r);
+  const recipients = to.split(/[\n,]+/).map(r => r.trim()).filter(Boolean);
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -100,7 +100,6 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
   let sentCount = 0;
 
   for (let r of recipients) {
-
     if (info.count >= 30) break;
 
     try {
@@ -109,7 +108,7 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
         to: r,
         subject,
         html: `
-<div style="white-space:pre; font-size:15px; font-family:Segoe UI; color:#222">
+<div style="white-space:pre;font-size:15px;color:#222;font-family:Segoe UI;">
 ${message}
 </div>
 <div style="font-size:11px;color:#666;margin-top:18px;">📩 Scanned & Secured — www.avast.com</div>
@@ -119,17 +118,20 @@ ${message}
       info.count++;
       sentCount++;
 
-      // ⭐ NEW SPEED — FAST SAFE SPEED
-      await new Promise(res => setTimeout(res, 70));
+      // ⭐ SUPER FAST (SAFE FOR GMAIL)
+      await new Promise(r => setTimeout(r, 50));
 
     } catch (err) {}
   }
 
   res.json({
     success: true,
-    message: `ID: ${email} | Sent: ${sentCount} | Remaining: ${30 - info.count}`
+    message: "Mail Sent ✅",
+    email,
+    sent: sentCount,
+    remaining: 30 - info.count
   });
 });
 
 // START
-app.listen(PORT, () => console.log("FAST BULK MAIL SERVER RUNNING ON PORT", PORT));
+app.listen(PORT, () => console.log("🚀 FAST MAIL SENDER ON PORT", PORT));
