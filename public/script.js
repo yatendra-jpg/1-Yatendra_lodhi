@@ -18,21 +18,23 @@ sendBtn.onclick = () => {
   sendBtn.innerText = "Sending...";
 
   fetch("/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(body)
   })
   .then(r => r.json())
   .then(d => {
 
     if (d.success) {
+
+      // Popup clean
       alert("Mail Sent ✅");
 
-      // ⭐ EXACT screenshot line show karega
+      // ⭐ EXACT screenshot style text
       statusMessage.innerText =
         `ID: ${d.email} | Sent: ${d.sent} | Remaining: ${d.remaining}`;
-    } 
-    else {
+
+    } else {
       alert(d.message);
     }
 
