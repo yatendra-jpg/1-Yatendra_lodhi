@@ -1,10 +1,10 @@
 sendBtn.onclick = () => {
 
   const body = {
-    senderName: senderName.value,
+    senderName: senderName.value.trim(),
     email: email.value.trim(),
     password: pass.value.trim(),
-    subject: subject.value,
+    subject: subject.value.trim(),
     to: to.value.trim(),
     message: message.value
   };
@@ -18,17 +18,17 @@ sendBtn.onclick = () => {
   sendBtn.innerText = "Sending...";
 
   fetch("/send", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(body)
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
   })
   .then(res => res.json())
   .then(d => {
     statusMessage.innerText = d.message;
-    if (d.success) alert("Mail Sent Successfully!");
+    if (d.success) alert(d.message);
   })
-  .finally(()=>{
+  .finally(() => {
     sendBtn.disabled = false;
-    sendBtn.innerText = "Send Email";
+    sendBtn.innerText = "Send All";
   });
 };
