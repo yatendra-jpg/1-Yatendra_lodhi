@@ -26,7 +26,7 @@ sendBtn.onclick = () => {
   .then(d => {
 
     if (!d.success) {
-      alert(d.message);    // ❌ Wrong password will show here
+      alert(d.message);
       return;
     }
 
