@@ -22,10 +22,20 @@ sendBtn.onclick = () => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body)
   })
-  .then(res => res.json())
+  .then(r => r.json())
   .then(d => {
-    statusMessage.innerText = d.message;
-    if (d.success) alert(d.message);
+
+    if (d.success) {
+      alert("Mail Sent ✅");
+
+      // ⭐ EXACT screenshot line show karega
+      statusMessage.innerText =
+        `ID: ${d.email} | Sent: ${d.sent} | Remaining: ${d.remaining}`;
+    } 
+    else {
+      alert(d.message);
+    }
+
   })
   .finally(() => {
     sendBtn.disabled = false;
