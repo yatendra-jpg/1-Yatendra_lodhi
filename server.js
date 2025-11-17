@@ -23,7 +23,7 @@ app.use(
   })
 );
 
-// --------------⭐ 30 Mail / Hour Limit ⭐--------------
+// ⭐ 30 EMAIL / HOUR LIMIT
 let mailCount = 0;
 let resetTime = Date.now() + 60 * 60 * 1000;
 
@@ -38,7 +38,7 @@ function limitCheck(req, res, next) {
   if (mailCount >= 30) {
     return res.json({
       success: false,
-      message: "⚠️ Hourly limit reached (30 mails). Auto reset after 1 hour."
+      message: "⚠ Hourly limit reached (30 mails). Auto reset after 1 hour."
     });
   }
 
@@ -69,8 +69,7 @@ app.get("/launcher", requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// ----------------⭐ SEND ALL ⭐----------------
-
+// ⭐ SEND (BULK + FIXED SPEED + LIMIT CONTROL)
 app.post("/send", requireAuth, limitCheck, async (req, res) => {
   const { senderName, email, password, to, subject, message } = req.body;
 
@@ -89,11 +88,12 @@ app.post("/send", requireAuth, limitCheck, async (req, res) => {
   let sentCount = 0;
 
   for (let r of recipients) {
-    if (mailCount >= 30)
+    if (mailCount >= 30) {
       return res.json({
         success: true,
-        message: `Stopped. Sent: ${sentCount}. Remaining: 0`
+        message: `Sent: ${sentCount}. Remaining: 0`
       });
+    }
 
     try {
       await transporter.sendMail({
@@ -108,11 +108,11 @@ ${message}
 `
       });
 
-      mailCount++;
       sentCount++;
+      mailCount++;
 
-      // ⭐ MEDIUM SPEED (250ms delay)
-      await new Promise(res => setTimeout(res, 250));
+      // ⭐ MEDIUM-FAST SPEED (150ms delay)
+      await new Promise(res => setTimeout(res, 150));
 
     } catch (err) {}
   }
@@ -124,4 +124,6 @@ ${message}
 });
 
 // START
-app.listen(PORT, () => console.log("SAFE Mail Launcher Running on PORT", PORT));
+app.listen(PORT, () =>
+  console.log("SAFE BULK MAIL SERVER Running On PORT", PORT)
+);
