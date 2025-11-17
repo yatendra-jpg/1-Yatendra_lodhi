@@ -60,7 +60,7 @@ function limitCheck(req, res, next) {
   next();
 }
 
-// AUTH MIDDLEWARE
+// AUTH
 function requireAuth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
@@ -78,11 +78,11 @@ app.post("/login", (req, res) => {
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
-// LOGOUT (⭐ TOKEN REFRESH)
+// LOGOUT — SESSION DESTROY + TOKEN RESET
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie("connect.sid");  // ⭐ SESSION ID DELETE
-    res.redirect("/");               // ⭐ Redirection to login
+    res.clearCookie("connect.sid");
+    res.redirect("/");
   });
 });
 
@@ -92,20 +92,31 @@ app.get("/launcher", requireAuth, (req, res) =>
   res.sendFile(path.join(PUBLIC, "launcher.html"))
 );
 
-// SEND EMAILS
+// ⭐ SEND EMAILS — FASTEST SPEED + WRONG APP PASSWORD CHECK
 app.post("/send", requireAuth, limitCheck, async (req, res) => {
   const { senderName, email, password, to, subject, message } = req.body;
 
-  const recipients = to.split(/[\n,]+/)
-    .map(r => r.trim())
-    .filter(Boolean);
+  const recipients = to.split(/[\n,]+/).map(r => r.trim()).filter(Boolean);
 
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    secure: true,
-    port: 465,
-    auth: { user: email, pass: password }
-  });
+  let transporter;
+
+  try {
+    transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      secure: true,
+      port: 465,
+      auth: { user: email, pass: password }
+    });
+
+    // ⭐ WRONG APP PASSWORD CHECK
+    await transporter.verify();
+
+  } catch (err) {
+    return res.json({
+      success: false,
+      message: "❌ App Password Wrong"
+    });
+  }
 
   const info = limitMap[email];
   let sentCount = 0;
@@ -129,20 +140,21 @@ ${message}
       info.count++;
       sentCount++;
 
-      await new Promise(r => setTimeout(r, 50)); // ⭐ FAST SAFE SPEED
+      // ⭐ SUPER FAST (SAFE) SPEED
+      await new Promise(r => setTimeout(r, 25));
 
     } catch (err) {}
   }
 
   res.json({
     success: true,
+    message: "Mail Sent ✅",
     email,
     sent: sentCount,
-    remaining: 30 - info.count,
-    message: "Mail Sent ✅"
+    remaining: 30 - info.count
   });
 });
 
 app.listen(PORT, () =>
-  console.log("🚀 FAST MAIL LAUNCHER RUNNING ON PORT", PORT)
+  console.log("🚀 HIGH-SPEED MAIL LAUNCHER RUNNING ON PORT", PORT)
 );
