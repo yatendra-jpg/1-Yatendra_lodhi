@@ -27,13 +27,5 @@
         password:password.value.trim()
       })
     })
-    .then(res => res.json())
-    .then(d => {
-      if (d.success) location.href="/launcher";
-      else loginStatus.innerText = d.message;
-    });
-  };
-</script>
-
-</body>
-</html>
+    .then(r => r.json())
+    .then
