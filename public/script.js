@@ -1,70 +1,58 @@
-let resetTimerInterval = null;
+// Multi-tab logout
+function broadcastLogout() {
+  localStorage.setItem("logout", Date.now());
+}
+window.addEventListener("storage", e => {
+  if (e.key === "logout") location.href = "/";
+});
 
-sendBtn.onclick = () => {
+// Double click logout
+logoutBtn?.addEventListener("dblclick", () => {
+  fetch("/logout", { method:"POST" })
+    .then(() => {
+      broadcastLogout();
+      location.href = "/";
+    });
+});
+
+// SEND MAIL
+sendBtn?.addEventListener("click", () => {
 
   const body = {
-    senderName: senderName.value.trim(),
+    senderName: senderName.value,
     email: email.value.trim(),
     password: pass.value.trim(),
-    subject: subject.value.trim(),
-    to: to.value.trim(),
-    message: message.value
+    subject: subject.value,
+    message: message.value,
+    recipients: recipients.value.trim()
   };
 
-  if (!body.email || !body.password || !body.to) {
-    alert("Missing required fields");
+  if (!body.email || !body.password || !body.recipients) {
+    statusMessage.innerText = "❌ Email, password & recipients required";
+    alert("❌ Missing details");
     return;
   }
 
   sendBtn.disabled = true;
-  sendBtn.innerText = "Sending...";
+  sendBtn.innerHTML = "⏳ Sending...";
 
   fetch("/send", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(body)
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(body)
   })
   .then(r => r.json())
   .then(d => {
+    statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
 
-    if (!d.success) {
-      alert(d.message);
-      return;
+    if (d.success) {
+      setTimeout(() => alert("✅ Mail Sent Successfully"), 300);
+    } else {
+      alert("❌ " + d.message);
     }
-
-    alert("Mail Sent ✅");
-
-    statusMessage.innerText =
-      `ID: ${d.email} | Sent: ${d.sent} | Remaining: ${d.remaining}`;
-
-    startResetTimer(d.resetIn);
-
   })
   .finally(() => {
     sendBtn.disabled = false;
-    sendBtn.innerText = "Send All";
+    sendBtn.innerHTML = "Send All";
   });
-};
-
-function startResetTimer(ms) {
-  if (resetTimerInterval) clearInterval(resetTimerInterval);
-
-  let sec = Math.floor(ms / 1000);
-
-  resetTimerInterval = setInterval(() => {
-
-    if (sec <= 0) {
-      timer.innerText = "Reset in (0:00)";
-      clearInterval(resetTimerInterval);
-      return;
-    }
-
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-
-    timer.innerText = `Reset in (${m}:${s.toString().padStart(2,'0')})`;
-
-    sec--;
-
-  }, 1000);
-}
+});
