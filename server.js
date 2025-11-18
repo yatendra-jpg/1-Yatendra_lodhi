@@ -1,64 +1,43 @@
-const express = require("express");
-const session = require("express-session");
-const bodyParser = require("body-parser");
-const nodemailer = require("nodemailer");
-const path = require("path");
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const bodyParser = require('body-parser');
+const nodemailer = require('nodemailer');
+const path = require('path');
 
 const app = express();
-const PORT = 8080;
-const PUBLIC = path.join(process.cwd(), "public");
+const PORT = process.env.PORT || 8080;
+const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// RESET TIME (1 hour)
-const RESET_SECONDS = 3600;
+// NEW HARD LOGIN
+const HARD_USERNAME = "one-arvind-kumar";
+const HARD_PASSWORD = "one-arvind-kumar";
 
-// LOGIN
-const HARD_USERNAME = "one-yatendra-lodhi";
-const HARD_PASSWORD = "one-yatendra-lodhi";
+// Hour limit system
+let EMAIL_LIMIT = {};
+const MAX_MAILS_PER_HOUR = 31;
+const ONE_HOUR = 60 * 60 * 1000;
+
+// Batch settings
+const BASE_BATCH_SIZE = 5;
+const SAFE_DELAY_MIN = 150;
+const SAFE_DELAY_MAX = 400;
+
+const delay = ms => new Promise(res => setTimeout(res, ms));
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 app.use(bodyParser.json());
-app.use(express.static(PUBLIC));
+app.use(express.static(PUBLIC_DIR));
 
 app.use(
   session({
-    secret: "safe-mailer",
+    secret: "launcher-secret",
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: true,
+    cookie: { maxAge: ONE_HOUR }
   })
 );
 
-// LIMIT MAP
-let limitMap = {}; // { email: { count, resetTime } }
-
-function limitCheck(req, res, next) {
-  const sender = req.body.email;
-  const now = Date.now();
-
-  if (!limitMap[sender]) {
-    limitMap[sender] = {
-      count: 0,
-      resetTime: now + RESET_SECONDS * 1000
-    };
-  }
-
-  const info = limitMap[sender];
-
-  if (now >= info.resetTime) {
-    info.count = 0;
-    info.resetTime = now + RESET_SECONDS * 1000;
-  }
-
-  if (info.count >= 30) {
-    return res.json({
-      success: false,
-      message: "⛔ 30 mail limit completed. Reset after 1 hour.",
-      resetIn: info.resetTime - now
-    });
-  }
-
-  next();
-}
-
-// AUTH
 function requireAuth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
@@ -66,106 +45,127 @@ function requireAuth(req, res, next) {
 
 // LOGIN
 app.post("/login", (req, res) => {
-  if (
-    req.body.username === HARD_USERNAME &&
-    req.body.password === HARD_PASSWORD
-  ) {
-    req.session.user = req.body.username;
+  const { username, password } = req.body;
+
+  if (username === HARD_USERNAME && password === HARD_PASSWORD) {
+    req.session.user = username;
     return res.json({ success: true });
   }
+
   res.json({ success: false, message: "❌ Invalid credentials" });
 });
 
+// PAGES
+app.get("/", (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "login.html"));
+});
+
+app.get("/launcher", requireAuth, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "launcher.html"));
+});
+
 // LOGOUT
-app.get("/logout", (req, res) => {
+app.post("/logout", (req, res) => {
   req.session.destroy(() => {
     res.clearCookie("connect.sid");
-    res.redirect("/");
+    res.json({ success: true });
   });
 });
 
-// PAGES
-app.get("/", (req, res) => res.sendFile(path.join(PUBLIC, "login.html")));
-app.get("/launcher", requireAuth, (req, res) =>
-  res.sendFile(path.join(PUBLIC, "launcher.html"))
-);
-
-// SEND EMAILS — GMAIL MAX SAFE SPEED (~65ms delay)
-app.post("/send", requireAuth, limitCheck, async (req, res) => {
-  const { senderName, email, password, to, subject, message } = req.body;
-
-  const recipients = to
-    .split(/[\n,]+/)
-    .map(r => r.trim())
-    .filter(Boolean);
-
-  let transporter;
-
+// SEND MAIL
+app.post("/send", requireAuth, async (req, res) => {
   try {
-    transporter = nodemailer.createTransport({
+    const { senderName, email, password, recipients, subject, message } = req.body;
+
+    if (!email || !password || !recipients)
+      return res.json({ success: false, message: "❌ Missing fields" });
+
+    // Recipient list
+    const list = recipients
+      .split(/[\n,]+/)
+      .map(e => e.trim())
+      .filter(Boolean);
+
+    if (!list.length)
+      return res.json({ success: false, message: "❌ No valid recipients" });
+
+    // Hour limit init/reset
+    if (!EMAIL_LIMIT[email]) {
+      EMAIL_LIMIT[email] = { count: 0, resetTime: Date.now() + ONE_HOUR };
+    }
+
+    if (Date.now() > EMAIL_LIMIT[email].resetTime) {
+      EMAIL_LIMIT[email].count = 0;
+      EMAIL_LIMIT[email].resetTime = Date.now() + ONE_HOUR;
+    }
+
+    if (EMAIL_LIMIT[email].count + list.length > MAX_MAILS_PER_HOUR) {
+      return res.json({
+        success: false,
+        message: "❌ Hourly limit reached",
+        left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
+      });
+    }
+
+    // Gmail Transporter
+    const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
       port: 465,
-      auth: {
-        user: email,
-        pass: password
-      },
-      pool: true,
-      maxConnections: 1,
-      maxMessages: 100
+      auth: { user: email, pass: password }
     });
-
-    await transporter.verify();
-
-  } catch (err) {
-    return res.json({
-      success: false,
-      message: "❌ App Password Wrong"
-    });
-  }
-
-  const info = limitMap[email];
-  let sentCount = 0;
-
-  for (let r of recipients) {
-    if (info.count >= 30) break;
 
     try {
-      await transporter.sendMail({
-        from: `"${senderName || "Sender"}" <${email}>`,
-        to: r,
-        subject,
-        html: `
-<div style="white-space:pre;font-size:15px;color:#222;">
-${message}
-</div>
-<div style="font-size:11px;color:#666;margin-top:18px;">
-📩 Scanned & Secured — www.avast.com
-</div>
-`
-      });
+      await transporter.verify();
+    } catch {
+      return res.json({ success: false, message: "❌ Wrong App Password" });
+    }
 
-      info.count++;
-      sentCount++;
+    let sent = 0;
+    let fail = 0;
 
-      // ⭐ MAX SAFE SPEED = 65ms per email
-      await new Promise(r => setTimeout(r, 65));
+    // BATCH SENDING
+    for (let i = 0; i < list.length; ) {
+      const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
-    } catch (err) {}
+      const results = await Promise.allSettled(
+        batch.map(to =>
+          transporter.sendMail({
+            from: `"${senderName || "Sender"}" <${email}>`,
+            to,
+            subject: subject || "",
+
+            // Clean HTML message + Footer 11px
+            html: `
+              <div style="font-size:15px; line-height:1.5;">
+                ${message || ""}
+              </div>
+
+              <div style="font-size:11px; color:#666; margin-top:18px;">
+                📩 Scanned & Secured — www.avast.com
+              </div>
+            `
+          })
+        )
+      );
+
+      results.forEach(r => (r.status === "fulfilled" ? sent++ : fail++));
+      EMAIL_LIMIT[email].count += batch.length;
+
+      i += batch.length;
+      await delay(rand(SAFE_DELAY_MIN, SAFE_DELAY_MAX));
+    }
+
+    res.json({
+      success: true,
+      message: `Sent: ${sent} | Failed: ${fail}`,
+      left: MAX_MAILS_PER_HOUR - EMAIL_LIMIT[email].count
+    });
+
+  } catch (err) {
+    res.json({ success: false, message: err.message });
   }
-
-  const now = Date.now();
-
-  res.json({
-    success: true,
-    message: "Mail Sent ✅",
-    email,
-    sent: sentCount,
-    remaining: 30 - info.count,
-    resetIn: info.resetTime - now
-  });
 });
 
-app.listen(PORT, () =>
-  console.log("🚀 GMAIL MAX SAFE SPEED MAIL SERVER (30 mails ≈ 2 sec)")
-);
+// SERVER START
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
