@@ -8,8 +8,7 @@
 <body>
 
 <div class="container">
-
-  <h2 style="text-align:center; margin-bottom:25px;">📧 Fast Mail Launcher</h2>
+  <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
     <input id="senderName" placeholder="Sender Name">
@@ -21,9 +20,16 @@
     <input id="subject" placeholder="Email Subject">
   </div>
 
-  <div class="row">
+  <div class="row landscape-row">
     <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
-    <textarea id="to" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
+
+    <div class="recipient-box">
+      <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
+      <div class="small-info">
+        <span id="emailCount">Total Emails: 0</span><br>
+        <span id="remainingCount">Remaining this hour: 31</span>
+      </div>
+    </div>
   </div>
 
   <div class="row">
@@ -31,18 +37,9 @@
     <button id="logoutBtn">Logout</button>
   </div>
 
-  <p id="statusMessage" style="text-align:right;margin-top:5px;font-size:15px;color:#444;"></p>
-  <p id="timer" style="text-align:right;font-size:14px;color:#777;"></p>
-
+  <p id="statusMessage"></p>
 </div>
 
 <script src="script.js"></script>
-
-<script>
-logoutBtn.ondblclick = () => {
-  window.location.href = "/logout";
-};
-</script>
-
 </body>
 </html>
