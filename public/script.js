@@ -1,22 +1,26 @@
-// Multi-tab logout
 function broadcastLogout() {
   localStorage.setItem("logout", Date.now());
 }
+
 window.addEventListener("storage", e => {
   if (e.key === "logout") location.href = "/";
 });
 
-// Double click logout
 logoutBtn?.addEventListener("dblclick", () => {
-  fetch("/logout", { method:"POST" })
-    .then(() => {
-      broadcastLogout();
-      location.href = "/";
-    });
+  fetch("/logout", { method:"POST" }).then(() => {
+    broadcastLogout();
+    location.href = "/";
+  });
+});
+
+// LIVE COUNT
+recipients.addEventListener("input", () => {
+  const list = recipients.value.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+  emailCount.innerText = `Total Emails: ${list.length}`;
 });
 
 // SEND MAIL
-sendBtn?.addEventListener("click", () => {
+sendBtn.addEventListener("click", () => {
 
   const body = {
     senderName: senderName.value,
@@ -26,12 +30,6 @@ sendBtn?.addEventListener("click", () => {
     message: message.value,
     recipients: recipients.value.trim()
   };
-
-  if (!body.email || !body.password || !body.recipients) {
-    statusMessage.innerText = "❌ Email, password & recipients required";
-    alert("❌ Missing details");
-    return;
-  }
 
   sendBtn.disabled = true;
   sendBtn.innerHTML = "⏳ Sending...";
@@ -45,10 +43,8 @@ sendBtn?.addEventListener("click", () => {
   .then(d => {
     statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
 
-    if (d.success) {
-      setTimeout(() => alert("✅ Mail Sent Successfully"), 300);
-    } else {
-      alert("❌ " + d.message);
+    if (d.left !== undefined) {
+      remainingCount.innerText = `Remaining this hour: ${d.left}`;
     }
   })
   .finally(() => {
