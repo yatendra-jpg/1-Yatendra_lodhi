@@ -19,9 +19,24 @@ recipients.addEventListener("input", () => {
   emailCount.innerText = `Total Emails: ${list.length}`;
 });
 
+// POPUP
+function showPopup(text, success = true) {
+  const popup = document.createElement("div");
+  popup.className = "popup";
+  popup.innerText = text;
+  popup.style.background = success ? "#4ade80" : "#ef4444";
+  document.body.appendChild(popup);
+
+  setTimeout(() => {
+    popup.style.opacity = "0";
+    popup.style.transform = "translateY(-20px)";
+  }, 1200);
+
+  setTimeout(() => popup.remove(), 1800);
+}
+
 // SEND MAIL
 sendBtn.addEventListener("click", () => {
-
   const body = {
     senderName: senderName.value,
     email: email.value.trim(),
@@ -46,6 +61,9 @@ sendBtn.addEventListener("click", () => {
     if (d.left !== undefined) {
       remainingCount.innerText = `Remaining this hour: ${d.left}`;
     }
+
+    if (d.success) showPopup("Mail Sent ✅", true);
+    else showPopup("Failed ❌", false);
   })
   .finally(() => {
     sendBtn.disabled = false;
