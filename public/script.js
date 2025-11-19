@@ -1,82 +1,43 @@
-function broadcastLogout() {
-  localStorage.setItem("logout", Date.now());
+function broadcastLogout(){
+  localStorage.setItem("logout",Date.now());
 }
 
-window.addEventListener("storage", e => {
-  if (e.key === "logout") location.href = "/";
+window.addEventListener("storage",e=>{
+  if(e.key==="logout") location.href="/";
 });
 
-logoutBtn?.addEventListener("dblclick", () => {
-  fetch("/logout", { method:"POST" }).then(() => {
+logoutBtn?.addEventListener("dblclick",()=>{
+  fetch("/logout",{method:"POST"}).then(()=>{
     broadcastLogout();
-    location.href = "/";
+    location.href="/";
   });
 });
 
 // LIVE COUNT
-recipients.addEventListener("input", () => {
-  const list = recipients.value.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+recipients.addEventListener("input",()=>{
+  const list = recipients.value.split(/[\n,]+/).map(v=>v.trim()).filter(Boolean);
   emailCount.innerText = `Total Emails: ${list.length}`;
 });
 
-// POPUP with OK BUTTON
-function showPopup(text, success = true) {
-  const popup = document.createElement("div");
-  popup.className = "popup";
+// POPUP + OK BUTTON
+function showPopup(text, success=true){
+  const popup=document.createElement("div");
+  popup.className="popup";
 
-  popup.innerHTML = `
+  popup.innerHTML=`
     <div class="popup-text">${text}</div>
-    <button class="popup-btn">OK</button>
+    <button class="popup-ok">OK</button>
   `;
 
-  popup.style.background = success ? "#4ade80" : "#ef4444";
+  popup.style.background = success ? "#22c55e" : "#ef4444";
 
   document.body.appendChild(popup);
 
-  // OK button close
-  popup.querySelector(".popup-btn").onclick = () => popup.remove();
+  popup.querySelector(".popup-ok").onclick=()=>popup.remove();
 
-  // Auto hide
-  setTimeout(() => {
-    popup.style.opacity = "0";
-    popup.style.transform = "translateY(-20px)";
-  }, 2000);
+  setTimeout(()=>{
+    popup.style.opacity="0";
+    popup.style.transform="translateY(-25px)";
+  },2500);
 
-  setTimeout(() => popup.remove(), 2600);
-}
-
-// SEND MAIL
-sendBtn.addEventListener("click", () => {
-  const body = {
-    senderName: senderName.value,
-    email: email.value.trim(),
-    password: pass.value.trim(),
-    subject: subject.value,
-    message: message.value,
-    recipients: recipients.value.trim()
-  };
-
-  sendBtn.disabled = true;
-  sendBtn.innerHTML = "⏳ Sending...";
-
-  fetch("/send", {
-    method: "POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  })
-  .then(r => r.json())
-  .then(d => {
-    statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
-
-    if (d.left !== undefined) {
-      remainingCount.innerText = `Remaining this hour: ${d.left}`;
-    }
-
-    if (d.success) showPopup("Mail Sent Successfully ✅", true);
-    else showPopup("Failed ❌", false);
-  })
-  .finally(() => {
-    sendBtn.disabled = false;
-    sendBtn.innerHTML = "Send All";
-  });
-});
+  set
