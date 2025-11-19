@@ -27,9 +27,7 @@
   const loginBtn = document.getElementById("loginBtn");
   const loginStatus = document.getElementById("loginStatus");
 
-  loginBtn.addEventListener("click", login);
-
-  function login() {
+  loginBtn.addEventListener("click", () => {
     const username = usernameEl.value.trim();
     const password = passwordEl.value.trim();
 
@@ -46,12 +44,12 @@
       if (d.success) {
         location.href = "/launcher";
       } else {
+        loginStatus.innerText = d.message;
         loginBtn.disabled = false;
         loginBtn.innerText = "Login";
-        loginStatus.innerText = d.message;
       }
     });
-  }
+  });
 </script>
 
 </body>
