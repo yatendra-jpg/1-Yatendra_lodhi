@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Login — Fast Mail Launcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+
   <div class="login-card">
     <div class="login-logo">📧</div>
     <h2>Welcome Back</h2>
@@ -13,24 +16,43 @@
 
     <input id="username" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
 
+    <button id="loginBtn">Login</button>
     <p id="loginStatus"></p>
   </div>
 
-  <script>
-    loginBtn.addEventListener("click", () => {
-      fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          username: username.value.trim(),
-          password: password.value.trim()
-        })
-      })
-      .then(r => r.json())
-      .then(d => d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
+<script>
+  const usernameEl = document.getElementById("username");
+  const passwordEl = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginStatus = document.getElementById("loginStatus");
+
+  loginBtn.addEventListener("click", login);
+
+  function login() {
+    const username = usernameEl.value.trim();
+    const password = passwordEl.value.trim();
+
+    loginBtn.disabled = true;
+    loginBtn.innerText = "Logging in…";
+
+    fetch("/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ username, password })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        location.href = "/launcher";
+      } else {
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Login";
+        loginStatus.innerText = d.message;
+      }
     });
-  </script>
+  }
+</script>
+
 </body>
 </html>
