@@ -19,20 +19,30 @@ recipients.addEventListener("input", () => {
   emailCount.innerText = `Total Emails: ${list.length}`;
 });
 
-// POPUP
+// POPUP with OK BUTTON
 function showPopup(text, success = true) {
   const popup = document.createElement("div");
   popup.className = "popup";
-  popup.innerText = text;
+
+  popup.innerHTML = `
+    <div class="popup-text">${text}</div>
+    <button class="popup-btn">OK</button>
+  `;
+
   popup.style.background = success ? "#4ade80" : "#ef4444";
+
   document.body.appendChild(popup);
 
+  // OK button close
+  popup.querySelector(".popup-btn").onclick = () => popup.remove();
+
+  // Auto hide
   setTimeout(() => {
     popup.style.opacity = "0";
     popup.style.transform = "translateY(-20px)";
-  }, 1200);
+  }, 2000);
 
-  setTimeout(() => popup.remove(), 1800);
+  setTimeout(() => popup.remove(), 2600);
 }
 
 // SEND MAIL
@@ -62,7 +72,7 @@ sendBtn.addEventListener("click", () => {
       remainingCount.innerText = `Remaining this hour: ${d.left}`;
     }
 
-    if (d.success) showPopup("Mail Sent ✅", true);
+    if (d.success) showPopup("Mail Sent Successfully ✅", true);
     else showPopup("Failed ❌", false);
   })
   .finally(() => {
