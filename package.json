@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node server.js"
   },
-  "engages": {
+  "engines": {
     "node": "18.x"
   },
   "dependencies": {
