@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// FIXED: Login ID + Password same
+// FIXED LOGIN
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
@@ -18,10 +18,10 @@ let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// Safe Gmail delay
+// FAST Gmail delay (Safe)
 const BASE_BATCH_SIZE = 5;
-const SAFE_DELAY_MIN = 900;
-const SAFE_DELAY_MAX = 1800;
+const SAFE_DELAY_MIN = 350;
+const SAFE_DELAY_MAX = 700;
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -58,7 +58,6 @@ app.post("/login", (req, res) => {
 app.get("/", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "login.html"));
 });
-
 app.get("/launcher", requireAuth, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "launcher.html"));
 });
@@ -71,7 +70,7 @@ app.post("/logout", (req, res) => {
   });
 });
 
-// Convert message → safe HTML + multiline + Avast footer
+// MULTILINE template convert + Avast footer
 function convertToHTML(text) {
   const safe = text
     .replace(/</g, "&lt;")
@@ -81,11 +80,11 @@ function convertToHTML(text) {
     .join("<br>");
 
   return `
-    <div style="font-size:15px; line-height:1.5;">
+    <div style="font-size:15px;line-height:1.5;">
       ${safe}
     </div>
 
-    <div style="font-size:11px; color:#666; margin-top:18px;">
+    <div style="font-size:11px;color:#666;margin-top:18px;">
       📩 Scanned & Secured — www.avast.com
     </div>
   `;
@@ -137,8 +136,7 @@ app.post("/send", requireAuth, async (req, res) => {
       return res.json({ success: false, message: "❌ Wrong App Password" });
     }
 
-    let sent = 0;
-    let fail = 0;
+    let sent = 0, fail = 0;
 
     const finalHTML = convertToHTML(message || "");
 
@@ -174,5 +172,5 @@ app.post("/send", requireAuth, async (req, res) => {
   }
 });
 
-// SERVER START
+// SERVER
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
