@@ -1,43 +1,53 @@
-function broadcastLogout(){
-  localStorage.setItem("logout",Date.now());
+// DOUBLE CLICK LOGOUT
+logoutBtn.addEventListener("dblclick", () => {
+  fetch("/logout", { method:"POST" })
+    .then(() => location.href = "/");
+});
+
+// LIVE EMAIL COUNT
+recipients.addEventListener("input", () => {
+  const emails = recipients.value.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+  emailCount.innerText = "Total Emails: " + emails.length;
+});
+
+// POPUP
+function showPopup(msg){
+  const pop = document.createElement("div");
+  pop.className = "popup";
+  pop.innerHTML = `${msg}<br><button class="ok">OK</button>`;
+  document.body.appendChild(pop);
+
+  pop.querySelector(".ok").addEventListener("click",()=> pop.remove());
 }
 
-window.addEventListener("storage",e=>{
-  if(e.key==="logout") location.href="/";
-});
+// SEND MAIL
+sendBtn.addEventListener("click", () => {
 
-logoutBtn?.addEventListener("dblclick",()=>{
-  fetch("/logout",{method:"POST"}).then(()=>{
-    broadcastLogout();
-    location.href="/";
+  const body = {
+    senderName: senderName.value,
+    email: email.value.trim(),
+    password: pass.value.trim(),
+    subject: subject.value,
+    message: message.value,
+    recipients: recipients.value.trim()
+  };
+
+  sendBtn.disabled = true;
+  sendBtn.innerText = "Sending...";
+
+  fetch("/send", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(body)
+  })
+  .then(r => r.json())
+  .then(d => {
+    statusMessage.innerText = d.success ? "✅ " + d.message : "❌ " + d.message;
+    showPopup(d.success ? "Mail Sent Successfully!" : d.message);
+  })
+  .finally(() => {
+    sendBtn.disabled = false;
+    sendBtn.innerText = "Send All";
   });
+
 });
-
-// LIVE COUNT
-recipients.addEventListener("input",()=>{
-  const list = recipients.value.split(/[\n,]+/).map(v=>v.trim()).filter(Boolean);
-  emailCount.innerText = `Total Emails: ${list.length}`;
-});
-
-// POPUP + OK BUTTON
-function showPopup(text, success=true){
-  const popup=document.createElement("div");
-  popup.className="popup";
-
-  popup.innerHTML=`
-    <div class="popup-text">${text}</div>
-    <button class="popup-ok">OK</button>
-  `;
-
-  popup.style.background = success ? "#22c55e" : "#ef4444";
-
-  document.body.appendChild(popup);
-
-  popup.querySelector(".popup-ok").onclick=()=>popup.remove();
-
-  setTimeout(()=>{
-    popup.style.opacity="0";
-    popup.style.transform="translateY(-25px)";
-  },2500);
-
-  set
