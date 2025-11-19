@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// FIXED LOGIN
+// LOGIN FIXED
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
@@ -18,7 +18,7 @@ let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// FAST Gmail delay (Safe)
+// SAFE FAST Gmail delay
 const BASE_BATCH_SIZE = 5;
 const SAFE_DELAY_MIN = 350;
 const SAFE_DELAY_MAX = 700;
@@ -58,6 +58,7 @@ app.post("/login", (req, res) => {
 app.get("/", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "login.html"));
 });
+
 app.get("/launcher", requireAuth, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "launcher.html"));
 });
@@ -70,7 +71,7 @@ app.post("/logout", (req, res) => {
   });
 });
 
-// MULTILINE template convert + Avast footer
+// MULTILINE MESSAGE + Avast Footer
 function convertToHTML(text) {
   const safe = text
     .replace(/</g, "&lt;")
@@ -172,5 +173,5 @@ app.post("/send", requireAuth, async (req, res) => {
   }
 });
 
-// SERVER
+// SERVER START
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
