@@ -9,12 +9,13 @@ body{
   padding:20px;
 }
 
+/* LOGIN CARD */
 .login-card{
   background:rgba(255,255,255,0.85);
   backdrop-filter:blur(14px);
-  padding:30px;
+  padding:28px;
   border-radius:16px;
-  width:340px;
+  width:330px;
   text-align:center;
   box-shadow:0 10px 30px rgba(0,0,0,0.12);
 }
@@ -42,66 +43,83 @@ body{
 
 #loginStatus{color:#ef4444;margin-top:8px;}
 
+
+/* --------------------------
+   MAIN LAUNCHER – SCREENSHOT SIZE
+--------------------------- */
+
 .container{
-  background:rgba(255,255,255,0.9);
-  backdrop-filter:blur(10px);
-  padding:22px;
-  border-radius:20px;
-  width:900px;
+  background:#fff;
+  padding:28px;
+  border-radius:22px;
+  width:1000px;     /* EXACT screenshot width */
   max-width:95%;
+  box-shadow:0 15px 40px rgba(0,0,0,0.12);
 }
 
 .container h2{
   text-align:center;
-  font-size:28px;
-  margin-bottom:18px;
+  font-size:32px;
   font-weight:600;
+  margin-bottom:18px;
 }
 
+/* Input rows exact screenshot spacing */
 .row{
   display:flex;
-  gap:14px;
-  margin-bottom:14px;
+  gap:18px;
+  margin-bottom:18px;
 }
 
 .row input,
 .row textarea,
 .row button{
   flex:1;
-  padding:12px;
+  padding:14px;
   border-radius:10px;
   border:1px solid #cbd5e1;
   font-size:15px;
 }
 
+/* TEXTAREA height matched with screenshot */
 .bigbox{
-  min-height:170px;
+  min-height:190px;
+  resize:vertical;
+}
+
+/* Recipients box right side */
+.recipient-box{
+  flex:1;
+  display:flex;
+  flex-direction:column;
 }
 
 .small-info{
   text-align:right;
-  margin-top:4px;
-  font-size:13px;
+  margin-top:6px;
+  font-size:14px;
   color:#0369a1;
 }
 
+/* BUTTONS EXACT screenshot size */
 .row button{
   background:#3b82f6;
   color:white;
   border:none;
-  font-size:17px;
-  padding:13px;
-  cursor:pointer;
+  font-size:18px;
+  padding:15px;
   border-radius:10px;
+  cursor:pointer;
 }
 
 #statusMessage{
   text-align:center;
   color:#ef4444;
-  margin-top:10px;
+  margin-top:8px;
   font-size:16px;
 }
 
+/* PROGRESS BAR */
 #progressContainer{
   margin-top:12px;
   width:100%;
@@ -119,17 +137,18 @@ body{
 }
 
 /* POPUP */
-.popup {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 22px;
-  color: white;
-  font-size: 18px;
-  border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-  opacity: 1;
-  transition: all 0.6s ease;
-  z-index: 99999;
+.popup{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:12px 22px;
+  background:#4ade80;
+  color:white;
+  font-size:18px;
+  border-radius:10px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.2);
+  opacity:1;
+  transition:all 0.6s ease;
+  z-index:99999;
 }
