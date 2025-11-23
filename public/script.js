@@ -4,20 +4,20 @@ logoutBtn.addEventListener("dblclick", () => {
     .then(() => location.href = "/");
 });
 
-// LIVE EMAIL COUNT
+// LIVE EMAIL COUNT UPDATE
 recipients.addEventListener("input", () => {
-  const emails = recipients.value.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
-  emailCount.innerText = "Total Emails: " + emails.length;
+  const list = recipients.value.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+  emailCount.innerText = "Total Emails: " + list.length;
 });
 
-// POPUP
-function showPopup(msg){
-  const pop = document.createElement("div");
-  pop.className = "popup";
-  pop.innerHTML = `${msg}<br><button class="ok">OK</button>`;
-  document.body.appendChild(pop);
+// POPUP (OK Button)
+function popup(msg){
+  const box = document.createElement("div");
+  box.className = "popup";
+  box.innerHTML = `${msg}<br><button id="okBtn">OK</button>`;
+  document.body.appendChild(box);
 
-  pop.querySelector(".ok").addEventListener("click",()=> pop.remove());
+  document.getElementById("okBtn").onclick = () => box.remove();
 }
 
 // SEND MAIL
@@ -42,12 +42,17 @@ sendBtn.addEventListener("click", () => {
   })
   .then(r => r.json())
   .then(d => {
-    statusMessage.innerText = d.success ? "✅ " + d.message : "❌ " + d.message;
-    showPopup(d.success ? "Mail Sent Successfully!" : d.message);
+    statusMessage.innerText =
+      (d.success ? "✔ " : "❌ ") + d.message;
+
+    if (d.left !== undefined) {
+      remainingCount.innerText = "Remaining this hour: " + d.left;
+    }
+
+    popup(d.success ? "Mail Sent Successfully!" : d.message);
   })
   .finally(() => {
     sendBtn.disabled = false;
     sendBtn.innerText = "Send All";
   });
-
 });
