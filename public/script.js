@@ -1,16 +1,13 @@
-// DOUBLE CLICK LOGOUT
 logoutBtn.addEventListener("dblclick", () => {
-  fetch("/logout", { method:"POST" })
+  fetch("/logout", { method: "POST" })
     .then(() => location.href = "/");
 });
 
-// LIVE EMAIL COUNT UPDATE
 recipients.addEventListener("input", () => {
   const list = recipients.value.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
   emailCount.innerText = "Total Emails: " + list.length;
 });
 
-// POPUP (OK Button)
 function popup(msg){
   const box = document.createElement("div");
   box.className = "popup";
@@ -20,7 +17,6 @@ function popup(msg){
   document.getElementById("okBtn").onclick = () => box.remove();
 }
 
-// SEND MAIL
 sendBtn.addEventListener("click", () => {
 
   const body = {
@@ -42,12 +38,10 @@ sendBtn.addEventListener("click", () => {
   })
   .then(r => r.json())
   .then(d => {
-    statusMessage.innerText =
-      (d.success ? "✔ " : "❌ ") + d.message;
+    statusMessage.innerText = (d.success ? "✔ " : "❌ ") + d.message;
 
-    if (d.left !== undefined) {
+    if (d.left !== undefined)
       remainingCount.innerText = "Remaining this hour: " + d.left;
-    }
 
     popup(d.success ? "Mail Sent Successfully!" : d.message);
   })
