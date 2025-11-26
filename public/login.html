@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Login — Fast Mail Launcher</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,37 +19,17 @@
   </div>
 
 <script>
-  const usernameEl = document.getElementById("username");
-  const passwordEl = document.getElementById("password");
-  const loginBtn = document.getElementById("loginBtn");
-  const loginStatus = document.getElementById("loginStatus");
-
   loginBtn.addEventListener("click", () => {
-    const username = usernameEl.value.trim();
-    const password = passwordEl.value.trim();
-
-    loginBtn.disabled = true;
-    loginBtn.innerText = "Logging in…";
-
     fetch("/login", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({
+        username: username.value.trim(),
+        password: password.value.trim()
+      })
     })
     .then(r => r.json())
-    .then(d => {
-      if (d.success) location.href = "/launcher";
-      else {
-        loginStatus.innerText = d.message;
-        loginBtn.disabled = false;
-        loginBtn.innerText = "Login";
-      }
-    })
-    .catch(() => {
-      loginStatus.innerText = "❌ Network error";
-      loginBtn.disabled = false;
-      loginBtn.innerText = "Login";
-    });
+    .then(d => d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
   });
 </script>
 </body>
