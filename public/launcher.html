@@ -2,48 +2,60 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Fast Mail Launcher</title>
+  <title>Login — Fast Mail Launcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<div class="container">
+  <div class="login-card">
+    <div class="login-logo">📧</div>
+    <h2>Welcome Back</h2>
+    <p class="subtitle">Login to continue</p>
 
-  <h2>📧 Fast Mail Launcher</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
 
-  <div class="row">
-    <input id="senderName" placeholder="Sender Name">
-    <input id="email" placeholder="Your Gmail">
+    <button id="loginBtn">Login</button>
+    <p id="loginStatus"></p>
   </div>
 
-  <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
-  </div>
+<script>
+  const usernameEl = document.getElementById("username");
+  const passwordEl = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginStatus = document.getElementById("loginStatus");
 
-  <div class="row">
-    <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
+  loginBtn.addEventListener("click", () => {
+    const username = usernameEl.value.trim();
+    const password = passwordEl.value.trim();
 
-    <div class="recipient-box">
-      <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
+    loginBtn.disabled = true;
+    loginBtn.innerText = "Logging in…";
 
-      <div class="small-info">
-        <span id="emailCount">Total Emails: 0</span><br>
-        <span id="remainingCount">Remaining this hour: 31</span>
-      </div>
-    </div>
-  </div>
+    fetch("/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ username, password })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        location.href = "/launcher";
+      } else {
+        loginStatus.innerText = d.message;
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Login";
+      }
+    })
+    .catch(() => {
+      loginStatus.innerText = "❌ Network error";
+      loginBtn.disabled = false;
+      loginBtn.innerText = "Login";
+    });
+  });
+</script>
 
-  <div class="row">
-    <button id="sendBtn">Send All</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
-
-  <p id="statusMessage"></p>
-
-</div>
-
-<script src="script.js"></script>
 </body>
 </html>
