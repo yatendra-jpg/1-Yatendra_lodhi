@@ -49,5 +49,19 @@ body{
 #progressBar{ height:100%; width:0%; background:linear-gradient(to right,#3b82f6,#06b6d4); transition:width 0.4s; }
 
 /* popup */
-.popup{ position:fixed; top:20px; left:50%; transform:translateX(-50%); padding:18px 30px; border-radius:12px; color:white; font-size:18px; text-align:center; box-shadow:0 5px 20px rgba(0,0,0,0.2); z-index:9999; transition:all .3s ease; }
-.popup-ok{ margin-top:12px; padding:6px 18px; background:white; color:#000; border:none; border-radius:8px; cursor:pointer; }
+/* persistent popup - centered top */
+.popup{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:18px 30px;
+  border-radius:12px;
+  color:white;
+  font-size:18px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.2);
+  z-index:9999;
+  max-width:90%;
+}
+.popup .popup-text{ max-width:760px; word-break:break-word; }
+.popup-ok{ margin-top:12px; padding:8px 18px; background:white; color:#000; border:none; border-radius:8px; cursor:pointer; }
