@@ -9,21 +9,21 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// LOGIN CREDENTIALS (fixed)
+// FIXED LOGIN
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// HOURLY LIMITS
-let LIMIT = {}; // { "sender@example.com": { count, reset } }
+// HOURLY LIMIT
+let LIMIT = {};
 const LIMIT_MAX = 31;
 const ONE_HOUR = 3600000;
 
-// FAST + SAFE SETTINGS
+// SPEED SETTINGS
 const BATCH = 4;
-const DELAY_MIN = 220; // ms
-const DELAY_MAX = 380; // ms
-const MICRO_MIN = 60;  // ms
-const MICRO_MAX = 120; // ms
+const DELAY_MIN = 200;
+const DELAY_MAX = 350;
+const MICRO_MIN = 50;
+const MICRO_MAX = 120;
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const rand = (a,b) => Math.floor(Math.random() * (b - a + 1)) + a;
@@ -62,42 +62,30 @@ app.post("/logout", (req, res) => {
   });
 });
 
-// Helper: safe HTML + Avast footer
-function buildHtml(message) {
-  const safe = (message || "")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .split("\n")
-    .join("<br>");
-
+// CLEAN HTML template (NO Avast footer)
+function cleanHtml(msg) {
   return `
-    <div style="font-size:15px; line-height:1.5;">
-      ${safe}
-    </div>
-    <div style="font-size:11px; color:#666; margin-top:16px;">
-      📩 Scanned & Secured — www.avast.com
+    <div style="font-size:15px; line-height:1.6;">
+      ${msg.replace(/</g,"&lt;").replace(/>/g,"&gt;").split("\n").join("<br>")}
     </div>
   `;
 }
 
-// Text fallback
-function buildText(message) {
-  return (message || "").replace(/<\/?[^>]+(>|$)/g, "");
+function cleanText(msg) {
+  return msg.replace(/<\/?[^>]+>/g, "");
 }
 
-// SEND route (fast + safe)
+// SEND MAIL
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
-    if (!email || !password || !recipients) {
+    if (!email || !password || !recipients)
       return res.json({ success: false, message: "❌ Missing fields" });
-    }
 
-    const list = recipients.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    const list = recipients.split(/[\n,]+/).map(x => x.trim()).filter(Boolean);
     if (!list.length) return res.json({ success: false, message: "❌ No valid recipients" });
 
-    // Init/reset per-sender limit
     if (!LIMIT[email]) LIMIT[email] = { count: 0, reset: Date.now() + ONE_HOUR };
     if (Date.now() > LIMIT[email].reset) {
       LIMIT[email].count = 0;
@@ -112,7 +100,6 @@ app.post("/send", auth, async (req, res) => {
       });
     }
 
-    // Create transporter (Gmail)
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user: email, pass: password }
@@ -120,12 +107,12 @@ app.post("/send", auth, async (req, res) => {
 
     try {
       await transporter.verify();
-    } catch (err) {
-      return res.json({ success: false, message: "❌ Wrong App Password / Auth failed" });
+    } catch {
+      return res.json({ success: false, message: "❌ Wrong App Password" });
     }
 
-    const htmlBody = buildHtml(message);
-    const textBody = buildText(message);
+    const htmlBody = cleanHtml(message);
+    const textBody = cleanText(message);
 
     let sent = 0, fail = 0;
 
@@ -134,9 +121,7 @@ app.post("/send", auth, async (req, res) => {
 
       const results = await Promise.allSettled(
         chunk.map(async to => {
-          // micro delay to mimic human typing
           await delay(rand(MICRO_MIN, MICRO_MAX));
-
           return transporter.sendMail({
             from: `"${senderName || "Sender"}" <${email}>`,
             to,
@@ -161,16 +146,8 @@ app.post("/send", auth, async (req, res) => {
     });
 
   } catch (err) {
-    return res.json({ success: false, message: err.message || "Unknown error" });
+    return res.json({ success: false, message: err.message });
   }
 });
-
-// Cleanup old limit entries occasionally (memory tidy)
-setInterval(() => {
-  const now = Date.now();
-  for (const key in LIMIT) {
-    if (LIMIT[key].reset + ONE_HOUR < now) delete LIMIT[key];
-  }
-}, 10 * 60 * 1000);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
