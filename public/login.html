@@ -27,27 +27,32 @@
   const loginBtn = document.getElementById("loginBtn");
   const loginStatus = document.getElementById("loginStatus");
 
-  loginBtn.addEventListener("click",()=>{
-    const username=usernameEl.value.trim();
-    const password=passwordEl.value.trim();
+  loginBtn.addEventListener("click", () => {
+    const username = usernameEl.value.trim();
+    const password = passwordEl.value.trim();
 
-    loginBtn.disabled=true;
-    loginBtn.innerText="Logging in…";
+    loginBtn.disabled = true;
+    loginBtn.innerText = "Logging in…";
 
-    fetch("/login",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({username,password})
+    fetch("/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ username, password })
     })
-    .then(r=>r.json())
-    .then(d=>{
-      if(d.success){
-        location.href="/launcher";
-      }else{
-        loginStatus.innerText=d.message;
-        loginBtn.disabled=false;
-        loginBtn.innerText="Login";
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        location.href = "/launcher";
+      } else {
+        loginStatus.innerText = d.message;
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Login";
       }
+    })
+    .catch(() => {
+      loginStatus.innerText = "❌ Network error";
+      loginBtn.disabled = false;
+      loginBtn.innerText = "Login";
     });
   });
 </script>
