@@ -1,4 +1,4 @@
-*{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,sans-serif;}
 
 body{
   display:flex;
@@ -50,7 +50,6 @@ body{
   text-align:center;
   font-size:32px;
   margin-bottom:22px;
-  font-weight:700;
 }
 
 .row{
@@ -71,7 +70,6 @@ body{
 
 .bigbox{
   min-height:200px;
-  resize:vertical;
 }
 
 .recipient-box{
@@ -94,13 +92,11 @@ body{
   border:none;
   font-size:18px;
   border-radius:10px;
-  cursor:pointer;
 }
 
 #statusMessage{
   text-align:center;
   color:#ef4444;
-  margin-top:10px;
 }
 
 /* POPUP */
@@ -113,18 +109,16 @@ body{
   border-radius:12px;
   color:white;
   font-size:18px;
-  text-align:center;
   box-shadow:0 5px 20px rgba(0,0,0,0.2);
-  transition:all .6s ease;
-  z-index:9999;
+  z-index:1000;
 }
 
 .popup-ok{
   margin-top:12px;
   padding:6px 18px;
   background:white;
+  color:#000;
   border:none;
   border-radius:8px;
-  font-size:15px;
   cursor:pointer;
 }
