@@ -15,23 +15,26 @@
 
   <input id="username" placeholder="Username">
   <input id="password" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
 
+  <button id="loginBtn">Login</button>
   <p id="loginStatus"></p>
 </div>
 
 <script>
 loginBtn.addEventListener("click", () => {
   fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      username: username.value.trim(),
-      password: password.value.trim()
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      username:username.value.trim(),
+      password:password.value.trim()
     })
   })
-  .then(r => r.json())
-  .then(d => d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.success) location.href="/launcher";
+    else loginStatus.innerText=d.message;
+  });
 });
 </script>
 
