@@ -33,16 +33,33 @@ logoutBtn?.addEventListener("dblclick", () => {
   });
 });
 
-// Popup with OK
-function showPopup(text, ok=true){
+// Popup (PERSISTENT until OK clicked)
+function showPopupPersistent(text, ok=true) {
+  // If a persistent popup already exists, don't create another
+  if (document.querySelector(".popup.persistent")) return;
+
   const popup = document.createElement("div");
-  popup.className = "popup";
+  popup.className = "popup persistent";
   popup.style.background = ok ? "#22c55e" : "#ef4444";
-  popup.innerHTML = `<div class="popup-text">${text}</div><button class="popup-ok">OK</button>`;
+  popup.innerHTML = `
+    <div class="popup-text" style="max-width:620px; word-break:break-word;">${text}</div>
+    <div style="margin-top:12px;">
+      <button class="popup-ok">OK</button>
+    </div>
+  `;
+
   document.body.appendChild(popup);
-  popup.querySelector(".popup-ok").onclick = () => popup.remove();
-  setTimeout(()=>{ popup.style.opacity="0"; popup.style.transform="translateY(-20px)"; }, 2200);
-  setTimeout(()=>popup.remove(), 2800);
+
+  // When OK clicked -> remove popup
+  const okBtn = popup.querySelector(".popup-ok");
+  okBtn.onclick = () => {
+    popup.remove();
+
+    // If you want to focus UI after closing popup, do that (optional)
+    sendBtn.focus();
+  };
+
+  // DO NOT auto-hide — stay until user clicks OK
 }
 
 // Send handler
@@ -77,16 +94,23 @@ sendBtn?.addEventListener("click", () => {
     statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
     if (d.left !== undefined) remainingCount.innerText = `Remaining this hour: ${d.left}`;
     progressBar.style.width = "100%";
-    showPopup(d.success ? "Mail Sent Successfully" : "Send Failed ❌", d.success);
+
+    // Show persistent popup — DO NOT auto-hide, wait for OK click
+    showPopupPersistent(d.success ? "Mail Sent Successfully" : `Send Failed ❌ — ${d.message}`, d.success);
   })
   .catch(() => {
     statusMessage.innerText = "❌ Network error";
-    showPopup("Network Error ❌", false);
+    showPopupPersistent("Network Error ❌", false);
   })
   .finally(() => {
+    // Re-enable send button & stop progress visual — keep popup visible though
     sendBtn.disabled = false;
     sendBtn.innerHTML = "Send All";
-    setTimeout(() => { progressContainer.style.display = "none"; progressBar.style.width = "0%"; }, 800);
+
+    setTimeout(() => {
+      progressContainer.style.display = "none";
+      progressBar.style.width = "0%";
+    }, 400);
     updateCounts();
   });
 });
