@@ -3,37 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <title>Login — Fast Mail Launcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+  <div class="login-card">
+    <div class="login-logo">📧</div>
+    <h2>Welcome Back</h2>
+    <p class="subtitle">Login to continue</p>
 
-<div class="login-card">
-  <div class="login-logo">📧</div>
-  <h2>Welcome Back</h2>
-  <p class="subtitle">Login to continue</p>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
 
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-
-  <button id="loginBtn">Login</button>
-
-  <p id="loginStatus"></p>
-</div>
+    <p id="loginStatus"></p>
+  </div>
 
 <script>
-loginBtn.addEventListener("click",()=>{
-  fetch("/login",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      username:username.value.trim(),
-      password:password.value.trim()
+  const usernameEl = document.getElementById("username");
+  const passwordEl = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginStatus = document.getElementById("loginStatus");
+
+  loginBtn.addEventListener("click", () => {
+    const username = usernameEl.value.trim();
+    const password = passwordEl.value.trim();
+
+    loginBtn.disabled = true;
+    loginBtn.innerText = "Logging in…";
+
+    fetch("/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ username, password })
     })
-  })
-  .then(r=>r.json())
-  .then(d=> d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
-});
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) location.href = "/launcher";
+      else {
+        loginStatus.innerText = d.message;
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Login";
+      }
+    })
+    .catch(() => {
+      loginStatus.innerText = "❌ Network error";
+      loginBtn.disabled = false;
+      loginBtn.innerText = "Login";
+    });
+  });
 </script>
 </body>
 </html>
