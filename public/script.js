@@ -31,7 +31,7 @@ logoutBtn.addEventListener("dblclick",()=>{
   });
 });
 
-// Popup persistent
+// Popup
 function showPopup(text,ok=true){
   if(document.querySelector(".popup")) return;
 
@@ -47,6 +47,7 @@ function showPopup(text,ok=true){
   popup.querySelector(".popup-ok").onclick=()=>popup.remove();
 }
 
+// Submit
 sendBtn.addEventListener("click",()=>{
   const body={
     senderName:senderName.value,
@@ -77,7 +78,6 @@ sendBtn.addEventListener("click",()=>{
     statusMessage.innerText=(d.success?"✅ ":"❌ ")+d.message;
     if(d.left!==undefined) remainingCount.innerText=`Remaining this hour: ${d.left}`;
     progressBar.style.width="100%";
-
     showPopup(d.success?"Mail Sent Successfully":"Send Failed ❌",d.success);
   })
   .finally(()=>{
