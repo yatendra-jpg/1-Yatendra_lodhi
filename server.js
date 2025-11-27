@@ -61,7 +61,7 @@ app.post("/logout",(req,res)=>{
   });
 });
 
-// CLEAN HTML WITH FOOTER "📘 Secure mail •"
+// CLEAN HTML WITH FOOTER
 function cleanHtml(msg){
   const safeMsg = msg
     .replace(/</g,"&lt;")
@@ -75,7 +75,7 @@ function cleanHtml(msg){
     </div>
 
     <div style="font-size:12px; color:#555; margin-top:18px; padding-top:10px; border-top:1px solid #ddd;">
-      📘 Secure mail •
+      📘 Secure mail • www.weberror.com
     </div>
   `;
 }
