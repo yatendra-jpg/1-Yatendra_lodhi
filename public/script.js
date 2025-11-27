@@ -15,15 +15,13 @@ const statusMessage=document.getElementById("statusMessage");
 const progressContainer=document.getElementById("progressContainer");
 const progressBar=document.getElementById("progressBar");
 
-// Count
 function updateCounts(){
-  const list = recipients.value.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
+  const list=recipients.value.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
   emailCount.innerText=`Total Emails: ${list.length}`;
 }
 recipients.addEventListener("input",updateCounts);
 updateCounts();
 
-// Logout
 logoutBtn.addEventListener("dblclick",()=>{
   fetch("/logout",{method:"POST"}).then(()=>{
     broadcastLogout();
@@ -31,10 +29,8 @@ logoutBtn.addEventListener("dblclick",()=>{
   });
 });
 
-// Popup
 function showPopup(text,ok=true){
   if(document.querySelector(".popup")) return;
-
   const popup=document.createElement("div");
   popup.className="popup";
   popup.style.background=ok?"#22c55e":"#ef4444";
@@ -43,11 +39,9 @@ function showPopup(text,ok=true){
     <button class="popup-ok">OK</button>
   `;
   document.body.appendChild(popup);
-
   popup.querySelector(".popup-ok").onclick=()=>popup.remove();
 }
 
-// Submit
 sendBtn.addEventListener("click",()=>{
   const body={
     senderName:senderName.value,
