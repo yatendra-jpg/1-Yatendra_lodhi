@@ -9,7 +9,6 @@ body{
   padding:20px;
 }
 
-/* LOGIN */
 .login-card{
   background:#fff;
   padding:28px;
@@ -34,7 +33,6 @@ body{
   border-radius:10px;
 }
 
-/* LANDSCAPE MAIN */
 .container{
   background:#fff;
   padding:40px;
@@ -121,7 +119,6 @@ body{
   transition:width 0.4s;
 }
 
-/* POPUP */
 .popup{
   position:fixed;
   top:20px;
