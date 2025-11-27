@@ -34,12 +34,12 @@ body{
   border-radius:10px;
 }
 
-/* MAIN CONTAINER — EXACT LANDSCAPE LIKE YOUR SCREENSHOT */
+/* LANDSCAPE MAIN */
 .container{
   background:#fff;
   padding:40px;
   border-radius:25px;
-  width:1350px;            /* EXACT width like your screenshot */
+  width:1350px;
   max-width:95%;
   box-shadow:0 12px 32px rgba(0,0,0,0.12);
 }
@@ -51,14 +51,12 @@ body{
   font-weight:700;
 }
 
-/* ROWS EXACTLY LIKE SCREENSHOT */
 .row{
   display:flex;
   gap:25px;
   margin-bottom:25px;
 }
 
-/* INPUT + TEXTAREA + BUTTONS */
 .row input,
 .row textarea,
 .row button{
@@ -69,14 +67,13 @@ body{
   font-size:17px;
 }
 
-/* EXACT LANDSCAPE BOX SIZE LIKE SCREENSHOT */
 .bigbox{
-  min-height:240px;   /* exact height like screenshot */
+  min-height:240px;
   resize:vertical;
 }
 
 #message{
-  flex:1.28;          /* left big box wider */
+  flex:1.28;
 }
 
 .recipient-box{
@@ -85,7 +82,6 @@ body{
   flex-direction:column;
 }
 
-/* INFO TEXT */
 .small-info{
   text-align:right;
   margin-top:10px;
@@ -93,7 +89,6 @@ body{
   color:#1a73e8;
 }
 
-/* BUTTONS PERFECT SIZE LIKE SCREENSHOT */
 .row button{
   padding:18px;
   background:#3b82f6;
@@ -103,9 +98,6 @@ body{
   border-radius:12px;
   cursor:pointer;
 }
-.row button:hover{
-  background:#2563eb;
-}
 
 #statusMessage{
   text-align:center;
@@ -113,7 +105,6 @@ body{
   margin-top:15px;
 }
 
-/* PROGRESS BAR */
 #progressContainer{
   margin-top:15px;
   width:100%;
