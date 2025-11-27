@@ -1,5 +1,5 @@
-function broadcastLogout(){ localStorage.setItem("logout", Date.now()); }
-window.addEventListener("storage", e => { if (e.key === "logout") location.href = "/"; });
+function broadcastLogout(){ localStorage.setItem("logout",Date.now()); }
+window.addEventListener("storage",e=>{ if(e.key==="logout") location.href="/"; });
 
 const senderName=document.getElementById("senderName");
 const email=document.getElementById("email");
@@ -17,10 +17,10 @@ const progressBar=document.getElementById("progressBar");
 
 // Count
 function updateCounts(){
-  const list = recipients.value.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
-  emailCount.innerText = `Total Emails: ${list.length}`;
+  const list = recipients.value.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
+  emailCount.innerText=`Total Emails: ${list.length}`;
 }
-recipients.addEventListener("input", updateCounts);
+recipients.addEventListener("input",updateCounts);
 updateCounts();
 
 // Logout
@@ -31,8 +31,8 @@ logoutBtn.addEventListener("dblclick",()=>{
   });
 });
 
-// popup
-function showPopup(text, ok=true){
+// Popup persistent
+function showPopup(text,ok=true){
   if(document.querySelector(".popup")) return;
 
   const popup=document.createElement("div");
@@ -44,18 +44,17 @@ function showPopup(text, ok=true){
   `;
   document.body.appendChild(popup);
 
-  popup.querySelector(".popup-ok").onclick=()=> popup.remove();
+  popup.querySelector(".popup-ok").onclick=()=>popup.remove();
 }
 
-// Send
-sendBtn.addEventListener("click", ()=>{
-  const body = {
-    senderName: senderName.value,
-    email: email.value.trim(),
-    password: pass.value.trim(),
-    subject: subject.value,
-    message: message.value,
-    recipients: recipients.value.trim()
+sendBtn.addEventListener("click",()=>{
+  const body={
+    senderName:senderName.value,
+    email:email.value.trim(),
+    password:pass.value.trim(),
+    subject:subject.value,
+    message:message.value,
+    recipients:recipients.value.trim()
   };
 
   if(!body.email || !body.password || !body.recipients){
@@ -78,7 +77,8 @@ sendBtn.addEventListener("click", ()=>{
     statusMessage.innerText=(d.success?"✅ ":"❌ ")+d.message;
     if(d.left!==undefined) remainingCount.innerText=`Remaining this hour: ${d.left}`;
     progressBar.style.width="100%";
-    showPopup(d.success?"Mail Sent Successfully":"Send Failed ❌", d.success);
+
+    showPopup(d.success?"Mail Sent Successfully":"Send Failed ❌",d.success);
   })
   .finally(()=>{
     sendBtn.disabled=false;
