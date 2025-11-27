@@ -9,37 +9,38 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-// LOGIN
+// HARD LOGIN
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// HOURLY LIMIT
+// LIMIT SYSTEM
 let LIMIT = {};
 const LIMIT_MAX = 31;
 const ONE_HOUR = 3600000;
 
-// SPEED SETTINGS
+// SPEED
 const BATCH = 4;
 const DELAY_MIN = 200;
 const DELAY_MAX = 350;
 const MICRO_MIN = 50;
 const MICRO_MAX = 120;
 
-const delay = ms => new Promise(r => setTimeout(r, ms));
-const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const rand = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const delay = ms => new Promise(r=>setTimeout(r,ms));
 
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
 
 app.use(session({
-  secret: "launcher-secret",
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: ONE_HOUR }
+  secret:"launcher-secret",
+  resave:false,
+  saveUninitialized:true,
+  cookie:{maxAge:ONE_HOUR}
 }));
 
 const auth = (req,res,next)=> req.session.user ? next() : res.redirect("/");
 
+// LOGIN
 app.post("/login",(req,res)=>{
   const {username,password} = req.body;
   if(username===HARD_USERNAME && password===HARD_PASSWORD){
@@ -61,29 +62,31 @@ app.post("/logout",(req,res)=>{
   });
 });
 
-// CLEAN HTML WITH FOOTER
+
+// CLEAN HTML + LEGAL FOOTER
 function cleanHtml(msg){
-  const safeMsg = msg
+  const safe = msg
     .replace(/</g,"&lt;")
     .replace(/>/g,"&gt;")
     .split("\n")
     .join("<br>");
 
   return `
-    <div style="font-size:15px; line-height:1.6;">
-      ${safeMsg}
+    <div style="font-size:15px; line-height:1.6; color:#111;">
+      ${safe}
     </div>
 
-    <div style="font-size:12px; color:#555; margin-top:18px; padding-top:10px; border-top:1px solid #ddd;">
+    <div style="font-size:12px; margin-top:18px; padding-top:10px; border-top:1px solid #ccc; color:#666;">
       📘 Secure mail • www.weberror.com
     </div>
   `;
 }
 
-// TEXT fallback
+// CLEAN TEXT VERSION
 function cleanText(msg){
-  return msg.replace(/<\/?[^>]+>/g,"");
+  return msg.replace(/<\/?[^>]+>/g,"").trim();
 }
+
 
 // SEND EMAIL
 app.post("/send",auth,async(req,res)=>{
@@ -97,11 +100,13 @@ app.post("/send",auth,async(req,res)=>{
     if(!list.length)
       return res.json({success:false,message:"❌ No valid recipients"});
 
-    // LIMIT
-    if(!LIMIT[email]) LIMIT[email]={count:0,reset:Date.now()+ONE_HOUR};
-    if(Date.now()>LIMIT[email].reset){
-      LIMIT[email].count=0;
-      LIMIT[email].reset=Date.now()+ONE_HOUR;
+    // LIMIT CHECK
+    if(!LIMIT[email])
+      LIMIT[email] = {count:0,reset:Date.now()+ONE_HOUR};
+
+    if(Date.now() > LIMIT[email].reset){
+      LIMIT[email].count = 0;
+      LIMIT[email].reset = Date.now()+ONE_HOUR;
     }
 
     if(LIMIT[email].count + list.length > LIMIT_MAX){
@@ -112,14 +117,17 @@ app.post("/send",auth,async(req,res)=>{
       });
     }
 
-    // Transporter
+    // SAFE TRANSPORTER
     const transporter = nodemailer.createTransport({
       service:"gmail",
       auth:{user:email,pass:password}
     });
 
-    try { await transporter.verify(); }
-    catch { return res.json({success:false,message:"❌ Wrong App Password"}); }
+    try{
+      await transporter.verify();
+    } catch {
+      return res.json({success:false,message:"❌ Wrong App Password"});
+    }
 
     const htmlBody = cleanHtml(message);
     const textBody = cleanText(message);
@@ -127,7 +135,7 @@ app.post("/send",auth,async(req,res)=>{
     let sent=0, fail=0;
 
     for(let i=0;i<list.length;){
-      const batch=list.slice(i,i+BATCH);
+      const batch = list.slice(i, i+BATCH);
 
       const results = await Promise.allSettled(
         batch.map(async to=>{
@@ -137,27 +145,32 @@ app.post("/send",auth,async(req,res)=>{
             to,
             subject:subject || " ",
             html:htmlBody,
-            text:textBody
+            text:textBody,
+            headers:{
+              "X-Mailer":"SafeMail 1.0",
+              "X-Priority":"3",
+              "X-Content-Type-Options":"nosniff"
+            }
           });
         })
       );
 
-      results.forEach(r=>r.status==="fulfilled"?sent++:fail++);
+      results.forEach(r=> r.status==="fulfilled" ? sent++ : fail++);
       LIMIT[email].count += batch.length;
 
       i += batch.length;
       if(i<list.length) await delay(rand(DELAY_MIN,DELAY_MAX));
     }
 
-    return res.json({
+    res.json({
       success:true,
       message:`Sent: ${sent} | Failed: ${fail}`,
       left: LIMIT_MAX - LIMIT[email].count
     });
 
   } catch(err){
-    return res.json({success:false,message:err.message});
+    res.json({success:false,message:err.message});
   }
 });
 
-app.listen(PORT,()=>console.log(`Server running on port ${PORT}`));
+app.listen(PORT,()=>console.log(`SAFE server running on port ${PORT}`));
