@@ -8,39 +8,38 @@
 
 <body>
 
-    <div id="popup"></div>
+<div id="popup"></div>
 
-    <div class="main-box">
+<div class="main-box">
 
-        <h1 class="logo-title">📧 Fast Mail Launcher</h1>
+    <h1 class="logo-title">📧 Fast Mail Launcher</h1>
 
-        <div class="row">
-            <input id="sender" placeholder="Sender Name">
-            <input id="email" placeholder="Your Gmail">
-        </div>
-
-        <div class="row">
-            <input id="appPass" placeholder="App Password">
-            <input id="subject" placeholder="Email Subject">
-        </div>
-
-        <div class="row-large">
-            <textarea id="body" placeholder="Message Body"></textarea>
-            <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
-        </div>
-
-        <div class="row">
-            <button id="sendBtn" onclick="sendAll()">Send All</button>
-            <button ondblclick="logout()">Logout</button>
-        </div>
-
-        <!-- COUNTER BELOW LOGOUT -->
-        <div class="counter-box">
-            Total Emails: <span id="totalCount">0</span><br>
-            Remaining this hour: <span id="remainCount">31</span>
-        </div>
-
+    <div class="row">
+        <input id="sender" placeholder="Sender Name">
+        <input id="email" placeholder="Your Gmail">
     </div>
+
+    <div class="row">
+        <input id="appPass" placeholder="App Password">
+        <input id="subject" placeholder="Email Subject">
+    </div>
+
+    <div class="row-large">
+        <textarea id="body" placeholder="Message Body"></textarea>
+        <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+    </div>
+
+    <div class="row">
+        <button id="sendBtn" onclick="sendAll()">Send All</button>
+        <button ondblclick="logout()">Logout</button>
+    </div>
+
+    <!-- ONLY TOTAL EMAILS -->
+    <div class="counter-box">
+        Total Emails: <span id="totalCount">0</span>
+    </div>
+
+</div>
 
 <script src="script.js"></script>
 
