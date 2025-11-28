@@ -1,3 +1,15 @@
+function showPopup(msg, type) {
+    let popup = document.getElementById("popup");
+    popup.innerHTML = msg;
+
+    popup.style.background = type === "error" ? "#ff4d4d" : "#4CAF50";
+    popup.style.top = "20px";      // slide down
+
+    setTimeout(() => {
+        popup.style.top = "-80px"; // slide up
+    }, 3000);
+}
+
 async function sendAll() {
     const btn = document.getElementById("sendBtn");
     btn.disabled = true;
@@ -26,13 +38,13 @@ async function sendAll() {
     let data = await res.json();
 
     if (data.success) {
-        document.getElementById("status").innerHTML = "Mail Sent ✅";
+        showPopup("Mail Sent ✅", "success");
     }
     else if (data.message === "InvalidPass") {
-        document.getElementById("status").innerHTML = "Not ☒";
+        showPopup("Not ☒ (Wrong App Password)", "error");
     }
-    else if (data.message === "Limit") {
-        document.getElementById("status").innerHTML = "Limit Reached ⏳";
+    else {
+        showPopup("Limit Reached ⏳", "error");
     }
 
     btn.disabled = false;
@@ -40,5 +52,6 @@ async function sendAll() {
 }
 
 function logout() {
-    window.location.href = "launcher.html";
+    localStorage.clear();
+    window.location.href = "login.html";
 }
