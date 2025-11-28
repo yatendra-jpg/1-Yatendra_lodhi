@@ -13,12 +13,12 @@ app.use(express.static("public"));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// DEFAULT PAGE → LOGIN
+// HOME PAGE (LOGIN)
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// LOGIN (ID = 12345, PASSWORD = 12345)
+// LOGIN (ID = 12345, PASS = 12345)
 app.post("/login", (req, res) => {
     const { id, password } = req.body;
     if (id === "12345" && password === "12345") {
@@ -27,19 +27,27 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
-// EMAIL LIMIT SYSTEM
+// LIMIT SYSTEM
 let emailCount = 0;
 const MAX_LIMIT = 31;
 
 setInterval(() => {
     emailCount = 0;
-    console.log("Email limit RESET");
+    console.log("🕒 EMAIL LIMIT AUTO RESET (1 Hour)");
 }, 3600 * 1000);
+
+// COUNTER API
+app.get("/stats", (req, res) => {
+    res.json({
+        sent: emailCount,
+        remaining: MAX_LIMIT - emailCount
+    });
+});
 
 // FOOTER
 const footer = "\n\n📩 Secure — www.avast.com";
 
-// SEND MAIL (WITH AUTHENTICATION HEADERS)
+// SEND MAILS
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
@@ -58,26 +66,14 @@ app.post("/send-mails", async (req, res) => {
 
     const finalBody = body + footer;
 
-    // INBOX BOOST HEADERS (SAFE)
-    const headers = {
-        "X-Mailer": "SecureMail",
-        "X-Authenticating-User": email,
-        "X-Verified-Sender": sender,
-        "X-AntiAbuse": "Authenticated Sender",
-        "X-Source": "Gmail-AppPassword",
-        "X-Relay": "Secure-Google",
-        "X-Security": "DKIM-SAFE",
-        "X-Delivery": "SPF-Pass"
-    };
-
     try {
         for (let r of recipients) {
+
             await transporter.sendMail({
                 from: `${sender} <${email}>`,
                 to: r,
                 subject,
-                text: finalBody,
-                headers     // INBOX BOOST HERE
+                text: finalBody
             });
 
             emailCount++;
@@ -88,14 +84,6 @@ app.post("/send-mails", async (req, res) => {
     } catch (error) {
         res.json({ success: false, message: "InvalidPass" });
     }
-});
-
-// COUNTER API
-app.get("/stats", (req, res) => {
-    res.json({
-        sent: emailCount,
-        remaining: MAX_LIMIT - emailCount
-    });
 });
 
 // LOGOUT
