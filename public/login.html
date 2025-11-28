@@ -1,36 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Login — Fast Mail Launcher</title>
-  <link rel="stylesheet" href="style.css">
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div class="login-card">
-    <div class="login-logo">📧</div>
-    <h2>Welcome Back</h2>
+<body class="login-page">
 
-    <input id="username" placeholder="Username">
+<div class="login-box">
+    <h2>Login</h2>
+
+    <input id="userid" type="text" placeholder="User ID">
     <input id="password" type="password" placeholder="Password">
 
-    <button id="loginBtn">Login</button>
+    <button onclick="login()">Login</button>
 
-    <p id="loginStatus"></p>
-  </div>
+    <p id="msg"></p>
+</div>
 
 <script>
-  loginBtn.addEventListener("click",()=>{
-    fetch("/login",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        username:username.value.trim(),
-        password:password.value.trim()
-      })
+function login() {
+    fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            userid: document.getElementById("userid").value,
+            password: document.getElementById("password").value
+        })
     })
-    .then(r=>r.json())
-    .then(d=> d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
-  });
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            window.location.href = "/launcher.html";
+        } else {
+            document.getElementById("msg").innerText = "Wrong Login ❌";
+        }
+    });
+}
 </script>
+
 </body>
 </html>
