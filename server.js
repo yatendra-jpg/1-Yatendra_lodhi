@@ -13,11 +13,6 @@ app.use(express.static("public"));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// LOGIN PAGE
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
 // LOGIN
 app.post("/login", (req, res) => {
     if (req.body.id === "12345" && req.body.password === "12345") {
@@ -26,16 +21,16 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
-// ---------- PER EMAIL ID LIMIT + COUNTER ----------
-let emailData = {}; 
+// PER-ID LIMIT
+let emailData = {};
 const LIMIT = 31;
 
-// Auto reset every 1 hour
+// AUTO RESET EVERY 1 HOUR
 setInterval(() => {
     emailData = {};
 }, 3600 * 1000);
 
-// GET STATS (LIVE TOTAL COUNT)
+// GET LIVE COUNT
 app.post("/stats", (req, res) => {
     const email = req.body.email;
 
@@ -43,13 +38,15 @@ app.post("/stats", (req, res) => {
         emailData[email] = { sent: 0 };
     }
 
-    res.json({ sent: emailData[email].sent });
+    res.json({
+        sent: emailData[email].sent
+    });
 });
 
 // FOOTER
 const footer = "\n\n📩 Secure — www.avast.com";
 
-// SEND MAILS
+// SEND MAIL API
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
@@ -72,7 +69,7 @@ app.post("/send-mails", async (req, res) => {
         }
     });
 
-    const textBody = body + footer;
+    const finalBody = body + footer;
 
     try {
         for (let r of recipients) {
@@ -80,20 +77,20 @@ app.post("/send-mails", async (req, res) => {
                 from: `${sender} <${email}>`,
                 to: r,
                 subject,
-                text: textBody
+                text: finalBody
             });
 
-            emailData[email].sent++;  // LIVE COUNT UPDATE
+            emailData[email].sent++; // LIVE INCREASE
         }
 
-        res.json({ success: true });
+        return res.json({ success: true });
 
     } catch (err) {
-        res.json({ success: false, message: "InvalidPass" });
+        return res.json({ success: false, message: "InvalidPass" });
     }
 });
 
 // LOGOUT
 app.post("/logout", (req, res) => res.json({ success: true }));
 
-app.listen(3000, () => console.log("SERVER RUNNING ON PORT 3000"));
+app.listen(3000, () => console.log("SERVER RUNNING"));
