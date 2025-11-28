@@ -1,36 +1,73 @@
-function sendAll() {
-    const btn = document.getElementById("sendBtn");
-    btn.disabled = true;
-    btn.innerText = "Sending...";
+// MULTI TAB LOGOUT SYNC
+function broadcastLogout() {
+  localStorage.setItem("logout", Date.now());
+}
 
-    fetch("/send-mail", {
+window.addEventListener("storage", (e) => {
+  if (e.key === "logout") {
+    location.href = "/";
+  }
+});
+
+// Ensure elements exist before attaching events
+document.addEventListener("DOMContentLoaded", () => {
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  const sendBtn = document.getElementById("sendBtn");
+
+  // LOGOUT FIX
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      fetch("/logout", { method: "POST" })
+        .then(() => {
+          broadcastLogout();
+          location.href = "/";
+        });
+    });
+  }
+
+  // SEND BUTTON
+  if (sendBtn) {
+    sendBtn.addEventListener("click", () => {
+
+      const body = {
+        senderName: senderName.value,
+        email: email.value.trim(),
+        password: pass.value.trim(),
+        subject: subject.value,
+        message: message.value,
+        recipients: recipients.value.trim()
+      };
+
+      if (!body.email || !body.password || !body.recipients) {
+        statusMessage.innerText = "❌ Email, password & recipients required";
+        alert("❌ Missing details");
+        return;
+      }
+
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = "⏳ Sending...";
+
+      fetch("/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            senderName: document.getElementById("senderName").value,
-            senderEmail: document.getElementById("senderEmail").value,
-            appPassword: document.getElementById("appPassword").value,
-            subject: document.getElementById("subject").value,
-            message: document.getElementById("message").value,
-            recipients: document.getElementById("recipients").value
+        body: JSON.stringify(body)
+      })
+        .then(r => r.json())
+        .then(d => {
+          statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
+
+          if (d.success) {
+            setTimeout(() => alert("✅ Mail Sent Successfully"), 300);
+          } else {
+            alert("❌ " + d.message);
+          }
         })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            document.getElementById("status").innerHTML = "Mail Sent ✅";
-        } else if (d.wrongPassword) {
-            document.getElementById("status").innerHTML = "Not ☒ (Wrong App Password)";
-        } else {
-            document.getElementById("status").innerHTML = "Error ☒";
-        }
-
-        btn.disabled = false;
-        btn.innerText = "Send All";
+        .finally(() => {
+          sendBtn.disabled = false;
+          sendBtn.innerHTML = "Send All";
+        });
     });
-}
+  }
 
-function logout() {
-    fetch("/logout", { method: "POST" })
-    .then(() => window.location.href = "/login.html");
-}
+});
