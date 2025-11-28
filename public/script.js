@@ -1,7 +1,7 @@
 function showPopup(msg, type){
     let p = document.getElementById("popup");
     p.innerHTML = msg;
-    p.style.background = type === "error" ? "#ff3b3b" : "#26c847";
+    p.style.background = type==="error" ? "#ff3b3b" : "#26c847";
     p.style.top = "20px";
     setTimeout(()=> p.style.top = "-80px", 3000);
 }
@@ -12,8 +12,8 @@ async function sendAll(){
 
     let rec = recipients.value
         .split(/[\n,]+/)
-        .map(r => r.trim())
-        .filter(r => r);
+        .map(x => x.trim())
+        .filter(x => x);
 
     let payload = {
         sender: sender.value,
@@ -33,13 +33,16 @@ async function sendAll(){
     let data = await res.json();
 
     if(data.success){
-        showPopup("Mail Sent ✅","success");
+        showPopup("Mail Sent ✅", "success");
     }
-    else if(data.message === "InvalidPass"){
-        showPopup("Not ☒ Wrong App Password","error");
+    else if(data.message === "INVALID_PASS"){
+        showPopup("Wrong App Password ☒", "error");
+    }
+    else if(data.message === "LIMIT_FULL"){
+        showPopup("❌ Limit mail send Full", "error");
     }
     else {
-        showPopup("Limit Reached ⏳","error");
+        showPopup("Error ❌", "error");
     }
 
     sendBtn.disabled = false;
