@@ -10,19 +10,30 @@ function showPopup(msg, type) {
     }, 3000);
 }
 
-// COUNTER UPDATE
+
+// 🔥 LOAD COUNTER FOR CURRENT EMAIL ID
 async function loadStats() {
-    let res = await fetch("/stats");
+    let email = document.getElementById("email").value;
+
+    if (!email) return;
+
+    let res = await fetch("/stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+    });
+
     let data = await res.json();
 
     document.getElementById("totalCount").innerHTML = data.sent;
     document.getElementById("remainCount").innerHTML = data.remaining;
 }
 
-setInterval(loadStats, 2000);
-loadStats();
 
-// SEND MAILS
+// Every 2 seconds update counter
+setInterval(loadStats, 2000);
+
+
 async function sendAll() {
     const btn = document.getElementById("sendBtn");
     btn.disabled = true;
@@ -62,10 +73,11 @@ async function sendAll() {
 
     btn.disabled = false;
     btn.innerHTML = "Send All";
-    loadStats();
+
+    loadStats(); // update NOW
 }
 
-// DOUBLE CLICK LOGOUT
+
 function logout() {
     window.location.href = "login.html";
 }
