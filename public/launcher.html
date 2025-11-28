@@ -14,7 +14,6 @@
 
         <h1 class="logo-title">📧 Fast Mail Launcher</h1>
 
-        <!-- FORM FIELDS -->
         <div class="row">
             <input id="sender" placeholder="Sender Name">
             <input id="email" placeholder="Your Gmail">
@@ -30,13 +29,12 @@
             <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
         </div>
 
-        <!-- BUTTONS -->
         <div class="row">
             <button id="sendBtn" onclick="sendAll()">Send All</button>
             <button ondblclick="logout()">Logout</button>
         </div>
 
-        <!-- COUNTER NOW BELOW LOGOUT BUTTON -->
+        <!-- COUNTER BELOW LOGOUT -->
         <div class="counter-box">
             Total Emails: <span id="totalCount">0</span><br>
             Remaining this hour: <span id="remainCount">31</span>
