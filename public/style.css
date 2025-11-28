@@ -14,74 +14,75 @@ body{
   padding:40px 0;
 }
 
-/* MAIN CONTAINER EXACT SIZE (your screenshot matching) */
+/* MAIN CONTAINER — EXACT LANDSCAPE SIZE */
 .container{
   background:#fff;
-  padding:40px;
+  padding:45px;
   border-radius:28px;
-  width:1350px;        /* ← FINAL EXACT WIDTH */
+  width:1400px;            /* ← WIDE LANDSCAPE SIZE */
   max-width:95%;
   box-shadow:0 12px 32px rgba(0,0,0,0.12);
 }
 
-/* Heading */
+/* HEADING */
 .container h2{
   text-align:center;
-  font-size:34px;
+  font-size:36px;
   font-weight:700;
-  margin-bottom:30px;
+  margin-bottom:35px;
 }
 
-/* ROW */
+/* EACH ROW */
 .row{
   display:flex;
-  gap:25px;
-  margin-bottom:25px;
+  gap:28px;
+  margin-bottom:28px;
 }
 
-/* Inputs */
+/* INPUTS / TEXTAREAS / BUTTONS */
 .row input,
 .row textarea,
 .row button{
   flex:1;
-  padding:14px;
+  padding:15px;
   border-radius:12px;
   border:1px solid #cbd5e1;
   font-size:17px;
 }
 
-/* TEXTAREAS — SAME SIZE AS SCREENSHOT */
+/* BIG TEXTAREA HEIGHT EXACTLY LIKE SCREENSHOT */
 .bigbox{
-  min-height:230px;    /* ← same height */
+  min-height:260px;      /* ← PERFECT HEIGHT */
   resize:vertical;
 }
 
-/* LEFT message box wider */
+/* LEFT MESSAGE BODY — WIDER */
 #message{
-  flex:1.28;
+  flex:1.32;             /* ← EXACT WIDTH RATIO LIKE YOUR SCREENSHOT */
 }
 
-/* RIGHT recipient section */
+/* RIGHT RECIPIENT BOX */
 .recipient-box{
   flex:1;
   display:flex;
   flex-direction:column;
 }
 
+/* FOOTER COUNTS */
 .small-info{
   text-align:right;
   margin-top:10px;
-  color:#1a73e8;
   font-size:15px;
+  color:#1a73e8;
 }
 
-/* BUTTONS */
+/* BUTTONS WIDE EXACT LIKE SS */
 .row button{
+  padding:20px;
   background:#3b82f6;
-  color:white;
+  color:#fff;
   font-size:20px;
   border-radius:12px;
-  padding:18px;
   cursor:pointer;
 }
 
@@ -89,11 +90,11 @@ body{
   background:#2563eb;
 }
 
-/* STATUS TEXT */
+/* STATUS MESSAGE */
 #statusMessage{
   text-align:center;
   color:#ef4444;
-  margin-top:10px;
+  margin-top:12px;
 }
 
 /* POPUP */
@@ -102,19 +103,19 @@ body{
   top:20px;
   left:50%;
   transform:translateX(-50%);
-  padding:18px 28px;
+  padding:20px 30px;
   background:#22c55e;
-  border-radius:12px;
-  color:white;
+  color:#fff;
   font-size:18px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.3);
+  border-radius:12px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.2);
   z-index:9999;
 }
 
 .popup-ok{
   margin-top:10px;
-  padding:8px 16px;
-  background:white;
+  padding:8px 18px;
+  background:#fff;
   color:#000;
   border:none;
   border-radius:8px;
