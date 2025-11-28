@@ -4,37 +4,39 @@
     <title>Login</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="login-page">
 
-<div class="login-box">
-    <h2>Login</h2>
+<body>
 
-    <input id="userid" type="text" placeholder="User ID">
-    <input id="password" type="password" placeholder="Password">
+    <div class="login-box">
+        <h2>Login</h2>
 
-    <button onclick="login()">Login</button>
+        <input id="login_id" placeholder="Login ID">
+        <input id="login_pass" placeholder="Password" type="password">
 
-    <p id="msg"></p>
-</div>
+        <button onclick="login()">Login</button>
+
+        <p id="login_msg"></p>
+    </div>
 
 <script>
-function login() {
-    fetch("/login", {
+async function login() {
+    let id = document.getElementById("login_id").value;
+    let password = document.getElementById("login_pass").value;
+
+    let res = await fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            userid: document.getElementById("userid").value,
-            password: document.getElementById("password").value
-        })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            window.location.href = "/launcher.html";
-        } else {
-            document.getElementById("msg").innerText = "Wrong Login ❌";
-        }
+        body: JSON.stringify({ id, password })
     });
+
+    let data = await res.json();
+
+    if (data.success) {
+        localStorage.setItem("token", data.token);
+        window.location.href = "launcher.html";
+    } else {
+        document.getElementById("login_msg").innerHTML = "Invalid Login ❌";
+    }
 }
 </script>
 
