@@ -1,92 +1,78 @@
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:"Segoe UI", sans-serif;
+body {
+    background: #eaf1ff;
+    font-family: Arial;
 }
 
-body{
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  min-height:100vh;
-  background:#eef3ff;
-  padding:40px 0;
+.main-box {
+    width: 82%;
+    margin: auto;
+    margin-top: 40px;
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 22px;
+    box-shadow: 0 0 25px #d5d5d5;
 }
 
-/* MAIN BOX — LANDSCAPE SIZE */
-.container{
-  background:#fff;
-  padding:45px;
-  border-radius:28px;
-  width:1400px;
-  max-width:95%;
-  box-shadow:0 12px 32px rgba(0,0,0,0.12);
+.logo-title {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 34px;
+    font-weight: 700;
 }
 
-.container h2{
-  text-align:center;
-  font-size:36px;
-  font-weight:700;
-  margin-bottom:35px;
+.row {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 22px;
 }
 
-.row{
-  display:flex;
-  gap:28px;
-  margin-bottom:28px;
+.row input {
+    width: 100%;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #dcdcdc;
+    font-size: 18px;
 }
 
-.row input,
-.row textarea,
-.row button{
-  flex:1;
-  padding:15px;
-  border-radius:12px;
-  border:1px solid #cbd5e1;
-  font-size:17px;
+.row-large {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 10px;
 }
 
-.bigbox{
-  min-height:260px;
-  resize:vertical;
+.row-large textarea {
+    width: 100%;
+    height: 220px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #dcdcdc;
+    font-size: 18px;
 }
 
-/* LEFT TEXTAREA bigger */
-#message{
-  flex:1.33;
+button {
+    width: 100%;
+    padding: 18px;
+    font-size: 20px;
+    border-radius: 12px;
+    border: none;
+    background: #2f80ff;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
 }
 
-/* RIGHT TEXTAREA smaller */
-.recipient-box{
-  flex:1;
-  display:flex;
-  flex-direction:column;
+button:disabled {
+    background: #8fb4ff;
 }
 
-.small-info{
-  text-align:right;
-  margin-top:10px;
-  font-size:15px;
-  color:#1a73e8;
+.info-text {
+    text-align: right;
+    font-size: 15px;
+    margin-bottom: 18px;
 }
 
-/* BUTTONS */
-.row button{
-  padding:20px;
-  background:#3b82f6;
-  color:#fff;
-  font-size:20px;
-  border-radius:12px;
-  cursor:pointer;
-}
-
-.row button:hover{
-  background:#2563eb;
-}
-
-#statusMessage{
-  text-align:center;
-  color:#ef4444;
-  margin-top:12px;
+#status {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 22px;
 }
