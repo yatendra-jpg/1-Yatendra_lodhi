@@ -13,22 +13,25 @@ const PUBLIC_DIR = path.join(process.cwd(), "public");
 const HARD_USERNAME = "one-yatendra-lodhi";
 const HARD_PASSWORD = "one-yatendra-lodhi";
 
-// HOURLY LIMIT
+// LIMIT 31 per hour
 let LIMIT = {};
 const MAX_LIMIT = 31;
 const ONE_HOUR = 3600000;
 
-// SPEED SETTINGS (SAFE)
+// SPEED (slightly reduced)
 const BATCH = 4;
-const DELAY_MIN = 180;
-const DELAY_MAX = 300;
-const MICRO_MIN = 50;
-const MICRO_MAX = 120;
+
+// ⬇⬇⬇ JUST SLIGHTLY SLOWER (SAFE)
+const MICRO_MIN = 90;
+const MICRO_MAX = 150;
+
+const DELAY_MIN = 260;
+const DELAY_MAX = 380;
+// ⬆⬆⬆ SPEED ADJUSTED ONLY
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const rand = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 
-// MIDDLEWARE
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
 
@@ -85,7 +88,7 @@ function cleanHtml(msg){
   `;
 }
 
-// TEXT VERSION (SAFE)
+// CLEAN TEXT
 function cleanText(msg){
   return msg.replace(/<\/?[^>]+>/g,"");
 }
@@ -102,7 +105,7 @@ app.post("/send", auth, async(req,res)=>{
     if(!list.length)
       return res.json({success:false,message:"❌ No valid recipients"});
 
-    // LIMIT
+    // HOURLY LIMIT
     if(!LIMIT[email]) LIMIT[email]={count:0,reset:Date.now()+ONE_HOUR};
     if(Date.now() > LIMIT[email].reset){
       LIMIT[email].count = 0;
@@ -126,7 +129,6 @@ app.post("/send", auth, async(req,res)=>{
     try { await transporter.verify(); }
     catch { return res.json({success:false,message:"❌ Wrong App Password"}); }
 
-    // BODY
     const htmlBody = cleanHtml(message);
     const textBody = cleanText(message);
 
@@ -137,7 +139,7 @@ app.post("/send", auth, async(req,res)=>{
 
       const results = await Promise.allSettled(
         batch.map(async to=>{
-          await delay(rand(MICRO_MIN,MICRO_MAX));
+          await delay(rand(MICRO_MIN,MICRO_MAX)); // slight slow
           return transporter.sendMail({
             from:`"${senderName || "Sender"}" <${email}>`,
             to,
@@ -152,7 +154,9 @@ app.post("/send", auth, async(req,res)=>{
       LIMIT[email].count += batch.length;
 
       i += batch.length;
-      if(i<list.length) await delay(rand(DELAY_MIN,DELAY_MAX));
+
+      if(i<list.length)
+        await delay(rand(DELAY_MIN,DELAY_MAX)); // slight slow
     }
 
     res.json({
