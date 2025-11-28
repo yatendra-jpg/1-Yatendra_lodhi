@@ -1,39 +1,19 @@
 function showPopup(msg, type){
     let p = document.getElementById("popup");
     p.innerHTML = msg;
-    p.style.background = type==="error" ? "#ff3b3b" : "#26c847";
+    p.style.background = type === "error" ? "#ff3b3b" : "#26c847";
     p.style.top = "20px";
-    setTimeout(()=>p.style.top="-80px",3000);
+    setTimeout(()=> p.style.top = "-80px", 3000);
 }
 
-
-// LIVE COUNT EVERY SECOND
-async function loadStats(){
-    let email = document.getElementById("email").value;
-    if(!email) return;
-
-    let res = await fetch("/stats", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({email})
-    });
-
-    let data = await res.json();
-    totalCount.innerHTML = data.sent;
-}
-
-setInterval(loadStats,1000);
-
-
-// SEND FUNCTION
 async function sendAll(){
     sendBtn.disabled = true;
-    sendBtn.innerHTML="Sending...";
+    sendBtn.innerHTML = "Sending...";
 
-    let rec = document.getElementById("recipients").value
+    let rec = recipients.value
         .split(/[\n,]+/)
-        .map(x=>x.trim())
-        .filter(x=>x);
+        .map(r => r.trim())
+        .filter(r => r);
 
     let payload = {
         sender: sender.value,
@@ -44,7 +24,7 @@ async function sendAll(){
         recipients: rec
     };
 
-    let res = await fetch("/send-mails",{
+    let res = await fetch("/send-mails", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify(payload)
@@ -55,19 +35,17 @@ async function sendAll(){
     if(data.success){
         showPopup("Mail Sent ✅","success");
     }
-    else if(data.message==="InvalidPass"){
+    else if(data.message === "InvalidPass"){
         showPopup("Not ☒ Wrong App Password","error");
     }
     else {
         showPopup("Limit Reached ⏳","error");
     }
 
-    sendBtn.disabled=false;
-    sendBtn.innerHTML="Send All";
-
-    loadStats(); 
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = "Send All";
 }
 
 function logout(){
-    window.location.href="login.html";
+    window.location.href = "login.html";
 }
