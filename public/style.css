@@ -51,7 +51,6 @@ button:disabled {
     background: #9cbcfc;
 }
 
-/* COUNTER BELOW LOGOUT */
 .counter-box {
     background: #f4f7ff;
     padding: 15px;
@@ -61,7 +60,6 @@ button:disabled {
     border-left: 5px solid #2f80ff;
 }
 
-/* POPUP */
 #popup {
     position: fixed;
     top: -80px;
@@ -74,7 +72,6 @@ button:disabled {
     transition: 0.4s;
 }
 
-/* LOGIN */
 .login-box {
     width: 350px;
     margin: 150px auto;
