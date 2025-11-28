@@ -2,7 +2,7 @@ function showPopup(msg, type) {
     let popup = document.getElementById("popup");
     popup.innerHTML = msg;
 
-    popup.style.background = type === "error" ? "#ff4d4d" : "#4CAF50";
+    popup.style.background = type === "error" ? "#ff3b3b" : "#26c847";
     popup.style.top = "20px";
 
     setTimeout(() => {
@@ -51,7 +51,6 @@ async function sendAll() {
     btn.innerHTML = "Send All";
 }
 
-// DOUBLE-CLICK LOGOUT
 function logout() {
     window.location.href = "login.html";
 }
