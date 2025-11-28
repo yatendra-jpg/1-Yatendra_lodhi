@@ -52,6 +52,7 @@ button:disabled {
     background: #8db9ff;
 }
 
+/* POPUP */
 #popup {
     position: fixed;
     top: -80px;
@@ -64,11 +65,11 @@ button:disabled {
     transition: 0.4s;
 }
 
-/* LOGIN */
+/* LOGIN PAGE */
 .login-box {
     width: 350px;
     margin: 150px auto;
-    background: #fff;
+    background: white;
     padding: 30px;
     border-radius: 15px;
     text-align: center;
