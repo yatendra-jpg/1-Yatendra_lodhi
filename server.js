@@ -8,7 +8,6 @@ import { RateLimiterMemory } from "rate-limiter-flexible";
 const app = express();
 const __dirname = path.resolve();
 
-// --- 31 emails per hour limiter per email ---
 const mailLimiter = new RateLimiterMemory({
     points: 31,
     duration: 3600
@@ -26,6 +25,11 @@ app.use(
     })
 );
 
+// ✅ DEFAULT ROUTE FIXED (IMPORTANT)
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + "/public/login.html");
+});
+
 // ---------------- LOGIN ----------------
 app.post("/login", (req, res) => {
     const { userid, password } = req.body;
@@ -34,28 +38,28 @@ app.post("/login", (req, res) => {
         req.session.loggedIn = true;
         res.json({ success: true });
     } else {
-        res.json({ success: false, message: "Wrong ID or Password" });
+        res.json({ success: false });
     }
 });
 
-// --------------- AUTH MIDDLEWARE --------------
+// --------------- AUTH --------------
 const auth = (req, res, next) => {
     if (!req.session.loggedIn) {
-        return res.redirect("/login.html");
+        return res.redirect("/");
     }
     next();
 };
 
-app.get("/launcher", auth, (req, res) => {
+app.get("/launcher.html", auth, (req, res) => {
     res.sendFile(__dirname + "/public/launcher.html");
 });
 
-// ---------------- SEND MAIL ----------------
+// --------------- SEND MAIL ---------------
 app.post("/send-mail", auth, async (req, res) => {
     try {
         const { senderName, senderEmail, appPassword, subject, message, recipients } = req.body;
 
-        await mailLimiter.consume(senderEmail); // 31/hr limit
+        await mailLimiter.consume(senderEmail);
 
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -71,7 +75,7 @@ app.post("/send-mail", auth, async (req, res) => {
             await transporter.sendMail({
                 from: `${senderName} <${senderEmail}>`,
                 to: email,
-                subject: subject,
+                subject,
                 html: message
             });
         }
@@ -79,7 +83,7 @@ app.post("/send-mail", auth, async (req, res) => {
         res.json({ success: true, count: list.length });
 
     } catch (err) {
-        if (err instanceof Error && err.message.includes("Invalid login")) {
+        if (err.message.includes("Invalid login")) {
             return res.json({ success: false, wrongPassword: true });
         }
         return res.json({ success: false });
