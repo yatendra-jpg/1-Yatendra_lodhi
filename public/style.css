@@ -14,12 +14,12 @@ body{
   padding:40px 0;
 }
 
-/* MAIN BOX — EXACT LANDSCAPE WIDTH LIKE SCREENSHOT */
+/* MAIN BOX — LANDSCAPE SIZE */
 .container{
   background:#fff;
   padding:45px;
   border-radius:28px;
-  width:1400px;           /* ← EXACT LANDSCAPE SIZE */
+  width:1400px;
   max-width:95%;
   box-shadow:0 12px 32px rgba(0,0,0,0.12);
 }
@@ -37,7 +37,6 @@ body{
   margin-bottom:28px;
 }
 
-/* ALL INPUTS */
 .row input,
 .row textarea,
 .row button{
@@ -48,18 +47,17 @@ body{
   font-size:17px;
 }
 
-/* TEXTAREA HEIGHT EXACTLY LIKE SCREENSHOT */
 .bigbox{
   min-height:260px;
   resize:vertical;
 }
 
-/* MESSAGE BOX LEFT WIDER */
+/* LEFT TEXTAREA bigger */
 #message{
-  flex:1.33;              /* ← SAME AS YOUR SCREENSHOT */
+  flex:1.33;
 }
 
-/* RECIPIENT RIGHT BOX */
+/* RIGHT TEXTAREA smaller */
 .recipient-box{
   flex:1;
   display:flex;
@@ -73,7 +71,7 @@ body{
   color:#1a73e8;
 }
 
-/* BUTTONS EXACT WIDTH LIKE SCREENSHOT */
+/* BUTTONS */
 .row button{
   padding:20px;
   background:#3b82f6;
@@ -87,7 +85,6 @@ body{
   background:#2563eb;
 }
 
-/* STATUS TEXT */
 #statusMessage{
   text-align:center;
   color:#ef4444;
