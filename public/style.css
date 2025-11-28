@@ -16,7 +16,17 @@ body {
 .logo-title {
     text-align: center;
     font-size: 35px;
+    margin-bottom: 10px;
+}
+
+/* COUNTER BOX */
+.counter-box {
+    background: #f4f7ff;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 20px;
     margin-bottom: 20px;
+    border-left: 5px solid #2f80ff;
 }
 
 .row, .row-large {
@@ -51,6 +61,7 @@ button:disabled {
     background: #9cbcfc;
 }
 
+/* POPUP */
 #popup {
     position: fixed;
     top: -80px;
