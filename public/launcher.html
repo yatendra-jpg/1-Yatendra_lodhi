@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Fast Mail Launcher</title>
     <link rel="stylesheet" href="style.css">
+
+    <!-- Icon -->
+    <link rel="icon" type="image/png" href="mail.png" />
 </head>
 
 <body>
-    <div class="main-box">
+    <div class="main-box fadeIn">
 
-        <h1 class="logo-title">📧 Fast Mail Launcher</h1>
+        <h1 class="logo-title">
+            <img src="mail.png" class="icon"> Fast Mail Launcher
+        </h1>
 
         <div class="row">
             <input id="sender" placeholder="Sender Name">
@@ -25,11 +31,8 @@
             <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
         </div>
 
-        <div class="bottom-row">
-            <div class="info-text">
-                Total Emails: <span id="totalCount">0</span><br>
-                Remaining this hour: <span id="remainCount">31</span>
-            </div>
+        <div id="progressContainer">
+            <div id="progressBar"></div>
         </div>
 
         <div class="row">
@@ -43,4 +46,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>
