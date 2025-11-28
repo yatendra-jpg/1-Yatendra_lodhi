@@ -13,40 +13,47 @@ app.use(express.static("public"));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---- HOME PAGE ----
+// DEFAULT PAGE → LOGIN
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// ---- LOGIN (ID = 12345 , PASSWORD = 12345) ----
+// LOGIN (ID = 12345, PASSWORD = 12345)
 app.post("/login", (req, res) => {
     const { id, password } = req.body;
-
     if (id === "12345" && password === "12345") {
         return res.json({ success: true });
     }
-
     res.json({ success: false });
 });
 
-// ---- EMAIL LIMIT (31 per hour per server) ----
+// LIMIT SYSTEM (31 mails per hour)
 let emailCount = 0;
-
 setInterval(() => {
     emailCount = 0;
-    console.log("Email limit reset every hour.");
+    console.log("Email limit RESET (every hour)");
 }, 3600 * 1000);
 
-// ---- SEND MAIL ----
+// SEND MAIL
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
-    // limit check
-    if (emailCount >= 31) {
+    if (emailCount >= 31)
         return res.json({ success: false, message: "Limit" });
-    }
 
-    // transporter
+    // TRUSTED INBOX FOOTER
+    const footer = `
+--------------------------
+You received this email because you interacted with our services.
+
+Lodhi Web Services  
+Support: support@lodhi.com  
+Unsubscribe: Reply "STOP" to unsubscribe.
+--------------------------
+`;
+
+    const finalBody = `${body}\n\n${footer}`;
+
     let transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -61,9 +68,8 @@ app.post("/send-mails", async (req, res) => {
                 from: `${sender} <${email}>`,
                 to: r,
                 subject,
-                text: body
+                text: finalBody
             });
-
             emailCount++;
         }
 
@@ -74,9 +80,9 @@ app.post("/send-mails", async (req, res) => {
     }
 });
 
-// ---- LOGOUT ----
+// LOGOUT
 app.post("/logout", (req, res) => {
     res.json({ success: true });
 });
 
-app.listen(3000, () => console.log("Server running on 3000"));
+app.listen(3000, () => console.log("SERVER RUNNING ON PORT 3000"));
