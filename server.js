@@ -21,34 +21,35 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
-// PER EMAIL ID LIMIT (31 mail / hour)
+// PER GMAIL ID LIMITING
 let emailData = {};
 const LIMIT = 31;
 
-// Auto reset system every hour
+// AUTO RESET EVERY 1 HOUR
 setInterval(() => {
     emailData = {};
+    console.log("🔄 AUTO RESET DONE");
 }, 3600 * 1000);
 
-// FOOTER (Inbox friendly)
+// FOOTER
 const footer = "\n\n📩 Secure — www.avast.com";
 
-// MAIN BULK MAIL API
+// SEND MAIL
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
     if (!emailData[email]) emailData[email] = { sent: 0 };
 
     if (emailData[email].sent >= LIMIT)
-        return res.json({ success: false, message: "Limit" });
+        return res.json({ success: false, message: "LIMIT_FULL" });
 
-    // FASTEST POSSIBLE SETTINGS
+    // MAX SPEED SETTINGS
     const transporter = nodemailer.createTransport({
         service: "gmail",
         pool: true,
         maxConnections: 10,
         maxMessages: Infinity,
-        rateDelta: 1000,
+        rateDelta: 800,
         rateLimit: 10,
         auth: {
             user: email,
@@ -60,23 +61,28 @@ app.post("/send-mails", async (req, res) => {
 
     try {
         for (let r of recipients) {
+            // Check per ID limit before each send
+            if (emailData[email].sent >= LIMIT)
+                return res.json({ success: false, message: "LIMIT_FULL" });
+
             await transporter.sendMail({
                 from: `${sender} <${email}>`,
                 to: r,
                 subject,
                 text: finalBody
             });
+
             emailData[email].sent++;
         }
 
         return res.json({ success: true });
 
     } catch (err) {
-        return res.json({ success: false, message: "InvalidPass" });
+        return res.json({ success: false, message: "INVALID_PASS" });
     }
 });
 
 // LOGOUT
 app.post("/logout", (req, res) => res.json({ success: true }));
 
-app.listen(3000, () => console.log("SERVER RUNNING"));
+app.listen(3000, () => console.log("🚀 SERVER STARTED ON PORT 3000"));
