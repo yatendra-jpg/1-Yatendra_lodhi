@@ -1,83 +1,74 @@
-function showPopup(msg, type) {
-    let popup = document.getElementById("popup");
-    popup.innerHTML = msg;
-
-    popup.style.background = type === "error" ? "#ff3b3b" : "#26c847";
-    popup.style.top = "20px";
-
-    setTimeout(() => {
-        popup.style.top = "-80px";
-    }, 3000);
+function showPopup(msg, type){
+    let p = document.getElementById("popup");
+    p.innerHTML = msg;
+    p.style.background = type==="error" ? "#ff3b3b" : "#26c847";
+    p.style.top = "20px";
+    setTimeout(()=>p.style.top="-80px",3000);
 }
 
-
-// 🔥 LOAD COUNTER FOR CURRENT EMAIL ID
-async function loadStats() {
+// LOAD TOTAL COUNT LIVE
+async function loadStats(){
     let email = document.getElementById("email").value;
-
-    if (!email) return;
+    if(!email) return;
 
     let res = await fetch("/stats", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email})
     });
 
     let data = await res.json();
-
-    document.getElementById("totalCount").innerHTML = data.sent;
-    document.getElementById("remainCount").innerHTML = data.remaining;
+    totalCount.innerHTML = data.sent;
 }
 
-
-// Every 2 seconds update counter
-setInterval(loadStats, 2000);
+setInterval(loadStats,1500);
 
 
-async function sendAll() {
-    const btn = document.getElementById("sendBtn");
-    btn.disabled = true;
-    btn.innerHTML = "Sending...";
+// SEND ALL EMAILS
+async function sendAll(){
+    sendBtn.disabled = true;
+    sendBtn.innerHTML="Sending...";
 
-    let recipients = document.getElementById("recipients").value
+    let recipients = recipients.value
         .split(/[\n,]+/)
-        .map(r => r.trim())
-        .filter(r => r);
+        .map(x=>x.trim())
+        .filter(x=>x);
 
     let payload = {
-        sender: document.getElementById("sender").value,
-        email: document.getElementById("email").value,
-        appPassword: document.getElementById("appPass").value,
-        subject: document.getElementById("subject").value,
-        body: document.getElementById("body").value,
+        sender: sender.value,
+        email: email.value,
+        appPassword: appPass.value,
+        subject: subject.value,
+        body: body.value,
         recipients
     };
 
-    let res = await fetch("/send-mails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+    let res = await fetch("/send-mails",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
     });
 
     let data = await res.json();
 
-    if (data.success) {
-        showPopup("Mail Sent ✅", "success");
-    }
-    else if (data.message === "InvalidPass") {
-        showPopup("Not ☒ (Wrong App Password)", "error");
+    if(data.success){
+        showPopup("Mail Sent ✅","success");
+    } 
+    else if(data.message==="InvalidPass"){
+        showPopup("Not ☒ (Wrong App Password)","error");
     }
     else {
-        showPopup("Limit Reached ⏳", "error");
+        showPopup("Limit Reached ⏳","error");
     }
 
-    btn.disabled = false;
-    btn.innerHTML = "Send All";
+    sendBtn.disabled=false;
+    sendBtn.innerHTML="Send All";
 
-    loadStats(); // update NOW
+    loadStats();
 }
 
 
-function logout() {
-    window.location.href = "login.html";
+// LOGOUT
+function logout(){
+    window.location.href="login.html";
 }
