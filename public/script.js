@@ -6,7 +6,8 @@ function showPopup(msg, type){
     setTimeout(()=>p.style.top="-80px",3000);
 }
 
-// LOAD TOTAL COUNT LIVE
+
+// LIVE COUNT EVERY SECOND
 async function loadStats(){
     let email = document.getElementById("email").value;
     if(!email) return;
@@ -21,15 +22,15 @@ async function loadStats(){
     totalCount.innerHTML = data.sent;
 }
 
-setInterval(loadStats,1500);
+setInterval(loadStats,1000);
 
 
-// SEND ALL EMAILS
+// SEND FUNCTION
 async function sendAll(){
     sendBtn.disabled = true;
     sendBtn.innerHTML="Sending...";
 
-    let recipients = recipients.value
+    let rec = document.getElementById("recipients").value
         .split(/[\n,]+/)
         .map(x=>x.trim())
         .filter(x=>x);
@@ -40,7 +41,7 @@ async function sendAll(){
         appPassword: appPass.value,
         subject: subject.value,
         body: body.value,
-        recipients
+        recipients: rec
     };
 
     let res = await fetch("/send-mails",{
@@ -53,9 +54,9 @@ async function sendAll(){
 
     if(data.success){
         showPopup("Mail Sent ✅","success");
-    } 
+    }
     else if(data.message==="InvalidPass"){
-        showPopup("Not ☒ (Wrong App Password)","error");
+        showPopup("Not ☒ Wrong App Password","error");
     }
     else {
         showPopup("Limit Reached ⏳","error");
@@ -64,11 +65,9 @@ async function sendAll(){
     sendBtn.disabled=false;
     sendBtn.innerHTML="Send All";
 
-    loadStats();
+    loadStats(); 
 }
 
-
-// LOGOUT
 function logout(){
     window.location.href="login.html";
 }
