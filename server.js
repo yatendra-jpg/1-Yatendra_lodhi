@@ -21,48 +21,35 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
-// PER-ID LIMIT
+// PER EMAIL ID LIMIT (31 mail / hour)
 let emailData = {};
 const LIMIT = 31;
 
-// AUTO RESET EVERY 1 HOUR
+// Auto reset system every hour
 setInterval(() => {
     emailData = {};
 }, 3600 * 1000);
 
-// GET LIVE COUNT
-app.post("/stats", (req, res) => {
-    const email = req.body.email;
-
-    if (!emailData[email]) {
-        emailData[email] = { sent: 0 };
-    }
-
-    res.json({
-        sent: emailData[email].sent
-    });
-});
-
-// FOOTER
+// FOOTER (Inbox friendly)
 const footer = "\n\n📩 Secure — www.avast.com";
 
-// SEND MAIL API
+// MAIN BULK MAIL API
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
-    if (!emailData[email]) {
-        emailData[email] = { sent: 0 };
-    }
+    if (!emailData[email]) emailData[email] = { sent: 0 };
 
-    if (emailData[email].sent >= LIMIT) {
+    if (emailData[email].sent >= LIMIT)
         return res.json({ success: false, message: "Limit" });
-    }
 
+    // FASTEST POSSIBLE SETTINGS
     const transporter = nodemailer.createTransport({
         service: "gmail",
         pool: true,
-        maxConnections: 5,
+        maxConnections: 10,
         maxMessages: Infinity,
+        rateDelta: 1000,
+        rateLimit: 10,
         auth: {
             user: email,
             pass: appPassword
@@ -79,8 +66,7 @@ app.post("/send-mails", async (req, res) => {
                 subject,
                 text: finalBody
             });
-
-            emailData[email].sent++; // LIVE INCREASE
+            emailData[email].sent++;
         }
 
         return res.json({ success: true });
