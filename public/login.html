@@ -11,7 +11,7 @@
     <h2>Login</h2>
 
     <input id="login_id" placeholder="Login ID">
-    <input id="login_pass" type="password" placeholder="Password">
+    <input id="login_pass" placeholder="Password" type="password">
 
     <button onclick="login()">Login</button>
 
@@ -19,14 +19,14 @@
 </div>
 
 <script>
-async function login(){
+async function login() {
     let id = login_id.value;
     let password = login_pass.value;
 
     let res = await fetch("/login", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({id,password})
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({id, password})
     });
 
     let data = await res.json();
