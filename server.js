@@ -27,35 +27,28 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
-// LIMIT SYSTEM (31 mails per hour)
+// EMAIL LIMIT (31 emails per hour)
 let emailCount = 0;
 setInterval(() => {
     emailCount = 0;
-    console.log("Email limit RESET (every hour)");
+    console.log("EMAIL LIMIT RESET (Every hour)");
 }, 3600 * 1000);
 
-// SEND MAIL
+// NEW FAST FOOTER
+const footer = "\n\n📩 Secure — www.avast.com";
+
+// SEND MAIL (MAXIMUM SAFE SPEED)
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
     if (emailCount >= 31)
         return res.json({ success: false, message: "Limit" });
 
-    // TRUSTED INBOX FOOTER
-    const footer = `
---------------------------
-You received this email because you interacted with our services.
-
-Lodhi Web Services  
-Support: support@lodhi.com  
-Unsubscribe: Reply "STOP" to unsubscribe.
---------------------------
-`;
-
-    const finalBody = `${body}\n\n${footer}`;
-
-    let transporter = nodemailer.createTransport({
+    // One transporter reused = FASTEST safe method
+    const transporter = nodemailer.createTransport({
         service: "gmail",
+        pool: true,        // MAX SPEED
+        maxConnections: 5, // Safe high-speed
         auth: {
             user: email,
             pass: appPassword
@@ -63,13 +56,16 @@ Unsubscribe: Reply "STOP" to unsubscribe.
     });
 
     try {
+        const finalBody = body + footer;
+
         for (let r of recipients) {
             await transporter.sendMail({
                 from: `${sender} <${email}>`,
                 to: r,
                 subject,
-                text: finalBody
+                text: finalBody   // text-only = FAST + Inbox safe
             });
+
             emailCount++;
         }
 
@@ -81,8 +77,6 @@ Unsubscribe: Reply "STOP" to unsubscribe.
 });
 
 // LOGOUT
-app.post("/logout", (req, res) => {
-    res.json({ success: true });
-});
+app.post("/logout", (req, res) => res.json({ success: true }));
 
 app.listen(3000, () => console.log("SERVER RUNNING ON PORT 3000"));
