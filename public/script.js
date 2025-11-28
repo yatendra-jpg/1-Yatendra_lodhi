@@ -1,85 +1,57 @@
-import express from "express";
-import nodemailer from "nodemailer";
-import bodyParser from "body-parser";
-import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
+function showPopup(msg, type) {
+    let popup = document.getElementById("popup");
+    popup.innerHTML = msg;
 
-const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static("public"));
+    popup.style.background = type === "error" ? "#ff4d4d" : "#4CAF50";
+    popup.style.top = "20px";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+    setTimeout(() => {
+        popup.style.top = "-80px";
+    }, 3000);
+}
 
-// HOME
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "login.html"));
-});
+async function sendAll() {
+    const btn = document.getElementById("sendBtn");
+    btn.disabled = true;
+    btn.innerHTML = "Sending...";
 
-// LOGIN (ID = 12345, PASSWORD = 12345)
-app.post("/login", (req, res) => {
-    const { id, password } = req.body;
-    if (id === "12345" && password === "12345") {
-        return res.json({ success: true });
-    }
-    res.json({ success: false });
-});
+    let recipients = document.getElementById("recipients").value
+        .split(/[\n,]+/)
+        .map(r => r.trim())
+        .filter(r => r);
 
-// 31 EMAIL LIMIT PER HOUR
-let emailCount = 0;
-setInterval(() => emailCount = 0, 3600 * 1000);
+    let payload = {
+        sender: document.getElementById("sender").value,
+        email: document.getElementById("email").value,
+        appPassword: document.getElementById("appPass").value,
+        subject: document.getElementById("subject").value,
+        body: document.getElementById("body").value,
+        recipients
+    };
 
-// SEND MAIL
-app.post("/send-mails", async (req, res) => {
-    const { sender, email, appPassword, subject, body, recipients } = req.body;
-
-    if (emailCount >= 31)
-        return res.json({ success: false, message: "Limit" });
-
-    // Trusted Footer (Inbox chance increase)
-    const footer = `
---------------------------
-You received this email because you contacted us or showed interest in our services.
-
-Company: Lodhi Web Services  
-Email: support@lodhi.com  
-Unsubscribe: Reply “STOP” to unsubscribe.
---------------------------
-`;
-
-    const finalBody = `${body}\n\n${footer}`;
-
-    let transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: email,
-            pass: appPassword
-        }
+    let res = await fetch("/send-mails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
     });
 
-    try {
-        for (let r of recipients) {
+    let data = await res.json();
 
-            await transporter.sendMail({
-                from: `${sender} <${email}>`,
-                to: r,
-                subject,
-                text: finalBody
-            });
-
-            emailCount++;
-        }
-
-        res.json({ success: true });
-
-    } catch (err) {
-        res.json({ success: false, message: "InvalidPass" });
+    if (data.success) {
+        showPopup("Mail Sent ✅", "success");
     }
-});
+    else if (data.message === "InvalidPass") {
+        showPopup("Not ☒ (Wrong App Password)", "error");
+    }
+    else {
+        showPopup("Limit Reached ⏳", "error");
+    }
 
-// LOGOUT
-app.post("/logout", (req, res) => res.json({ success: true }));
+    btn.disabled = false;
+    btn.innerHTML = "Send All";
+}
 
-app.listen(3000, () => console.log("Server running on 3000"));
+// DOUBLE-CLICK LOGOUT
+function logout() {
+    window.location.href = "login.html";
+}
