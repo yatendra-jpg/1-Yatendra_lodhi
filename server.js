@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import jwt from "jsonwebtoken";
 
 const app = express();
 app.use(cors());
@@ -13,20 +14,33 @@ app.use(express.static("public"));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---- DEFAULT PAGE ----
+const SECRET = "FAST_MAIL_SECRET_KEY";
+
+// ---- HOME PAGE ----
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "launcher.html"));
+    res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// ---- HOURLY LIMIT ----
+// ---- LOGIN ----
+app.post("/login", (req, res) => {
+    const { id, password } = req.body;
+
+    if (id === "admin" && password === "12345") {
+        const token = jwt.sign({ id }, SECRET, { expiresIn: "2h" });
+        return res.json({ success: true, token });
+    }
+
+    res.json({ success: false });
+});
+
+// ---- EMAIL LIMIT ----
 let emailCount = 0;
 
 setInterval(() => {
     emailCount = 0;
-    console.log("Email limit reset!");
 }, 3600 * 1000);
 
-// ---- SEND MAIL ----
+// ---- SEND BULK MAIL ----
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
@@ -53,7 +67,7 @@ app.post("/send-mails", async (req, res) => {
         }
 
         res.json({ success: true });
-    } catch (error) {
+    } catch (err) {
         res.json({ success: false, message: "InvalidPass" });
     }
 });
@@ -63,4 +77,4 @@ app.post("/logout", (req, res) => {
     res.json({ success: true });
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+app.listen(3000, () => console.log("Server Running on 3000"));
