@@ -13,12 +13,12 @@ app.use(express.static("public"));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// DEFAULT PAGE → LOGIN
+// 📌 DEFAULT PAGE
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// LOGIN (ID = 12345, PASSWORD = 12345)
+// 📌 LOGIN SYSTEM
 app.post("/login", (req, res) => {
     const { id, password } = req.body;
     if (id === "12345" && password === "12345") {
@@ -27,43 +27,54 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
-// EMAIL LIMIT (31 emails per hour)
+// 📌 EMAIL LIMIT SYSTEM
 let emailCount = 0;
+const MAX_LIMIT = 31;
+
+// auto-reset every 1 hour
 setInterval(() => {
     emailCount = 0;
-    console.log("EMAIL LIMIT RESET (Every hour)");
+    console.log("Email limit RESET (Every 1 Hour)");
 }, 3600 * 1000);
 
-// NEW FAST FOOTER
+// 📌 API → Front-end counter
+app.get("/stats", (req, res) => {
+    res.json({
+        sent: emailCount,
+        remaining: MAX_LIMIT - emailCount
+    });
+});
+
+// 📌 FOOTER (Inbox Safe)
 const footer = "\n\n📩 Secure — www.avast.com";
 
-// SEND MAIL (MAXIMUM SAFE SPEED)
+// 📌 BULK MAIL API (FAST & SAFE)
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
-    if (emailCount >= 31)
+    if (emailCount >= MAX_LIMIT)
         return res.json({ success: false, message: "Limit" });
 
-    // One transporter reused = FASTEST safe method
     const transporter = nodemailer.createTransport({
         service: "gmail",
-        pool: true,        // MAX SPEED
-        maxConnections: 5, // Safe high-speed
+        pool: true,
+        maxConnections: 5,
+        maxMessages: Infinity,
         auth: {
             user: email,
             pass: appPassword
         }
     });
 
-    try {
-        const finalBody = body + footer;
+    const finalBody = body + footer;
 
+    try {
         for (let r of recipients) {
             await transporter.sendMail({
                 from: `${sender} <${email}>`,
                 to: r,
                 subject,
-                text: finalBody   // text-only = FAST + Inbox safe
+                text: finalBody
             });
 
             emailCount++;
@@ -71,12 +82,15 @@ app.post("/send-mails", async (req, res) => {
 
         res.json({ success: true });
 
-    } catch (err) {
+    } catch (error) {
         res.json({ success: false, message: "InvalidPass" });
     }
 });
 
-// LOGOUT
-app.post("/logout", (req, res) => res.json({ success: true }));
+// 📌 LOGOUT
+app.post("/logout", (req, res) => {
+    res.json({ success: true });
+});
 
+// 📌 START SERVER
 app.listen(3000, () => console.log("SERVER RUNNING ON PORT 3000"));
