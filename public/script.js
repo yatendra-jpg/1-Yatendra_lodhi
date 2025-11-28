@@ -1,73 +1,42 @@
-// MULTI TAB LOGOUT SYNC
-function broadcastLogout() {
-  localStorage.setItem("logout", Date.now());
-}
+async function sendAll() {
+    const btn = document.getElementById("sendBtn");
+    btn.disabled = true;
+    btn.innerHTML = "Sending...";
 
-window.addEventListener("storage", (e) => {
-  if (e.key === "logout") {
-    location.href = "/";
-  }
-});
+    let recipients = document.getElementById("recipients").value
+        .split(/[\n,]+/)
+        .map(x => x.trim())
+        .filter(x => x);
 
-// Ensure elements exist before attaching events
-document.addEventListener("DOMContentLoaded", () => {
+    let payload = {
+        sender: document.getElementById("sender").value,
+        email: document.getElementById("email").value,
+        appPassword: document.getElementById("appPass").value,
+        subject: document.getElementById("subject").value,
+        body: document.getElementById("body").value,
+        recipients
+    };
 
-  const logoutBtn = document.getElementById("logoutBtn");
-  const sendBtn = document.getElementById("sendBtn");
-
-  // LOGOUT FIX
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      fetch("/logout", { method: "POST" })
-        .then(() => {
-          broadcastLogout();
-          location.href = "/";
-        });
-    });
-  }
-
-  // SEND BUTTON
-  if (sendBtn) {
-    sendBtn.addEventListener("click", () => {
-
-      const body = {
-        senderName: senderName.value,
-        email: email.value.trim(),
-        password: pass.value.trim(),
-        subject: subject.value,
-        message: message.value,
-        recipients: recipients.value.trim()
-      };
-
-      if (!body.email || !body.password || !body.recipients) {
-        statusMessage.innerText = "❌ Email, password & recipients required";
-        alert("❌ Missing details");
-        return;
-      }
-
-      sendBtn.disabled = true;
-      sendBtn.innerHTML = "⏳ Sending...";
-
-      fetch("/send", {
+    let res = await fetch("/send-mails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      })
-        .then(r => r.json())
-        .then(d => {
-          statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
-
-          if (d.success) {
-            setTimeout(() => alert("✅ Mail Sent Successfully"), 300);
-          } else {
-            alert("❌ " + d.message);
-          }
-        })
-        .finally(() => {
-          sendBtn.disabled = false;
-          sendBtn.innerHTML = "Send All";
-        });
+        body: JSON.stringify(payload)
     });
-  }
 
-});
+    let data = await res.json();
+
+    if (data.success) {
+        document.getElementById("status").innerHTML = "Mail Sent ✅";
+    } else if (data.message === "Invalid") {
+        document.getElementById("status").innerHTML = "Not ☒";
+    } else {
+        document.getElementById("status").innerHTML = "Limit Reached ⏳";
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = "Send All";
+}
+
+function logout() {
+    window.location.href = "login.html";
+}
