@@ -10,6 +10,7 @@ function showPopup(msg, type) {
     }, 3000);
 }
 
+// COUNTER UPDATE
 async function loadStats() {
     let res = await fetch("/stats");
     let data = await res.json();
@@ -21,6 +22,7 @@ async function loadStats() {
 setInterval(loadStats, 2000);
 loadStats();
 
+// SEND MAILS
 async function sendAll() {
     const btn = document.getElementById("sendBtn");
     btn.disabled = true;
@@ -63,6 +65,7 @@ async function sendAll() {
     loadStats();
 }
 
+// DOUBLE CLICK LOGOUT
 function logout() {
     window.location.href = "login.html";
 }
