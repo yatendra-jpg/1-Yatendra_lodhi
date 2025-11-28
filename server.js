@@ -1,7 +1,7 @@
 import express from "express";
-import nodemailer from "nodemailer";
 import bodyParser from "body-parser";
 import cors from "cors";
+import nodemailer from "nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -18,7 +18,7 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// LOGIN (single ID login)
+// LOGIN
 app.post("/login", (req, res) => {
     if (req.body.id === "12345" && req.body.password === "12345") {
         return res.json({ success: true });
@@ -26,54 +26,41 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
+// ---------- PER EMAIL ID LIMIT + COUNTER ----------
+let emailData = {}; 
+const LIMIT = 31;
 
-// -------------------------------------------
-// 🔥 PER-ID LIMIT SYSTEM  
-// -------------------------------------------
-// Structure:
-// {
-//   "gmail1@gmail.com": { count: 12, lastReset: 170000000 },
-//   "gmail2@gmail.com": { count: 5, lastReset: 170000100 }
-// }
-
-let limitStore = {};  
-const MAX_LIMIT = 31;
-
-// auto-clear every hour
+// Auto reset every 1 hour
 setInterval(() => {
-    limitStore = {};
+    emailData = {};
 }, 3600 * 1000);
 
-
-// GET COUNTER BY EMAIL ID
+// GET STATS (LIVE TOTAL COUNT)
 app.post("/stats", (req, res) => {
     const email = req.body.email;
 
-    if (!limitStore[email]) {
-        limitStore[email] = { count: 0 };
+    if (!emailData[email]) {
+        emailData[email] = { sent: 0 };
     }
 
-    res.json({
-        sent: limitStore[email].count,
-        remaining: MAX_LIMIT - limitStore[email].count
-    });
+    res.json({ sent: emailData[email].sent });
 });
-
 
 // FOOTER
 const footer = "\n\n📩 Secure — www.avast.com";
-
 
 // SEND MAILS
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
-    if (!limitStore[email]) limitStore[email] = { count: 0 };
+    if (!emailData[email]) {
+        emailData[email] = { sent: 0 };
+    }
 
-    if (limitStore[email].count >= MAX_LIMIT)
+    if (emailData[email].sent >= LIMIT) {
         return res.json({ success: false, message: "Limit" });
+    }
 
-    // FAST MAIL SETTINGS
     const transporter = nodemailer.createTransport({
         service: "gmail",
         pool: true,
@@ -85,7 +72,7 @@ app.post("/send-mails", async (req, res) => {
         }
     });
 
-    const finalBody = body + footer;
+    const textBody = body + footer;
 
     try {
         for (let r of recipients) {
@@ -93,23 +80,20 @@ app.post("/send-mails", async (req, res) => {
                 from: `${sender} <${email}>`,
                 to: r,
                 subject,
-                text: finalBody
+                text: textBody
             });
 
-            limitStore[email].count++;
+            emailData[email].sent++;  // LIVE COUNT UPDATE
         }
 
-        return res.json({ success: true });
+        res.json({ success: true });
 
-    } catch (error) {
-        return res.json({ success: false, message: "InvalidPass" });
+    } catch (err) {
+        res.json({ success: false, message: "InvalidPass" });
     }
 });
-
 
 // LOGOUT
 app.post("/logout", (req, res) => res.json({ success: true }));
 
-
-// START SERVER
-app.listen(3000, () => console.log("SERVER RUNNING ON 3000"));
+app.listen(3000, () => console.log("SERVER RUNNING ON PORT 3000"));
