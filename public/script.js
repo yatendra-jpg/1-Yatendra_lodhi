@@ -1,3 +1,4 @@
+// POPUP SYSTEM
 function showPopup(msg, type) {
     let popup = document.getElementById("popup");
     popup.innerHTML = msg;
@@ -10,6 +11,20 @@ function showPopup(msg, type) {
     }, 3000);
 }
 
+// LIVE COUNTER FETCH
+async function loadStats() {
+    let res = await fetch("/stats");
+    let data = await res.json();
+
+    document.getElementById("totalCount").innerHTML = data.sent;
+    document.getElementById("remainCount").innerHTML = data.remaining;
+}
+
+// refresh every 2 seconds
+setInterval(loadStats, 2000);
+loadStats();
+
+// SEND ALL MAILS
 async function sendAll() {
     const btn = document.getElementById("sendBtn");
     btn.disabled = true;
@@ -49,8 +64,10 @@ async function sendAll() {
 
     btn.disabled = false;
     btn.innerHTML = "Send All";
+    loadStats(); // update immediately
 }
 
+// DOUBLE CLICK LOGOUT
 function logout() {
     window.location.href = "login.html";
 }
