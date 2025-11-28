@@ -32,7 +32,6 @@ async function login() {
     let data = await res.json();
 
     if (data.success) {
-        localStorage.setItem("token", data.token);
         window.location.href = "launcher.html";
     } else {
         document.getElementById("login_msg").innerHTML = "Invalid Login ❌";
