@@ -3,10 +3,10 @@ function showPopup(msg, type) {
     popup.innerHTML = msg;
 
     popup.style.background = type === "error" ? "#ff4d4d" : "#4CAF50";
-    popup.style.top = "20px";      // slide down
+    popup.style.top = "20px";
 
     setTimeout(() => {
-        popup.style.top = "-80px"; // slide up
+        popup.style.top = "-80px";
     }, 3000);
 }
 
@@ -39,7 +39,7 @@ async function sendAll() {
 
     if (data.success) {
         showPopup("Mail Sent ✅", "success");
-    }
+    } 
     else if (data.message === "InvalidPass") {
         showPopup("Not ☒ (Wrong App Password)", "error");
     }
@@ -52,6 +52,5 @@ async function sendAll() {
 }
 
 function logout() {
-    localStorage.clear();
     window.location.href = "login.html";
 }
