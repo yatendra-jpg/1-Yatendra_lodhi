@@ -7,34 +7,34 @@
 
 <body>
 
-    <div class="login-box">
-        <h2>Login</h2>
+<div class="login-box">
+    <h2>Login</h2>
 
-        <input id="login_id" placeholder="Login ID">
-        <input id="login_pass" placeholder="Password" type="password">
+    <input id="login_id" placeholder="Login ID">
+    <input id="login_pass" placeholder="Password" type="password">
 
-        <button onclick="login()">Login</button>
+    <button onclick="login()">Login</button>
 
-        <p id="login_msg"></p>
-    </div>
+    <p id="login_msg"></p>
+</div>
 
 <script>
 async function login() {
-    let id = document.getElementById("login_id").value;
-    let password = document.getElementById("login_pass").value;
+    let id = login_id.value;
+    let password = login_pass.value;
 
     let res = await fetch("/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, password })
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({id, password})
     });
 
     let data = await res.json();
 
-    if (data.success) {
-        window.location.href = "launcher.html";
+    if(data.success){
+        window.location.href="launcher.html";
     } else {
-        document.getElementById("login_msg").innerHTML = "Invalid Login ❌";
+        login_msg.innerHTML = "Invalid Login ❌";
     }
 }
 </script>
