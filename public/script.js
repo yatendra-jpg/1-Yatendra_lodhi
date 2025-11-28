@@ -17,41 +17,28 @@ async function sendAll() {
         recipients
     };
 
-    // ---- Progress Bar ----
-    let progress = document.getElementById("progressBar");
-    progress.style.width = "0%";
-    document.getElementById("progressContainer").style.display = "block";
-
-    let step = 100 / recipients.length;
-
-    let interval = setInterval(() => {
-        let width = parseFloat(progress.style.width);
-        if (width >= 100) clearInterval(interval);
-        progress.style.width = (width + step) + "%";
-    }, 300);
-
     let res = await fetch("/send-mails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
     });
 
-    clearInterval(interval);
-    progress.style.width = "100%";
-
     let data = await res.json();
 
-    if (data.success)
+    if (data.success) {
         document.getElementById("status").innerHTML = "Mail Sent ✅";
-    else if (data.message === "Invalid")
+    }
+    else if (data.message === "InvalidPass") {
         document.getElementById("status").innerHTML = "Not ☒";
-    else
+    }
+    else if (data.message === "Limit") {
         document.getElementById("status").innerHTML = "Limit Reached ⏳";
+    }
 
     btn.disabled = false;
     btn.innerHTML = "Send All";
 }
 
 function logout() {
-    window.location.href = "login.html";
+    window.location.href = "launcher.html";
 }
