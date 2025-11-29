@@ -6,6 +6,13 @@ function showPopup(msg, type){
     setTimeout(()=> p.style.top = "-80px", 3000);
 }
 
+// UI Counter
+let totalSent = 0;
+
+function updateSent(){
+    document.getElementById("sentCount").innerText = totalSent;
+}
+
 async function sendAll(){
     sendBtn.disabled = true;
     sendBtn.innerHTML = "Sending...";
@@ -33,16 +40,19 @@ async function sendAll(){
     let data = await res.json();
 
     if(data.success){
-        showPopup("Mail Sent ✅", "success");
+        // 🔥 Increase UI counter only (SAFE)
+        totalSent += rec.length;
+        updateSent();
+        showPopup("Mail Sent ✅","success");
     }
     else if(data.message === "INVALID_PASS"){
-        showPopup("Wrong App Password ☒", "error");
+        showPopup("Wrong App Password ☒","error");
     }
     else if(data.message === "LIMIT_FULL"){
-        showPopup("❌ Limit mail send Full", "error");
+        showPopup("❌ Limit mail send Full","error");
     }
-    else {
-        showPopup("Error ❌", "error");
+    else{
+        showPopup("Error ❌","error");
     }
 
     sendBtn.disabled = false;
