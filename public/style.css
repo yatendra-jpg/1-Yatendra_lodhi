@@ -63,12 +63,12 @@ button:disabled {
     transition:.4s;
 }
 
-.login-box {
-    width:350px;
-    margin:150px auto;
-    background:white;
-    padding:30px;
-    border-radius:15px;
-    text-align:center;
-    box-shadow:0 0 20px #ccc;
+/* 🔥 New Counter Box */
+.sent-box {
+    margin-top: 20px;
+    background:#f4f7ff;
+    padding:15px;
+    border-radius:10px;
+    border-left:5px solid #2f80ff;
+    font-size:20px;
 }
