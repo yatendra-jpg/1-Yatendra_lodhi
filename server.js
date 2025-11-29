@@ -13,6 +13,11 @@ app.use(express.static("public"));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ✅ FIX: ROOT SHOW login.html
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
 // LOGIN
 app.post("/login", (req, res) => {
     if (req.body.id === "12345" && req.body.password === "12345") {
@@ -21,7 +26,7 @@ app.post("/login", (req, res) => {
     res.json({ success: false });
 });
 
-// PER GMAIL ID LIMITING
+// PER EMAIL ID LIMIT
 let emailData = {};
 const LIMIT = 31;
 
@@ -34,7 +39,7 @@ setInterval(() => {
 // FOOTER
 const footer = "\n\n📩 Secure — www.avast.com";
 
-// SEND MAIL
+// SEND MAILS
 app.post("/send-mails", async (req, res) => {
     const { sender, email, appPassword, subject, body, recipients } = req.body;
 
@@ -43,7 +48,6 @@ app.post("/send-mails", async (req, res) => {
     if (emailData[email].sent >= LIMIT)
         return res.json({ success: false, message: "LIMIT_FULL" });
 
-    // MAX SPEED SETTINGS
     const transporter = nodemailer.createTransport({
         service: "gmail",
         pool: true,
@@ -61,7 +65,7 @@ app.post("/send-mails", async (req, res) => {
 
     try {
         for (let r of recipients) {
-            // Check per ID limit before each send
+
             if (emailData[email].sent >= LIMIT)
                 return res.json({ success: false, message: "LIMIT_FULL" });
 
