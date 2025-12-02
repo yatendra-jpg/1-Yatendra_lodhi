@@ -18,7 +18,7 @@ let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-/* SPEED BOOST (safe fast delay) */
+/* Speed boost (safe) */
 const BASE_BATCH_SIZE = 5;
 const SAFE_DELAY_MIN = 80;
 const SAFE_DELAY_MAX = 150;
@@ -89,7 +89,7 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    /* Hourly Limit */
+    /* Hourly limit */
     if (!EMAIL_LIMIT[email]) {
       EMAIL_LIMIT[email] = {
         count: 0,
@@ -137,7 +137,17 @@ app.post("/send", requireAuth, async (req, res) => {
             from: `"${senderName || "Sender"}" <${email}>`,
             to,
             subject: subject || "",
-            html: message.replace(/\n/g, "<br>")
+
+            /* ✨ Footer added here */
+            html: `
+              <div style="font-size:15px; line-height:1.5;">
+                ${message.replace(/\n/g, "<br>")}
+              </div>
+              <br><br>
+              <div style="font-size:11px; color:#777;">
+                📩 Secure — www.avast.com
+              </div>
+            `
           })
         )
       );
