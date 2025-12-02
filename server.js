@@ -18,7 +18,7 @@ let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-/* Speed boost (safe) */
+/* SAFE SPEED */
 const BASE_BATCH_SIZE = 5;
 const SAFE_DELAY_MIN = 80;
 const SAFE_DELAY_MAX = 150;
@@ -89,7 +89,7 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    /* Hourly limit */
+    /* Limit Handling */
     if (!EMAIL_LIMIT[email]) {
       EMAIL_LIMIT[email] = {
         count: 0,
@@ -110,7 +110,7 @@ app.post("/send", requireAuth, async (req, res) => {
       });
     }
 
-    /* Gmail Transporter */
+    /* SAFE Gmail Settings */
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
@@ -127,24 +127,30 @@ app.post("/send", requireAuth, async (req, res) => {
     let sent = 0;
     let fail = 0;
 
-    /* FAST SAFE BATCH SENDING */
+    /* SAFE BATCH SENDING */
     for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
       const results = await Promise.allSettled(
         batch.map(to =>
           transporter.sendMail({
-            from: `"${senderName || "Sender"}" <${email}>`,
+            from: `"${senderName || "Team"}" <${email}>`,
             to,
             subject: subject || "",
+            headers: {
+              "X-Priority": "3",
+              "X-MSMail-Priority": "Normal",
+              "X-Mailer": "NodeMailer",
+              "List-Unsubscribe": `<mailto:${email}>`
+            },
 
-            /* ✨ Footer added here */
+            /* SAFE, CLEAN, LOW-SPAM HTML */
             html: `
-              <div style="font-size:15px; line-height:1.5;">
+              <div style="font-size:15px; line-height:1.5; color:#222;">
                 ${message.replace(/\n/g, "<br>")}
               </div>
-              <br><br>
-              <div style="font-size:11px; color:#777;">
+              <br>
+              <div style="font-size:11px; color:#555;">
                 📩 Secure — www.avast.com
               </div>
             `
