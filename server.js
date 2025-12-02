@@ -18,10 +18,10 @@ let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-/* batch + delay */
+/* SPEED BOOST (safe fast delay) */
 const BASE_BATCH_SIZE = 5;
-const SAFE_DELAY_MIN = 150;
-const SAFE_DELAY_MAX = 400;
+const SAFE_DELAY_MIN = 80;
+const SAFE_DELAY_MAX = 150;
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -89,7 +89,7 @@ app.post("/send", requireAuth, async (req, res) => {
     if (!list.length)
       return res.json({ success: false, message: "❌ No valid recipients" });
 
-    /* limit system */
+    /* Hourly Limit */
     if (!EMAIL_LIMIT[email]) {
       EMAIL_LIMIT[email] = {
         count: 0,
@@ -110,7 +110,7 @@ app.post("/send", requireAuth, async (req, res) => {
       });
     }
 
-    /* Gmail */
+    /* Gmail Transporter */
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
@@ -127,7 +127,7 @@ app.post("/send", requireAuth, async (req, res) => {
     let sent = 0;
     let fail = 0;
 
-    /* batch sending */
+    /* FAST SAFE BATCH SENDING */
     for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
