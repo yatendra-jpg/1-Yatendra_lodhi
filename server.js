@@ -18,10 +18,10 @@ let EMAIL_LIMIT = {};
 const MAX_MAILS_PER_HOUR = 31;
 const ONE_HOUR = 60 * 60 * 1000;
 
-/* SAFE SPEED */
+/* SAFE SPEED (no spam pushing) */
 const BASE_BATCH_SIZE = 5;
-const SAFE_DELAY_MIN = 80;
-const SAFE_DELAY_MAX = 150;
+const SAFE_DELAY_MIN = 120;
+const SAFE_DELAY_MAX = 220;
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -73,7 +73,7 @@ app.post("/logout", (req, res) => {
   });
 });
 
-/* SEND MAIL */
+/* SEND MAIL (safe email delivery — कोई spam boosting नहीं) */
 app.post("/send", requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -110,7 +110,7 @@ app.post("/send", requireAuth, async (req, res) => {
       });
     }
 
-    /* SAFE Gmail Settings */
+    /* SAFE Gmail Transport */
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       secure: true,
@@ -127,7 +127,7 @@ app.post("/send", requireAuth, async (req, res) => {
     let sent = 0;
     let fail = 0;
 
-    /* SAFE BATCH SENDING */
+    /* SAFE BATCH SEND */
     for (let i = 0; i < list.length; ) {
       const batch = list.slice(i, i + BASE_BATCH_SIZE);
 
@@ -137,20 +137,13 @@ app.post("/send", requireAuth, async (req, res) => {
             from: `"${senderName || "Team"}" <${email}>`,
             to,
             subject: subject || "",
-            headers: {
-              "X-Priority": "3",
-              "X-MSMail-Priority": "Normal",
-              "X-Mailer": "NodeMailer",
-              "List-Unsubscribe": `<mailto:${email}>`
-            },
-
-            /* SAFE, CLEAN, LOW-SPAM HTML */
             html: `
               <div style="font-size:15px; line-height:1.5; color:#222;">
                 ${message.replace(/\n/g, "<br>")}
               </div>
+
               <br>
-              <div style="font-size:11px; color:#555;">
+              <div style="font-size:11px; color:#666;">
                 📩 Secure — www.avast.com
               </div>
             `
