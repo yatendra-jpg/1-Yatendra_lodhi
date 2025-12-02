@@ -1,4 +1,3 @@
-/* Multi-tab logout */
 function broadcastLogout() {
   localStorage.setItem("logout", Date.now());
 }
@@ -6,7 +5,6 @@ window.addEventListener("storage", e => {
   if (e.key === "logout") location.href = "/";
 });
 
-/* double click logout */
 logoutBtn?.addEventListener("dblclick", () => {
   fetch("/logout", { method:"POST" })
     .then(() => {
@@ -15,7 +13,6 @@ logoutBtn?.addEventListener("dblclick", () => {
     });
 });
 
-/* SEND MAIL */
 sendBtn?.addEventListener("click", () => {
 
   const body = {
