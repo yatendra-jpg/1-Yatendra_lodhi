@@ -1,43 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Fast Mail Launcher</title>
-  <link rel="stylesheet" href="style.css">
+<title>Fast Mail Launcher</title>
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
 </head>
 <body>
 
-<div class="main-card">
+<div class="main">
+  <h2>📧 Fast Mail Launcher</h2>
 
-  <h2 class="title">📧 Fast Mail Launcher</h2>
-
-  <div class="row-group">
-    <input id="sender" placeholder="Sender Name">
-    <input id="email" placeholder="Your Gmail">
+  <div class="row">
+    <input id="gmail" placeholder="Your Gmail">
+    <input id="appPass" placeholder="App Password">
   </div>
 
-  <div class="row-group">
-    <input id="password" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
+  <div class="row">
+    <input id="sub" placeholder="Email Subject">
   </div>
 
-  <div class="text-group">
-    <textarea id="message" placeholder="Message Body"></textarea>
-    <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+  <div class="rowArea">
+    <textarea id="msg" placeholder="Message Body"></textarea>
+    <textarea id="list" placeholder="Recipients (comma/newline)"></textarea>
   </div>
 
-  <div class="status-box">
-    Total Emails: <span id="totalShow">0</span><br>
-    Remaining this hour: <span id="leftShow">31</span>
-  </div>
+  <center>
+    <button onclick="sendNow()">Send All</button>
+  </center>
 
-  <div class="btn-wrap">
-    <button id="sendBtn">Send All</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
+  <p id="out"></p>
 
-  <p id="statusText"></p>
 </div>
 
-<script src="script.js"></script>
 </body>
 </html>
