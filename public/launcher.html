@@ -3,32 +3,25 @@
 <head>
   <title>Fast Mail Launcher</title>
   <link rel="stylesheet" href="style.css">
-  <script src="script.js"></script>
 </head>
 <body>
 
 <div class="box">
-
-  <h2 class="title">📧 Fast Mail Launcher</h2>
-
-  <div class="row">
-    <input placeholder="Sender Name" id="senderName">
-    <input placeholder="Your Gmail" id="email">
-  </div>
+  <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
-    <input placeholder="App Password" id="password">
-    <input placeholder="Email Subject" id="subject">
+    <input placeholder="Sender Name">
+    <input placeholder="Your Gmail">
   </div>
 
-  <div class="row text-row">
-    <textarea id="message" placeholder="Message Body"></textarea>
-    <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+  <div class="row">
+    <input placeholder="App Password">
+    <input placeholder="Email Subject">
   </div>
 
-  <div class="right-info">
-    Total Emails: <span id="total">0</span><br>
-    Remaining this hour: <span id="remain">31</span>
+  <div class="row">
+    <textarea placeholder="Message Body"></textarea>
+    <textarea placeholder="Recipients (comma or newline)"></textarea>
   </div>
 
   <div class="btn-wrap">
@@ -37,8 +30,9 @@
   </div>
 
   <p id="status"></p>
-
 </div>
+
+<script src="script.js"></script>
 
 </body>
 </html>
