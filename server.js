@@ -1,80 +1,71 @@
 const express = require("express");
-const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(cors());
 
-const USERNAME = "admin";
-const PASSWORD = "admin"; // same id + password
+const PORT = 3000;
 
-// Fix GET /
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
+const VALID_ID = "@#882yattu";
+const VALID_PASS = "@#882yattu";
+const MAX_LIMIT = 2000;
 
+let sessionCount = {};
+
+// email text normalizer (no big / spammy content)
+function normalizeEmail(text) {
+  if (!text) return "";
+
+  let cleaned = text
+    .replace(/\s+/g, " ")     // extra spaces remove
+    .replace(/<script>/gi, "") // block scripts
+    .replace(/<\/script>/gi, "")
+    .trim();
+
+  if (cleaned.length > 1200) {
+    cleaned = cleaned.substring(0, 1200) + "...";
+  }
+
+  return cleaned;
+}
+
+// LOGIN
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
-  if (username === USERNAME && password === PASSWORD) {
-    res.json({ success: true });
-  } else {
-    res.json({ success: false });
+  if (username === VALID_ID && password === VALID_PASS) {
+    sessionCount[username] = 0;
+    return res.json({ success: true });
   }
+
+  res.json({ success: false });
 });
 
-app.get("/launcher", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "launcher.html"));
-});
+// SAFE ACTION (NO REAL MAIL SEND – only preview + counter)
+app.post("/prepare", (req, res) => {
+  const { username, emailText } = req.body;
 
-// FAST EMAIL SENDER
-app.post("/send", async (req, res) => {
-  const { gmail, appPassword, subject, message, recipients } = req.body;
-
-  const emails = recipients
-    .split(/[\n,]+/)
-    .map(e => e.trim())
-    .filter(e => e);
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: gmail,
-      pass: appPassword
-    },
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 1000
-  });
-
-  let success = 0;
-  let failed = 0;
-
-  for (let email of emails) {
-    try {
-      await transporter.sendMail({
-        from: gmail,
-        to: email,
-        subject: subject,
-        text: message
-      });
-      success++;
-    } catch (err) {
-      failed++;
-    }
+  if (sessionCount[username] === undefined) {
+    return res.status(403).json({ message: "Please login again" });
   }
+
+  if (sessionCount[username] >= MAX_LIMIT) {
+    return res.json({ message: "2000 limit reached", limit: true });
+  }
+
+  sessionCount[username]++;
+
+  const finalText = normalizeEmail(emailText);
 
   res.json({
-    sent: success,
-    failed: failed,
-    total: emails.length
+    used: sessionCount[username],
+    remaining: MAX_LIMIT - sessionCount[username],
+    preview: finalText
   });
 });
 
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(PORT, () => {
+  console.log("Server running on http://localhost:" + PORT);
+});
