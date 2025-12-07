@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login — Fast Mail Launcher</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Secure Login</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-  <h2>Welcome Back</h2>
-  <input type="text" id="username" placeholder="Username">
-  <input type="password" id="password" placeholder="Password">
+<div class="login-box">
+  <h2>Login</h2>
+  <input type="text" id="user" placeholder="Enter ID">
+  <input type="password" id="pass" placeholder="Enter Password">
   <button onclick="login()">Login</button>
+  <p id="msg"></p>
+
+  <small>Secure — www.avast.com</small>
 </div>
 
 <script src="script.js"></script>
