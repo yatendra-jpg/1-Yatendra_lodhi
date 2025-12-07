@@ -1,40 +1,23 @@
-function login() {
-  const username = document.getElementById("user").value;
-  const password = document.getElementById("pass").value;
+function sendNow(){
 
-  fetch("http://localhost:3000/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({username, password})
+  const gmail=document.getElementById("gmail").value;
+  const appPass=document.getElementById("appPass").value;
+  const subject=document.getElementById("sub").value;
+  const body=document.getElementById("msg").value;
+  const recipients=document.getElementById("list").value;
+
+  fetch("/send",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({gmail, appPass, subject, body, recipients})
   })
-  .then(res => res.json())
-  .then(data => {
-    if(data.success){
-      localStorage.setItem("user", username);
-      window.location = "launcher.html";
-    } else {
-      document.getElementById("msg").innerText = "Wrong ID or Password";
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.success){
+      document.getElementById("out").innerText = `Sent: ${d.sent}, Failed: ${d.failed}`;
+    }else{
+      alert(d.message);
     }
   });
-}
 
-function prepare() {
-  const username = localStorage.getItem("user");
-  const emailText = document.getElementById("mailText").value;
-
-  fetch("http://localhost:3000/prepare", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({username, emailText})
-  })
-  .then(res => res.json())
-  .then(data => {
-    if(data.preview){
-      document.getElementById("used").innerText = data.used;
-      document.getElementById("remain").innerText = data.remaining;
-      document.getElementById("preview").innerText = data.preview;
-    } else {
-      document.getElementById("preview").innerText = data.message;
-    }
-  });
 }
