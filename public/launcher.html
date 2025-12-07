@@ -1,29 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Fast Mail Launcher</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Launcher</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="launcher">
-  <h2>Fast Mail Launcher</h2>
+  <h2>Email Launcher (Safe Mode)</h2>
+
+  <textarea id="mailText" placeholder="Paste your email content here..." rows="6"></textarea>
 
   <div class="grid">
-    <input id="senderName" placeholder="Sender Name">
-    <input id="gmail" placeholder="Your Gmail">
-
-    <input type="password" id="appPassword" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
-
-    <textarea id="message" placeholder="Message Body"></textarea>
-    <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+    <div>Used: <span id="used">0</span></div>
+    <div>Remaining: <span id="remain">2000</span></div>
   </div>
 
-  <button onclick="sendEmails()">Send All</button>
-  <button onclick="logout()">Logout</button>
+  <button onclick="prepare()">Normalize Content</button>
 
-  <p id="status"></p>
+  <h4>Preview (Normal Size)</h4>
+  <div class="preview" id="preview"></div>
+
+  <footer>Secure — www.avast.com</footer>
 </div>
 
 <script src="script.js"></script>
