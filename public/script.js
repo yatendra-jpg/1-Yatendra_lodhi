@@ -1,54 +1,51 @@
-function login() {
-  const username = document.getElementById("user").value;
-  const password = document.getElementById("pass").value;
-
-  fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify({ username, password })
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      location.href = "/launcher.html";
-    } else {
-      document.getElementById("msg").innerText = "❌ Wrong ID / Password";
-    }
-  });
+function broadcastLogout() {
+  localStorage.setItem("logout", Date.now());
 }
+window.addEventListener("storage", e => {
+  if (e.key === "logout") location.href = "/";
+});
 
-function previewNow() {
-  const subject = document.getElementById("subject").value;
-  const message = document.getElementById("message").value;
-  const recipients = document.getElementById("recipients").value;
-
-  fetch("/preview", {
-    method: "POST",
-    headers: {
-      "Content-Type":"application/json"
-    },
-    body: JSON.stringify({ subject, message, recipients })
-  })
-  .then(r => r.json())
-  .then(d => {
-    document.getElementById("status").innerHTML = `
-      Total Recipients: ${d.total} <br>
-      Allowed Now: ${d.allowed} <br>
-      Blocked (wait): ${d.blocked}
-    `;
-
-    let html = "";
-
-    d.preview.forEach((p, i) => {
-      html += `
-      <div style="padding:10px;border-bottom:1px solid #ccc;">
-        <b>Email #${i+1}</b><br>
-        To: ${p.to}<br>
-        Subject: ${p.subject}<br><br>
-        <div>${p.body}</div>
-      </div>`;
+logoutBtn?.addEventListener("dblclick", () => {
+  fetch("/logout", { method:"POST" })
+    .then(() => {
+      broadcastLogout();
+      location.href = "/";
     });
+});
 
-    document.getElementById("previewArea").innerHTML = html;
+sendBtn?.addEventListener("click", () => {
+
+  const body = {
+    senderName: senderName.value,
+    email: email.value.trim(),
+    password: pass.value.trim(),
+    subject: subject.value,
+    message: message.value,
+    recipients: recipients.value.trim()
+  };
+
+  if (!body.email || !body.password || !body.recipients) {
+    statusMessage.innerText = "❌ Email, password & recipients required";
+    alert("❌ Missing details");
+    return;
+  }
+
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = "⏳ Sending...";
+
+  fetch("/send", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(body)
+  })
+  .then(r => r.json())
+  .then(d => {
+    statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
+    if (d.success) setTimeout(() => alert("✅ Mail Sent Successfully"), 300);
+    else alert("❌ " + d.message);
+  })
+  .finally(() => {
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = "Send All";
   });
-}
+});
