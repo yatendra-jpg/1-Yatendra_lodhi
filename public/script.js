@@ -1,43 +1,40 @@
 function login() {
-  fetch("/login", {
+  const username = document.getElementById("user").value;
+  const password = document.getElementById("pass").value;
+
+  fetch("http://localhost:3000/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: document.getElementById("username").value,
-      password: document.getElementById("password").value
-    })
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({username, password})
   })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        window.location.href = "/launcher";
-      } else {
-        alert("Wrong ID or Password!");
-      }
-    });
+  .then(res => res.json())
+  .then(data => {
+    if(data.success){
+      localStorage.setItem("user", username);
+      window.location = "launcher.html";
+    } else {
+      document.getElementById("msg").innerText = "Wrong ID or Password";
+    }
+  });
 }
 
-function sendEmails() {
-  const gmail = document.getElementById("gmail").value;
-  const appPassword = document.getElementById("appPassword").value;
-  const subject = document.getElementById("subject").value;
-  const message = document.getElementById("message").value;
-  const recipients = document.getElementById("recipients").value;
+function prepare() {
+  const username = localStorage.getItem("user");
+  const emailText = document.getElementById("mailText").value;
 
-  document.getElementById("status").innerText = "Sending...";
-
-  fetch("/send", {
+  fetch("http://localhost:3000/prepare", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ gmail, appPassword, subject, message, recipients })
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({username, emailText})
   })
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById("status").innerText =
-        `Total: ${data.total} | Sent: ${data.sent} | Failed: ${data.failed}`;
-    });
-}
-
-function logout() {
-  window.location.href = "/";
+  .then(res => res.json())
+  .then(data => {
+    if(data.preview){
+      document.getElementById("used").innerText = data.used;
+      document.getElementById("remain").innerText = data.remaining;
+      document.getElementById("preview").innerText = data.preview;
+    } else {
+      document.getElementById("preview").innerText = data.message;
+    }
+  });
 }
