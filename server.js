@@ -1,123 +1,80 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
-const path = require("path");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* =========================
-   ROOT ROUTE FIX ✅
-========================= */
+const USERNAME = "admin";
+const PASSWORD = "admin"; // same id + password
+
+// Fix GET /
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* =========================
-   LOGIN ROUTE
-========================= */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
-  if (username === "yattu" && password === "#882") {
-    res.json({ success: true, redirect: "/launcher" });
+  if (username === USERNAME && password === PASSWORD) {
+    res.json({ success: true });
   } else {
-    res.json({ success: false, message: "Invalid login" });
+    res.json({ success: false });
   }
 });
 
-/* =========================
-   LAUNCHER PAGE
-========================= */
 app.get("/launcher", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "launcher.html"));
 });
 
-/* =========================
-   SEND MAIL (SAFE + FAST)
-========================= */
+// FAST EMAIL SENDER
 app.post("/send", async (req, res) => {
-  const { email, password, subject, message, recipients } = req.body;
+  const { gmail, appPassword, subject, message, recipients } = req.body;
 
-  if (!email || !password || !recipients) {
-    return res.json({ success: false, message: "Missing fields" });
-  }
-
-  const emailList = recipients
-    .split("\n")
+  const emails = recipients
+    .split(/[\n,]+/)
     .map(e => e.trim())
-    .filter(e => e !== "");
-
-  if (emailList.length === 0) {
-    return res.json({ success: false, message: "No recipients found" });
-  }
-
-  // ✅ Footer
-  const FOOTER = `
-
-📩 Secure — www.avast.com
-`;
+    .filter(e => e);
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: email,
-      pass: password
-    }
+      user: gmail,
+      pass: appPassword
+    },
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 1000
   });
 
-  let sent = 0;
+  let success = 0;
   let failed = 0;
-  let maxLimit = 31; // per hour safety
 
-  let totalToSend = Math.min(emailList.length, maxLimit);
-
-  for (let i = 0; i < totalToSend; i++) {
-    const to = emailList[i];
-
+  for (let email of emails) {
     try {
       await transporter.sendMail({
-        from: `"Secure Mailer" <${email}>`,
-        to: to,
-        subject: subject || "Hello",
-        text: message + FOOTER
+        from: gmail,
+        to: email,
+        subject: subject,
+        text: message
       });
-
-      sent++;
-
-      // ✅ Faster but still SAFE (500–900ms)
-      let delay = Math.floor(Math.random() * 400) + 500;
-      await sleep(delay);
-
+      success++;
     } catch (err) {
       failed++;
     }
   }
 
   res.json({
-    success: true,
-    sent,
-    failed,
-    limit: maxLimit
+    sent: success,
+    failed: failed,
+    total: emails.length
   });
 });
 
-/* =========================
-   LOGOUT
-========================= */
-app.post("/logout", (req, res) => {
-  res.json({ success: true, redirect: "/" });
-});
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-app.listen(PORT, () => {
-  console.log("Server Running on Port: " + PORT);
-});
+app.listen(PORT, () => console.log("Server running on port " + PORT));
