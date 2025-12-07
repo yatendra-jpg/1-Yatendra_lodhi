@@ -1,33 +1,47 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
-const cors = require("cors");
 const bodyParser = require("body-parser");
+const path = require("path");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
-// -------------------
-// LOGIN ROUTE
-// -------------------
+/* =========================
+   ROOT ROUTE FIX ✅
+========================= */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+/* =========================
+   LOGIN ROUTE
+========================= */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
   if (username === "yattu" && password === "#882") {
-    res.json({ success: true });
+    res.json({ success: true, redirect: "/launcher" });
   } else {
-    res.json({ success: false, message: "Invalid credentials" });
+    res.json({ success: false, message: "Invalid login" });
   }
 });
 
-// -------------------
-// SAFE SEND ROUTE
-// -------------------
-app.post("/send", async (req, res) => {
+/* =========================
+   LAUNCHER PAGE
+========================= */
+app.get("/launcher", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "launcher.html"));
+});
 
+/* =========================
+   SEND MAIL (SAFE + FAST)
+========================= */
+app.post("/send", async (req, res) => {
   const { email, password, subject, message, recipients } = req.body;
 
   if (!email || !password || !recipients) {
@@ -43,12 +57,13 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, message: "No recipients found" });
   }
 
-  const SAFE_FOOTER = `
+  // ✅ Footer
+  const FOOTER = `
 
 📩 Secure — www.avast.com
 `;
 
-  let transporter = nodemailer.createTransport({
+  const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
       user: email,
@@ -58,22 +73,26 @@ app.post("/send", async (req, res) => {
 
   let sent = 0;
   let failed = 0;
+  let maxLimit = 31; // per hour safety
 
-  for (let i = 0; i < emailList.length; i++) {
+  let totalToSend = Math.min(emailList.length, maxLimit);
+
+  for (let i = 0; i < totalToSend; i++) {
+    const to = emailList[i];
+
     try {
-
-      const mailOptions = {
-        from: `"Secure Mail" <${email}>`,
-        to: emailList[i],
+      await transporter.sendMail({
+        from: `"Secure Mailer" <${email}>`,
+        to: to,
         subject: subject || "Hello",
-        text: message + SAFE_FOOTER
-      };
+        text: message + FOOTER
+      });
 
-      await transporter.sendMail(mailOptions);
       sent++;
 
-      // SAFE Delay (Human-like)
-      await sleep(1500);
+      // ✅ Faster but still SAFE (500–900ms)
+      let delay = Math.floor(Math.random() * 400) + 500;
+      await sleep(delay);
 
     } catch (err) {
       failed++;
@@ -82,16 +101,17 @@ app.post("/send", async (req, res) => {
 
   res.json({
     success: true,
-    message: `Sent: ${sent}, Failed: ${failed}`
+    sent,
+    failed,
+    limit: maxLimit
   });
-
 });
 
-// -------------------
-// LOGOUT
-// -------------------
+/* =========================
+   LOGOUT
+========================= */
 app.post("/logout", (req, res) => {
-  res.json({ success: true });
+  res.json({ success: true, redirect: "/" });
 });
 
 function sleep(ms) {
@@ -99,5 +119,5 @@ function sleep(ms) {
 }
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server Running on Port: " + PORT);
 });
