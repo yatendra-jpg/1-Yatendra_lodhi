@@ -2,39 +2,28 @@
 <html>
 <head>
   <title>Fast Mail Launcher</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="container">
+<div class="launcher">
+  <h2>Fast Mail Launcher</h2>
 
-  <h1>📩 Fast Mail Launcher</h1>
+  <div class="grid">
+    <input id="senderName" placeholder="Sender Name">
+    <input id="gmail" placeholder="Your Gmail">
 
-  <div class="top-row">
-    <input type="text" id="from" placeholder="From Email">
-    <input type="text" id="subject" placeholder="Subject">
+    <input type="password" id="appPassword" placeholder="App Password">
+    <input id="subject" placeholder="Email Subject">
+
+    <textarea id="message" placeholder="Message Body"></textarea>
+    <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
   </div>
 
-  <div class="middle-row">
-    <textarea id="message" placeholder="Write message here..."></textarea>
-    <textarea id="emails" placeholder="Enter emails (1 per line)"></textarea>
-  </div>
+  <button onclick="sendEmails()">Send All</button>
+  <button onclick="logout()">Logout</button>
 
-  <div class="status">
-    Total Emails: <span id="total">0</span> |
-    Remaining this hour: <span id="remaining">31</span>
-  </div>
-
-  <div class="btn-row">
-    <button onclick="sendSafe()">Send (Safe Mode)</button>
-    <button ondblclick="logout()">Logout</button>
-  </div>
-
-  <div class="result">
-    ✅ Sent: <span id="sent">0</span> |
-    Failed: <span id="failed">0</span>
-  </div>
-
+  <p id="status"></p>
 </div>
 
 <script src="script.js"></script>
