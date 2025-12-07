@@ -1,27 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Launcher</title>
+  <title>Fast Mail Launcher</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="launcher">
-  <h2>Email Launcher (Safe Mode)</h2>
+<div class="main-card">
 
-  <textarea id="mailText" placeholder="Paste your email content here..." rows="6"></textarea>
+  <h2 class="title">📧 Fast Mail Launcher</h2>
 
-  <div class="grid">
-    <div>Used: <span id="used">0</span></div>
-    <div>Remaining: <span id="remain">2000</span></div>
+  <div class="row-group">
+    <input id="sender" placeholder="Sender Name">
+    <input id="email" placeholder="Your Gmail">
   </div>
 
-  <button onclick="prepare()">Normalize Content</button>
+  <div class="row-group">
+    <input id="password" placeholder="App Password">
+    <input id="subject" placeholder="Email Subject">
+  </div>
 
-  <h4>Preview (Normal Size)</h4>
-  <div class="preview" id="preview"></div>
+  <div class="text-group">
+    <textarea id="message" placeholder="Message Body"></textarea>
+    <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+  </div>
 
-  <footer>Secure — www.avast.com</footer>
+  <div class="status-box">
+    Total Emails: <span id="totalShow">0</span><br>
+    Remaining this hour: <span id="leftShow">31</span>
+  </div>
+
+  <div class="btn-wrap">
+    <button id="sendBtn">Send All</button>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <p id="statusText"></p>
 </div>
 
 <script src="script.js"></script>
