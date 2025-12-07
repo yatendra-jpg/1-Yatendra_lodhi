@@ -1,21 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Secure Login</title>
-  <link rel="stylesheet" href="style.css">
+<title>Login</title>
+<script>
+function login(){
+  const u=document.getElementById("u").value;
+  const p=document.getElementById("p").value;
+
+  fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:u,password:p})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.success) location.href="/launcher";
+    else alert("Wrong credentials");
+  });
+}
+</script>
 </head>
-<body>
-
-<div class="login-box">
-  <h2>Login</h2>
-  <input type="text" id="user" placeholder="Enter ID">
-  <input type="password" id="pass" placeholder="Enter Password">
-  <button onclick="login()">Login</button>
-  <p id="msg"></p>
-
-  <small>Secure — www.avast.com</small>
+<body style="background:#eef3ff;font-family:Arial;">
+<center>
+<div style="margin-top:120px;background:#fff;width:350px;padding:25px;border-radius:15px;">
+<h2>Login</h2>
+<input id="u" placeholder="Username" style="width:90%;padding:10px;margin:8px;"><br>
+<input id="p" placeholder="Password" type="password" style="width:90%;padding:10px;margin:8px;"><br>
+<button onclick="login()" style="width:100%;padding:10px;background:#3b82f6;color:white;border:none;border-radius:8px;">Login</button>
 </div>
-
-<script src="script.js"></script>
+</center>
 </body>
 </html>
