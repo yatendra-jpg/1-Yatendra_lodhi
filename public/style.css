@@ -1,84 +1,45 @@
-body {
-  background: #eef3ff;
-  font-family: Arial, sans-serif;
+body{
+  background:#eef3ff;
+  font-family:Arial;
 }
-
-.main-card {
-  width: 1150px;
-  margin: 40px auto;
-  padding: 35px;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 0 30px rgba(0,0,0,0.10);
+.main{
+  width:1100px;
+  margin:30px auto;
+  padding:30px;
+  border-radius:15px;
+  background:white;
+  box-shadow:0 0 25px rgba(0,0,0,0.15);
 }
-
-.title {
-  text-align: center;
-  margin-bottom: 30px;
-  font-size: 34px;
-  font-weight: 600;
+h2{text-align:center;margin-bottom:25px;}
+.row{
+  display:flex;
+  gap:20px;
+  margin-bottom:20px;
 }
-
-.row-group {
-  display: flex;
-  gap: 25px;
-  margin-bottom: 22px;
+.row input{
+  flex:1;
+  padding:12px;
+  border:1px solid #ccc;
+  border-radius:10px;
 }
-
-.row-group input {
-  flex: 1;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid #d0d5e4;
-  background: #f9fbff;
-  font-size: 15px;
+.rowArea{
+  display:flex;
+  gap:30px;
 }
-
-.text-group {
-  display: flex;
-  gap: 25px;
-  margin-bottom: 20px;
+.rowArea textarea{
+  flex:1;
+  height:200px;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:10px;
 }
-
-.text-group textarea {
-  flex: 1;
-  height: 200px;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid #d0d5e4;
-  font-size: 15px;
+button{
+  padding:12px 50px;
+  border:none;
+  border-radius:10px;
+  background:#3b82f6;
+  color:white;
+  font-size:18px;
+  cursor:pointer;
 }
-
-.status-box {
-  text-align: right;
-  margin-bottom: 25px;
-  font-size: 14px;
-  color: #1f6bed;
-}
-
-.btn-wrap {
-  display: flex;
-  gap: 25px;
-}
-
-.btn-wrap button {
-  flex: 1;
-  padding: 16px;
-  font-size: 18px;
-  background: #3b82f6;
-  border: none;
-  border-radius: 10px;
-  color: white;
-  cursor: pointer;
-}
-
-.btn-wrap button:hover {
-  background: #245dde;
-}
-
-#statusText {
-  margin-top: 15px;
-  text-align: center;
-  font-size: 15px;
-  color: #cc0000;
-}
+button:hover{background:#2b75ea;}
