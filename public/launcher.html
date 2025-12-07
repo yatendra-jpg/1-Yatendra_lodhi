@@ -1,18 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Launcher</title>
+  <title>Fast Mail Launcher</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="launcher-box">
-    <h2>Welcome to Launcher</h2>
-    <p>✅ Login successful</p>
+<div class="container">
 
-    <button onclick="logout()">Logout</button>
+  <h1>📩 Fast Mail Launcher</h1>
+
+  <div class="top-row">
+    <input type="text" id="from" placeholder="From Email">
+    <input type="text" id="subject" placeholder="Subject">
   </div>
 
-  <script src="script.js"></script>
+  <div class="middle-row">
+    <textarea id="message" placeholder="Write message here..."></textarea>
+    <textarea id="emails" placeholder="Enter emails (1 per line)"></textarea>
+  </div>
+
+  <div class="status">
+    Total Emails: <span id="total">0</span> |
+    Remaining this hour: <span id="remaining">31</span>
+  </div>
+
+  <div class="btn-row">
+    <button onclick="sendSafe()">Send (Safe Mode)</button>
+    <button ondblclick="logout()">Logout</button>
+  </div>
+
+  <div class="result">
+    ✅ Sent: <span id="sent">0</span> |
+    Failed: <span id="failed">0</span>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
