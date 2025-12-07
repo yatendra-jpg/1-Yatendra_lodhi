@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <title>Login — Fast Mail Launcher</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+  <div class="login-card">
+    <div class="login-logo">📧</div>
+    <h2>Welcome Back</h2>
+    <p class="subtitle">Login to continue</p>
 
-<div class="login-box">
-  <h2>Login</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
 
-  <input id="user" placeholder="Username">
-  <input id="pass" placeholder="Password" type="password">
+    <p id="loginStatus"></p>
+  </div>
 
-  <button onclick="login()">Login</button>
+<script>
+loginBtn.addEventListener("click", () => {
+  fetch("/login", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      username: username.value.trim(),
+      password: password.value.trim()
+    })
+  })
+  .then(r => r.json())
+  .then(d => d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
+});
+</script>
 
-  <p id="msg"></p>
-</div>
-
-<script src="script.js"></script>
 </body>
 </html>
