@@ -1,81 +1,43 @@
 body {
-  margin: 0;
-  background: #edf1f7;
-  font-family: Arial, sans-serif;
+  font-family: Arial;
+  background: #f2f5ff;
 }
 
-.container {
-  width: 1250px;
-  margin: 30px auto;
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.1);
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.top-row {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.top-row input {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
-.middle-row {
-  display: flex;
-  gap: 20px;
-}
-
-.middle-row textarea {
-  flex: 1;
-  height: 230px;
-  padding: 12px;
+.container, .launcher {
+  width: 800px;
+  margin: 60px auto;
+  padding: 30px;
+  background: white;
   border-radius: 10px;
-  border: 1px solid #aaa;
-  resize: none;
-  font-size: 14px;
-  line-height: 1.4;
+  box-shadow: 0 0 10px #ccc;
+  text-align: center;
 }
 
-.btn-row {
-  display: flex;
-  gap: 20px;
-  margin-top: 25px;
+input, textarea, button {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+textarea {
+  height: 150px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.grid textarea {
+  grid-column: span 1;
 }
 
 button {
-  flex: 1;
-  padding: 15px;
-  font-size: 16px;
-  background: #2f7af8;
-  border: none;
+  background: #3a7bfd;
   color: white;
-  border-radius: 10px;
+  border: none;
   cursor: pointer;
-}
-
-button:hover {
-  background: #1f61d1;
-}
-
-.status {
-  margin-top: 10px;
-  text-align: right;
-  color: #1f78ff;
-}
-
-.result {
-  text-align: center;
-  margin-top: 15px;
 }
