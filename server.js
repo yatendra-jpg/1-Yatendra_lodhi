@@ -1,56 +1,59 @@
 const express = require("express");
-const session = require("express-session");
 const bodyParser = require("body-parser");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
-// HARD FIXED LOGIN
 const HARD_USER = "yattu@#882";
 const HARD_PASS = "yattu@#882";
 
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
-app.use(
-  session({
-    secret: "sec-key-882",
-    resave: false,
-    saveUninitialized: true
-  })
-);
-
 // Login Page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// Launcher Access
-app.get("/launcher", (req, res) => {
-  if (!req.session.logged) return res.redirect("/");
-  res.sendFile(path.join(__dirname, "public", "launcher.html"));
-});
-
 // Login API
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
-
   if (username === HARD_USER && password === HARD_PASS) {
-    req.session.logged = true;
     return res.json({ success: true });
   }
-
-  res.json({ success: false });
+  return res.json({ success: false });
 });
 
-// Logout API
-app.post("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.json({ success: true });
+// PREVIEW API
+app.post("/preview", (req, res) => {
+  const { subject, message, recipients } = req.body;
+
+  const recipientList = recipients
+    .split(/[\n,]+/)
+    .map(e => e.trim())
+    .filter(Boolean);
+
+  const maxSend = 31;
+  const canSend = recipientList.slice(0, maxSend);
+
+  const previewOutput = canSend.map(to => {
+    return {
+      to,
+      subject: subject || "(no subject)",
+      body: message
+    };
+  });
+
+  return res.json({
+    preview: previewOutput,
+    total: recipientList.length,
+    allowed: canSend.length,
+    blocked: recipientList.length - canSend.length
   });
 });
 
+
 app.listen(PORT, () => {
-  console.log("Server running at:", PORT);
+  console.log("Preview Server Running on port", PORT);
 });
