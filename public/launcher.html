@@ -1,38 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Fast Mail Launcher</title>
+  <title>Mail Preview Panel</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="box">
-  <h2>📧 Fast Mail Launcher</h2>
+<div class="card">
+
+  <h2>📧 Safe Mail Preview</h2>
 
   <div class="row">
-    <input placeholder="Sender Name">
-    <input placeholder="Your Gmail">
+    <input placeholder="Email Subject" id="subject" />
   </div>
 
-  <div class="row">
-    <input placeholder="App Password">
-    <input placeholder="Email Subject">
+  <div class="row2">
+    <textarea placeholder="Message Body" id="message"></textarea>
+    <textarea placeholder="Recipients (comma or newline)" id="recipients"></textarea>
   </div>
 
-  <div class="row">
-    <textarea placeholder="Message Body"></textarea>
-    <textarea placeholder="Recipients (comma or newline)"></textarea>
-  </div>
+  <button onclick="previewNow()">Preview</button>
 
-  <div class="btn-wrap">
-    <button id="sendBtn">Send All</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
+  <div id="status"></div>
 
-  <p id="status"></p>
+  <div id="previewArea"></div>
+
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
