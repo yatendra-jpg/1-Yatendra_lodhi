@@ -1,55 +1,30 @@
-// Multi-tab logout
-function broadcastLogout() {
-  localStorage.setItem("logout", Date.now());
+// change here your login details
+const correctUsername = "admin";
+const correctPassword = "admin123";
+
+function login() {
+  let username = document.getElementById("username").value;
+  let password = document.getElementById("password").value;
+
+  let msg = document.getElementById("msg");
+
+  if (username === correctUsername && password === correctPassword) {
+    localStorage.setItem("loggedIn", "true");
+    window.location.href = "launcher.html";
+  } else {
+    msg.innerText = "❌ Wrong username or password";
+  }
 }
 
-window.addEventListener("storage", e => {
-  if (e.key === "logout") location.href = "/";
-});
 
-// Double click logout
-logoutBtn?.addEventListener("dblclick", () => {
-
-  fetch("/logout", { method: "POST" })
-    .then(() => {
-      broadcastLogout();
-      location.href = "/";
-    });
-
-});
-
-
-// SEND MAIL
-sendBtn?.addEventListener("click", () => {
-
-  const body = {
-    senderName: senderName.value.trim(),
-    subject: subject.value.trim(),
-    message: message.value.trim(),
-    recipients: recipients.value.trim()
-  };
-
-  if (!body.recipients || !body.message) {
-    statusMessage.innerText = "❌ Message & Recipients required";
-    return;
+// protect launcher page
+if (window.location.pathname.includes("launcher.html")) {
+  if (localStorage.getItem("loggedIn") !== "true") {
+    window.location.href = "login.html";
   }
+}
 
-  sendBtn.disabled = true;
-  sendBtn.innerHTML = "⏳ Sending...";
-
-  fetch("/send", {
-    method: "POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify(body)
-  })
-  .then(r => r.json())
-  .then(d => {
-    statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
-    if(d.success) alert("✅ Mail Sent Successfully");
-  })
-  .catch(()=> alert("❌ Error"))
-  .finally(() => {
-    sendBtn.disabled = false;
-    sendBtn.innerHTML = "Send All";
-  });
-});
+function logout() {
+  localStorage.removeItem("loggedIn");
+  window.location.href = "login.html";
+}
