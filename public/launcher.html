@@ -1,30 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mail Preview Panel</title>
+  <meta charset="UTF-8">
+  <title>Fast Mail Launcher</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div class="card">
-
-  <h2>📧 Safe Mail Preview</h2>
+<div class="container">
+  <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
-    <input placeholder="Email Subject" id="subject" />
+    <input id="senderName" placeholder="Sender Name">
+    <input id="email" placeholder="Your Gmail">
   </div>
 
-  <div class="row2">
-    <textarea placeholder="Message Body" id="message"></textarea>
-    <textarea placeholder="Recipients (comma or newline)" id="recipients"></textarea>
+  <div class="row">
+    <input id="pass" type="password" placeholder="App Password">
+    <input id="subject" placeholder="Email Subject">
   </div>
 
-  <button onclick="previewNow()">Preview</button>
+  <div class="row landscape-row">
+    <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
 
-  <div id="status"></div>
+    <div class="recipient-box">
+      <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
+      <div class="small-info">
+        <span id="emailCount">Total Emails: 0</span><br>
+        <span id="remainingCount">Remaining this hour: 31</span>
+      </div>
+    </div>
+  </div>
 
-  <div id="previewArea"></div>
+  <div class="row">
+    <button id="sendBtn">Send All</button>
+    <button id="logoutBtn">Logout</button>
+  </div>
 
+  <p id="statusMessage"></p>
 </div>
 
 <script src="script.js"></script>
