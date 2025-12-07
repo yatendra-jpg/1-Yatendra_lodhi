@@ -1,43 +1,53 @@
 body {
+  background: #0e1621;
   font-family: Arial;
-  background: #f2f5ff;
+  color: white;
 }
 
-.container, .launcher {
-  width: 800px;
-  margin: 60px auto;
-  padding: 30px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px #ccc;
+.login-box, .launcher {
+  width: 700px;
+  margin: 40px auto;
+  padding: 25px;
+  background: #121c2b;
+  border-radius: 8px;
   text-align: center;
 }
 
-input, textarea, button {
-  width: 100%;
-  padding: 12px;
+input, textarea {
+  width: 90%;
+  padding: 10px;
   margin: 10px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-textarea {
-  height: 150px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-.grid textarea {
-  grid-column: span 1;
+  border-radius: 5px;
+  border: none;
 }
 
 button {
-  background: #3a7bfd;
+  padding: 12px 35px;
+  background: #1f6feb;
   color: white;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
+}
+
+.grid {
+  display: flex;
+  justify-content: space-around;
+  margin: 15px 0;
+}
+
+.preview {
+  margin-top: 15px;
+  padding: 12px;
+  background: #0b1220;
+  font-size: 14px;
+  border-radius: 6px;
+  min-height: 80px;
+  text-align: left;
+}
+
+footer, small {
+  display: block;
+  margin-top: 20px;
+  opacity: 0.6;
 }
