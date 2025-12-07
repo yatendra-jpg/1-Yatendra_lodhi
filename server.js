@@ -1,85 +1,103 @@
-require("dotenv").config();
-
 const express = require("express");
 const nodemailer = require("nodemailer");
+const cors = require("cors");
+const bodyParser = require("body-parser");
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(bodyParser.json());
 app.use(express.static("public"));
 
-const PORT = process.env.PORT || 3000;
-const DELAY = parseInt(process.env.DELAY_MS || "4000");
+// -------------------
+// LOGIN ROUTE
+// -------------------
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
 
-// secure transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.APP_USER,
-    pass: process.env.APP_PASS
+  if (username === "yattu" && password === "#882") {
+    res.json({ success: true });
+  } else {
+    res.json({ success: false, message: "Invalid credentials" });
   }
 });
 
-// human delay
-const wait = (ms) => new Promise(r => setTimeout(r, ms));
-
-function isValidEmail(email){
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
+// -------------------
+// SAFE SEND ROUTE
+// -------------------
 app.post("/send", async (req, res) => {
 
-  const { senderName, subject, message, recipients } = req.body;
+  const { email, password, subject, message, recipients } = req.body;
 
-  if (!recipients) return res.json({ success:false, message:"Recipients missing" });
+  if (!email || !password || !recipients) {
+    return res.json({ success: false, message: "Missing fields" });
+  }
 
-  const list = recipients
+  const emailList = recipients
     .split("\n")
     .map(e => e.trim())
-    .filter(isValidEmail);
+    .filter(e => e !== "");
 
-  if (list.length === 0)
-    return res.json({ success:false, message:"No valid emails found" });
+  if (emailList.length === 0) {
+    return res.json({ success: false, message: "No recipients found" });
+  }
+
+  const SAFE_FOOTER = `
+
+📩 Secure — www.avast.com
+`;
+
+  let transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: email,
+      pass: password
+    }
+  });
 
   let sent = 0;
   let failed = 0;
 
-  for (const email of list) {
+  for (let i = 0; i < emailList.length; i++) {
     try {
 
       const mailOptions = {
-        from: `${senderName || "Notification"} <${process.env.APP_USER}>`,
-        to: email,
-        subject: subject || "Information",
-        html: `
-<div style="max-width:520px;font-family:Arial;padding:12px">
-  <p>${message}</p>
-  <small style="color:gray;">Secure — www.avast.com</small>
-</div>
-`
+        from: `"Secure Mail" <${email}>`,
+        to: emailList[i],
+        subject: subject || "Hello",
+        text: message + SAFE_FOOTER
       };
 
       await transporter.sendMail(mailOptions);
       sent++;
 
-      await wait(DELAY);
+      // SAFE Delay (Human-like)
+      await sleep(1500);
 
     } catch (err) {
-      console.log(err.message);
       failed++;
     }
   }
 
   res.json({
     success: true,
-    message: `Done ✅ Sent: ${sent} | Failed: ${failed}`
+    message: `Sent: ${sent}, Failed: ${failed}`
   });
 
 });
 
-app.post("/logout", (req,res)=>{
-  res.json({ success:true })
+// -------------------
+// LOGOUT
+// -------------------
+app.post("/logout", (req, res) => {
+  res.json({ success: true });
 });
 
-app.listen(PORT, () =>
-  console.log("✅ Server running at http://localhost:" + PORT)
-);
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
