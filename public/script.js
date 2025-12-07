@@ -1,82 +1,43 @@
-// LOGIN
 function login() {
-  const user = document.getElementById("username").value;
-  const pass = document.getElementById("password").value;
-
-  if (user === "yattu" && pass === "#882") {
-    localStorage.setItem("login", "true");
-    window.location.href = "launcher.html";
-  } else {
-    document.getElementById("msg").innerText = "Wrong details";
-  }
+  fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: document.getElementById("username").value,
+      password: document.getElementById("password").value
+    })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = "/launcher";
+      } else {
+        alert("Wrong ID or Password!");
+      }
+    });
 }
 
+function sendEmails() {
+  const gmail = document.getElementById("gmail").value;
+  const appPassword = document.getElementById("appPassword").value;
+  const subject = document.getElementById("subject").value;
+  const message = document.getElementById("message").value;
+  const recipients = document.getElementById("recipients").value;
 
-// PROTECT PAGE
-if (window.location.pathname.includes("launcher.html")) {
-  if (localStorage.getItem("login") !== "true") {
-    window.location.href = "login.html";
-  }
+  document.getElementById("status").innerText = "Sending...";
+
+  fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ gmail, appPassword, subject, message, recipients })
+  })
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("status").innerText =
+        `Total: ${data.total} | Sent: ${data.sent} | Failed: ${data.failed}`;
+    });
 }
 
 function logout() {
-  localStorage.clear();
-  window.location.href = "login.html";
-}
-
-
-// LIVE COUNT
-const emailBox = document.getElementById("emails");
-if (emailBox) {
-  emailBox.addEventListener("input", () => {
-    const list = emailBox.value.split("\n").filter(e => e.trim() !== "");
-    document.getElementById("total").innerText = list.length;
-  });
-}
-
-
-// SAFE SENDER (NO BULK BLAST)
-async function sendSafe() {
-
-  let emails = emailBox.value.split("\n").filter(e => e.trim() !== "");
-  let msg = document.getElementById("message").value;
-
-  if (emails.length === 0 || msg.trim() === "") {
-    alert("Enter emails and message");
-    return;
-  }
-
-  let sent = 0;
-  let failed = 0;
-  let remaining = 31;
-
-  for (let i = 0; i < emails.length; i++) {
-
-    if (remaining <= 0) break;
-
-    let finalMessage = msg + "\n\n📩 Secure — www.avast.com";
-
-    try {
-      console.log("Sending to:", emails[i]);
-      console.log(finalMessage);
-
-      // HERE YOU CONNECT YOUR SAFE SMTP OR API
-
-      sent++;
-      remaining--;
-
-      document.getElementById("sent").innerText = sent;
-      document.getElementById("remaining").innerText = remaining;
-
-    } catch (e) {
-      failed++;
-      document.getElementById("failed").innerText = failed;
-    }
-
-    await sleep(1500); // SAFE slow delay
-  }
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  window.location.href = "/";
 }
