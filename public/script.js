@@ -22,24 +22,22 @@ sendBtn.onclick = ()=>{
   })
   .then(r=>r.json())
   .then(d=>{
-
     if(d.success){
       statusMessage.innerText=`Mail Sent Successfully ✅ (${d.sent})`;
-      alert(`Mail Sent Successfully ✅`);
+      alert(`Mail Sent Successfully ✅ (${d.sent})`);
     }
     else if(d.type==="wrongpass"){
       statusMessage.innerText="Not ☒ Wrong App Password";
       alert("Not ☒ Wrong App Password");
     }
     else if(d.type==="limit"){
-      statusMessage.innerText="Not ☒ Hourly Limit Finished";
-      alert("Not ☒ Hourly Limit Finished");
+      statusMessage.innerText="Limit Finished ❌";
+      alert("Limit Finished ❌");
     }
     else{
       statusMessage.innerText="Not ☒ Failed";
       alert("Not ☒ Failed");
     }
-
   })
   .finally(()=>{
     sendBtn.disabled=false;
