@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Launcher</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Fast Mail Launcher</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <div class="container">
 
-  <h2>📧 Safe Mail Launcher</h2>
+  <h2 class="heading-title">📧 Fast Mail Launcher</h2>
 
   <div class="row">
     <input id="senderName" placeholder="Sender Name">
@@ -17,13 +18,14 @@
   </div>
 
   <div class="row">
-    <input id="pass" placeholder="App Password" type="password">
-    <input id="subject" placeholder="Subject">
+    <input id="pass" type="password" placeholder="App Password">
+    <input id="subject" placeholder="Email Subject">
   </div>
 
   <div class="row">
-    <textarea id="message" class="bigbox-left"></textarea>
-    <textarea id="recipients" class="bigbox-right"></textarea>
+    <textarea id="message" class="bigbox-left" placeholder="Message Body"></textarea>
+
+    <textarea id="recipients" class="bigbox-right" placeholder="Recipients (comma or newline)"></textarea>
   </div>
 
   <div class="btn-row">
