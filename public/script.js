@@ -1,59 +1,48 @@
-function showPopup(msg){
-  popupText.innerText = msg;
-  popupOverlay.style.display = "block";
-  popupBox.style.display = "block";
-}
-
-popupBtn.onclick = ()=>{
-  popupOverlay.style.display = "none";
-  popupBox.style.display = "none";
-};
-
 logoutBtn.addEventListener("dblclick",()=>{
   fetch("/logout",{method:"POST"})
-  .then(()=>location.href="/");
+  .then(()=> location.href="/");
 });
 
 sendBtn.onclick = ()=>{
 
   sendBtn.disabled=true;
-  sendBtn.innerHTML="Sending...";
+  sendBtn.innerText="Sending...";
 
   fetch("/send",{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
       senderName:senderName.value,
       email:email.value.trim(),
       password:pass.value.trim(),
-      message:message.value,
       subject:subject.value,
+      message:message.value,
       recipients:recipients.value.trim()
     })
   })
   .then(r=>r.json())
   .then(d=>{
-    
+
     if(d.success){
-      statusMessage.innerHTML=`Mail Sent ✅ (${d.sent})`;
-      showPopup(`Mail Sent Successfully ✅`);
+      statusMessage.innerText=`Mail Sent Successfully ✅ (${d.sent})`;
+      alert(`Mail Sent Successfully ✅`);
     }
-    else if(d.type==="wrong"){
-      statusMessage.innerHTML=`Not ☒ — Wrong App Password`;
-      showPopup(`Not ☒ — Wrong Password`);
+    else if(d.type==="wrongpass"){
+      statusMessage.innerText="Not ☒ Wrong App Password";
+      alert("Not ☒ Wrong App Password");
     }
     else if(d.type==="limit"){
-      statusMessage.innerHTML=`Limit reached`;
-      showPopup(`Limit Finished — Try Later`);
+      statusMessage.innerText="Not ☒ Hourly Limit Finished";
+      alert("Not ☒ Hourly Limit Finished");
     }
     else{
-      statusMessage.innerHTML=`Not ☒`;
-      showPopup(`Send Failed`);
+      statusMessage.innerText="Not ☒ Failed";
+      alert("Not ☒ Failed");
     }
 
   })
   .finally(()=>{
     sendBtn.disabled=false;
-    sendBtn.innerHTML="Send All";
+    sendBtn.innerText="Send All";
   });
 };
