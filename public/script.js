@@ -1,6 +1,6 @@
 logoutBtn.onclick = () => {
-  fetch("/logout", { method:"POST" })
-  .then(()=> location.href="/");
+  fetch("/logout",{method:"POST"})
+  .then(()=>location.href="/");
 }
 
 sendBtn.onclick = () => {
@@ -12,20 +12,20 @@ sendBtn.onclick = () => {
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
       senderName: senderName.value,
-      email: email.value,
-      password: pass.value,
+      email: email.value.trim(),
+      password: pass.value.trim(),
       subject: subject.value,
       message: message.value,
-      recipients: recipients.value
+      recipients: recipients.value.trim()
     })
   })
   .then(r=>r.json())
   .then(d=>{
-    statusMessage.innerText = d.message;
     alert(d.message);
+    statusMessage.innerText = d.message;
   })
   .finally(()=>{
     sendBtn.disabled = false;
     sendBtn.innerText = "Send All";
-  })
+  });
 }
