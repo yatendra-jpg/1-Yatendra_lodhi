@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Secure Mail Launcher</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Secure Mail Launcher</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-
-<!-- Popup -->
-<div id="popupOverlay"></div>
-<div id="popupBox">
-  <p id="popupMsg">Message</p>
-  <button id="popupBtn">OK</button>
-</div>
 
 <div class="container">
 
@@ -29,13 +23,13 @@
   </div>
 
   <div class="row">
-    <textarea id="message" class="bigbox-left"></textarea>
-    <textarea id="recipients" class="bigbox-right"></textarea>
+    <textarea id="message" class="bigbox-left" placeholder="Message Body"></textarea>
+    <textarea id="recipients" class="bigbox-right" placeholder="Recipients (comma or newline)"></textarea>
   </div>
 
   <div class="btn-row">
     <button id="sendBtn" class="big-btn">Send All</button>
-    <button id="logoutBtn" class="big-btn blue-btn">Logout</button>
+    <button id="logoutBtn" class="big-btn">Logout</button>
   </div>
 
   <p id="statusMessage"></p>
