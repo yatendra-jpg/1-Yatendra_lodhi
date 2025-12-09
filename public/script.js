@@ -1,12 +1,5 @@
-logoutBtn?.addEventListener("dblclick",()=>{
-  fetch("/logout",{method:"POST"}).then(()=>{
-    localStorage.setItem("logout", Date.now());
-    location.href="/";
-  });
-});
-
-sendBtn?.addEventListener("click",()=>{
-
+sendBtn.onclick=()=>{
+  
   const body={
     senderName:senderName.value,
     email:email.value.trim(),
@@ -17,7 +10,7 @@ sendBtn?.addEventListener("click",()=>{
   };
 
   sendBtn.disabled=true;
-  sendBtn.innerHTML="⏳ Sending...";
+  sendBtn.innerText="Sending...";
 
   fetch("/send",{
     method:"POST",
@@ -30,16 +23,14 @@ sendBtn?.addEventListener("click",()=>{
       statusMessage.style.color="green";
       statusMessage.innerText=`Mail Sent ${d.sent} ✅`;
       alert(`Mail Sent Successfully (${d.sent})`);
-    }
-    else{
+    } else {
       statusMessage.style.color="red";
-      statusMessage.innerText="Not ☒";
-      alert("Mail Not Sent ☒");
+      statusMessage.innerText="Not Sent";
+      alert("Mail Not Sent");
     }
   })
   .finally(()=>{
     sendBtn.disabled=false;
-    sendBtn.innerHTML="Send All";
+    sendBtn.innerText="Send All";
   });
-
-});
+};
