@@ -1,12 +1,13 @@
 logoutBtn.addEventListener("dblclick", () => {
-  fetch("/logout", { method:"POST" })
-    .then(()=> location.href="/");
+  fetch("/logout", {method:"POST"})
+  .then(()=> location.href="/");
 });
+
 
 sendBtn.onclick = () => {
 
-  sendBtn.disabled = true;
-  sendBtn.innerText = "Sending...";
+  sendBtn.disabled=true;
+  sendBtn.innerHTML="Sending...";
 
   fetch("/send",{
     method:"POST",
@@ -22,15 +23,30 @@ sendBtn.onclick = () => {
   })
   .then(r=>r.json())
   .then(d=>{
+
     if(d.success){
-      statusMessage.innerText = `Sent: ${d.sent}`;
-      alert(`Sent Successfully (${d.sent})`);
-    } else {
-      alert("Limit reached OR Wrong App password");
+      statusMessage.innerHTML = `Mail Sent ✅ (${d.sent})`;
+      alert("Mail Sent Successfully");
     }
+
+    else if(d.type==="wrongpass"){
+      statusMessage.innerHTML = `Not ☒ — Wrong App Password`;
+      alert("Not ☒ Wrong Password");
+    }
+
+    else if(d.type==="limit"){
+      statusMessage.innerHTML = `Not ☒ — Limit reached`;
+      alert("Limit Reached, Try after 1 hour");
+    }
+
+    else{
+      statusMessage.innerHTML = `Not ☒`;
+      alert("Failed");
+    }
+
   })
   .finally(()=>{
-    sendBtn.disabled = false;
-    sendBtn.innerText = "Send All";
+    sendBtn.disabled=false;
+    sendBtn.innerHTML="Send All";
   });
 };
