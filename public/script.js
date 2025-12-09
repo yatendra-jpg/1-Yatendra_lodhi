@@ -1,16 +1,16 @@
-logoutBtn?.addEventListener("dblclick", () => {
-  fetch("/logout", { method: "POST" })
-    .then(() => {
-      localStorage.setItem("logout", Date.now());
-      location.href = "/";
-    });
+logoutBtn?.addEventListener("dblclick",()=>{
+  fetch("/logout", {method:"POST"})
+  .then(()=>{
+    localStorage.setItem("logout", Date.now());
+    location.href="/";
+  });
 });
 
-window.addEventListener("storage", e => {
-  if (e.key === "logout") location.href = "/";
-});
+sendBtn?.addEventListener("click",()=>{
 
-sendBtn?.addEventListener("click", () => {
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = "⏳ Sending...";
+
   const body = {
     senderName: senderName.value,
     email: email.value.trim(),
@@ -20,30 +20,31 @@ sendBtn?.addEventListener("click", () => {
     recipients: recipients.value.trim()
   };
 
-  sendBtn.disabled = true;
-  sendBtn.innerHTML = "⏳ Sending...";
-
-  fetch("/send", {
+  fetch("/send",{
     method:"POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify(body)
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(body)
   })
-  .then(r => r.json())
-  .then(d => {
+  .then(r=>r.json())
+  .then(d=>{
+    
+    if(d.success){
+      statusMessage.style.color="green";
+      statusMessage.innerText="Mail Sent ✅";
 
-    if (d.success) {
-      statusMessage.style.color = "green";
-      statusMessage.innerText = "Mail Sent ✅";
-    } else {
-      statusMessage.style.color = "red";
-      statusMessage.innerText = "Not ☒";
+      alert("Mail Sent Successfully 😊");
+
+    }else{
+
+      statusMessage.style.color="red";
+      statusMessage.innerText="Not ☒";
+
+      alert("Not Sent ☒ — App Password Wrong ❌");
     }
   })
-  .finally(() => {
-    setTimeout(() => {
-      sendBtn.disabled = false;
-      sendBtn.innerHTML = "Send All";
-    }, 500);
+  .finally(()=>{
+    sendBtn.disabled=false;
+    sendBtn.innerHTML="Send All";
   });
 
 });
