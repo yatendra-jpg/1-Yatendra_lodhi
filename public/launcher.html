@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Secure Mail</title>
+<title>Safe Mail Launcher</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+
+<div id="overlay"></div>
+<div id="popup">
+  <p id="popupMsg">Mail Sent Successfully</p>
+  <button id="popupOk">OK</button>
+</div>
 
 <div class="container">
 
@@ -17,14 +23,13 @@
   </div>
 
   <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
+    <input id="pass" placeholder="App Password" type="password">
     <input id="subject" placeholder="Subject">
   </div>
 
-
   <div class="row">
-    <textarea id="message" class="bigbox-left" placeholder="Message Body"></textarea>
-    <textarea id="recipients" class="bigbox-right" placeholder="Recipients"></textarea>
+    <textarea id="message" class="bigbox-left"></textarea>
+    <textarea id="recipients" class="bigbox-right"></textarea>
   </div>
 
   <div class="btn-row">
