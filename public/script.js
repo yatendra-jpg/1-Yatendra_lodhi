@@ -20,6 +20,9 @@ sendBtn?.addEventListener("click", () => {
     recipients: recipients.value.trim()
   };
 
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = "⏳ Sending...";
+
   fetch("/send", {
     method:"POST",
     headers: { "Content-Type":"application/json" },
@@ -27,8 +30,20 @@ sendBtn?.addEventListener("click", () => {
   })
   .then(r => r.json())
   .then(d => {
-    statusMessage.innerText = d.message;
-    alert(d.message);
+
+    if (d.success) {
+      statusMessage.style.color = "green";
+      statusMessage.innerText = "Mail Sent ✅";
+    } else {
+      statusMessage.style.color = "red";
+      statusMessage.innerText = "Not ☒";
+    }
+  })
+  .finally(() => {
+    setTimeout(() => {
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = "Send All";
+    }, 500);
   });
 
 });
