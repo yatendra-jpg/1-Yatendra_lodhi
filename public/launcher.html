@@ -9,6 +9,7 @@
 <body>
 
 <div class="container">
+
   <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
@@ -17,19 +18,21 @@
   </div>
 
   <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
+    <input id="pass" placeholder="App Password" type="password">
+    <input id="subject" placeholder="Subject">
   </div>
 
   <div class="row landscape-row">
-    <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
+    <textarea id="message" class="bigbox" placeholder="Message..."></textarea>
 
     <div class="recipient-box">
-      <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
+      <textarea id="recipients" class="bigbox" placeholder="Emails"></textarea>
+
       <div class="small-info">
         <span id="emailCount">Total Emails: 0</span><br>
-        <span id="remainingCount">Remaining this hour: 31</span>
+        <span id="remainingCount">Remaining: 31</span>
       </div>
+
     </div>
   </div>
 
@@ -39,6 +42,7 @@
   </div>
 
   <p id="statusMessage"></p>
+
 </div>
 
 <script src="script.js"></script>
