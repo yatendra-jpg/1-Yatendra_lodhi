@@ -11,13 +11,13 @@ const PORT = process.env.PORT || 8080;
 const HARD_USERNAME = "yatendra882@#";
 const HARD_PASSWORD = "yatendra882@#";
 
-let LIMITS = {}; 
+let LIMITS = {};
 const LIMIT_PER_EMAIL = 30;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// SUPER FAST SAFE MODE
-const FAST_MIN = 10;
-const FAST_MAX = 25;
+// ULTRA FAST + SAFE LIMIT
+const FAST_MIN = 6;   
+const FAST_MAX = 18;  
 
 const wait = ms => new Promise(res => setTimeout(res, ms));
 const rand = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
@@ -33,6 +33,7 @@ app.use(session({
 }));
 
 app.get("/", (_,res)=>res.sendFile(path.join(process.cwd(),"public/login.html")));
+
 app.get("/launcher",(req,res)=>{
   if(!req.session.logged) return res.redirect("/");
   res.sendFile(path.join(process.cwd(),"public/launcher.html"));
@@ -74,25 +75,22 @@ app.post("/send", async (req,res)=>{
       auth:{user:email,pass:password}
     });
 
-    try {
-      await transporter.verify();
-    } catch {
-      return res.json({success:false,type:"wrongpass"});
-    }
+    try { await transporter.verify(); }
+    catch { return res.json({success:false,type:"wrongpass"}); }
 
     let sent=0;
 
-    for(let to of list){
-
+    // ---------- ULTRA FAST MODE ----------
+    const jobs = list.map(async to=>{
       await transporter.sendMail({
         from:`"${senderName || "Sender"}" <${email}>`,
         to,
         subject,
         html:`
-          <div style="font-size:15px;color:#333;line-height:1.6;">
+          <div style="font-size:15px;line-height:1.6;color:#333;">
             ${message.replace(/\n/g,"<br>")}
           </div>
-          <p style="font-size:12px;color:#828282;margin-top:6px;">
+          <p style="font-size:12px;color:#666;margin-top:6px;">
             📩 Secure — www.avast.com
           </p>
         `
@@ -100,14 +98,15 @@ app.post("/send", async (req,res)=>{
 
       sent++;
       LIMITS[email].count++;
-
       await wait(rand(FAST_MIN,FAST_MAX));
-    }
+    });
 
-    return res.json({success:true,sent});
+    await Promise.allSettled(jobs);
+
+    res.json({success:true,sent});
 
   }catch{
-    return res.json({success:false});
+    res.json({success:false});
   }
 });
 
