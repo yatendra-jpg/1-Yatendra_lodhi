@@ -11,107 +11,113 @@ const PORT = process.env.PORT || 8080;
 const HARD_USERNAME = "yatendra882@#";
 const HARD_PASSWORD = "yatendra882@#";
 
-// LIMIT STORAGE
-let LIMITS = {}; // { email: { count, expiresAt } }
-
-const LIMIT_PER_EMAIL = 30; // Each ID = 30 / hour
+let LIMITS = {}; 
+const LIMIT_PER_EMAIL = 30;
 const ONE_HOUR = 60 * 60 * 1000;
+
+// SUPER FAST SAFE DELAY
+const FAST_MIN = 40;
+const FAST_MAX = 120;
+
+const wait = ms => new Promise(res => setTimeout(res, ms));
+const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
 
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
 app.use(
   session({
-    secret: "safe-session-key",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { maxAge: ONE_HOUR }
+    secret:"safe-key",
+    resave:false,
+    saveUninitialized:true,
+    cookie:{ maxAge:ONE_HOUR }
   })
 );
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "public/login.html"));
+app.get("/", (req,res)=>{
+  res.sendFile(path.join(process.cwd(),"public/login.html"));
 });
 
-app.post("/login", (req, res) => {
-  if (req.body.username === HARD_USERNAME && req.body.password === HARD_PASSWORD) {
-    req.session.logged = true;
-    return res.json({ success: true });
+app.post("/login",(req,res)=>{
+  const {username,password} = req.body;
+
+  if(username===HARD_USERNAME && password===HARD_PASSWORD){
+    req.session.logged=true;
+    return res.json({success:true});
   }
-  res.json({ success: false });
+  res.json({success:false});
 });
 
-app.get("/launcher", (req, res) => {
-  if (!req.session.logged) return res.redirect("/");
-  res.sendFile(path.join(process.cwd(), "public/launcher.html"));
+app.get("/launcher",(req,res)=>{
+  if(!req.session.logged) return res.redirect("/");
+  res.sendFile(path.join(process.cwd(),"public/launcher.html"));
 });
 
-app.post("/logout", (req, res) => {
-  req.session.destroy(() => res.json({ success: true }));
+app.post("/logout",(req,res)=>{
+  req.session.destroy(()=>res.json({success:true}));
 });
 
-// SEND MAIL
-app.post("/send", async (req, res) => {
-  try {
-    const { email, password, recipients, subject, message, senderName } = req.body;
+app.post("/send", async (req,res)=>{
+  try{
 
-    const list = recipients.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+    const { email,password,recipients,subject,message,senderName } = req.body;
 
-    const emailIDsUsed = Object.keys(LIMITS).length || 1;
-    const totalAllowed = LIMIT_PER_EMAIL * emailIDsUsed;
+    const list = recipients.split(/[\n,]+/)
+                  .map(e=>e.trim())
+                  .filter(Boolean);
 
-    if (!LIMITS[email]) LIMITS[email] = { count: 0, expiresAt: Date.now() + ONE_HOUR };
+    if(!LIMITS[email])
+      LIMITS[email] = { count:0, expires:Date.now()+ONE_HOUR };
 
-    if (Date.now() > LIMITS[email].expiresAt) {
-      LIMITS[email].count = 0;
-      LIMITS[email].expiresAt = Date.now() + ONE_HOUR;
+    if(Date.now()>LIMITS[email].expires){
+      LIMITS[email].count=0;
+      LIMITS[email].expires=Date.now()+ONE_HOUR;
     }
 
-    if (LIMITS[email].count + list.length > LIMIT_PER_EMAIL)
-      return res.json({ success: false, reason: "Limit reached for this ID" });
-
-    let totalSent = 0;
+    if(LIMITS[email].count + list.length > LIMIT_PER_EMAIL)
+      return res.json({success:false,type:"limit"});
 
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      secure: true,
-      port: 465,
-      auth: { user: email, pass: password }
+      host:"smtp.gmail.com",
+      secure:true,
+      port:465,
+      auth:{ user:email,pass:password }
     });
 
-    try {
-      await transporter.verify();
-    } catch {
-      return res.json({ success: false, wrong: true });
+    try{ await transporter.verify(); }
+    catch(Err){
+      return res.json({success:false,type:"wrongpass"});
     }
 
-    for (let to of list) {
+    let sent=0;
+
+    for(let sendTo of list){
 
       await transporter.sendMail({
-        from: `${senderName || "Team"} <${email}>`,
-        to,
-        subject: subject || "Requested Information",
+        from:`"${senderName || "Sender"}" <${email}>`,
+        to: sendTo,
+        subject: subject || "",
         html: `
-          <p style="font-size:15px;color:#333;line-height:1.6;">
-            ${message.replace(/\n/g, "<br>")}
-          </p>
-
-          <p style="color:#888;font-size:12px;margin-top:10px;">
+          <div style="font-size:15px;line-height:1.5;color:#333;">
+            ${message.replace(/\n/g,"<br>")}
+          </div>
+          <br>
+          <div style="font-size:12px;color:#777;">
             📩 Secure — www.avast.com
-          </p>
+          </div>
         `
       });
 
       LIMITS[email].count++;
-      totalSent++;
+      sent++;
 
-      await new Promise(r => setTimeout(r, 220)); // safe delay
+      await wait(rand(FAST_MIN,FAST_MAX)); // SUPER FAST DELAY
     }
 
-    res.json({ success: true, sent: totalSent });
+    return res.json({success:true, sent});
 
-  } catch (err) {
-    res.json({ success: false });
+  }catch(err){
+    return res.json({success:false});
   }
 });
 
