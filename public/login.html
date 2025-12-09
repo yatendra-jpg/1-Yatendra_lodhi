@@ -2,38 +2,38 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Secure Login</title>
+  <title>Secure Login Panel</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <div class="login-card">
     <h2>Login</h2>
-    <p class="subtitle">Enter your access</p>
 
     <input id="username" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
 
+    <button id="loginBtn">Login</button>
     <p id="loginStatus"></p>
   </div>
 
 <script>
-  loginBtn.onclick = () => {
-    fetch("/login", {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({
-        username: username.value,
-        password: password.value
-      })
+loginBtn.onclick = () => {
+  fetch("/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      username: username.value,
+      password: password.value
     })
-    .then(r=>r.json())
-    .then(d=>{
-      if(d.success) location.href = "/launcher";
-      else loginStatus.innerText = d.message;
-    })
-  }
+  })
+  .then(r=>r.json())
+  .then(d=>{
+      if(d.success) return location.href="/launcher";
+      loginStatus.innerText = d.message;
+  })
+}
 </script>
+
 </body>
 </html>
