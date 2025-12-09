@@ -1,157 +1,119 @@
 require('dotenv').config();
-const express = require("express");
-const session = require("express-session");
-const bodyParser = require("body-parser");
-const nodemailer = require("nodemailer");
-const dns = require("dns");
-const path = require("path");
+const express = require('express');
+const session = require('express-session');
+const bodyParser = require('body-parser');
+const nodemailer = require('nodemailer');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const PUBLIC_DIR = path.join(__dirname, "public");
 
-// 💠 Fixed Login (Safe Access)
-const HARD_USERNAME = "secure-user@#882";
-const HARD_PASSWORD = "secure-user@#882";
+/* FIXED LOGIN */
+const HARD_USER = "secure-user@#882";
+const HARD_PASS = "secure-user@#882";
 
-// 💠 Each ID will have 30 Mails Per Hour Limit
-const LIMIT_PER_EMAIL = 30;
-const ONE_HOUR = 60 * 60 * 1000;
+/* SAFE SPEED */
+const MIN_DELAY = 150;
+const MAX_DELAY = 250;
 
-// 💠 Track per Email ID sending
-let LIMITS = {};
-
-app.use(bodyParser.json());
-app.use(express.static("public"));
-
-app.use(session({
-  secret: "safe-cookie-value",
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: ONE_HOUR }
-}));
-
-// 💠 SAFE DNS Email Validation
-function validateEmail(email) {
-  return new Promise(resolve => {
-    const domain = email.split("@")[1];
-    dns.resolveMx(domain, (err, mx) => {
-      if (err || !mx || mx.length === 0) resolve(false);
-      else resolve(true);
-    });
-  });
+function delay(ms) {
+  return new Promise(res => setTimeout(res, ms));
+}
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Routes =========================================================
-app.get("/", (req,res)=> {
-  res.sendFile(path.join(process.cwd(),"public/login.html"));
-});
+app.use(express.static(PUBLIC_DIR));
+app.use(bodyParser.json());
 
-app.get("/launcher", (req,res)=> {
-  if(!req.session.logged) return res.redirect("/");
-  res.sendFile(path.join(process.cwd(),"public/launcher.html"));
-});
+app.use(
+  session({
+    secret: "mail-secure-key",
+    resave: false,
+    saveUninitialized: true
+  })
+);
 
-app.post("/login", (req,res)=> {
-  const {username,password} = req.body;
-
-  if(username === HARD_USERNAME && password === HARD_PASSWORD){
-    req.session.logged = true;
-    return res.json({success:true});
+/* LOGIN HANDLER */
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username === HARD_USER && password === HARD_PASS) {
+    req.session.user = username;
+    return res.json({ success: true });
   }
-
-  res.json({success:false});
+  res.json({ success: false, message: "Invalid Credentials ❌" });
 });
 
-app.post("/logout", (req,res)=> {
-  req.session.destroy(()=> res.json({success:true}));
+function requireAuth(req, res, next) {
+  if (req.session.user) return next();
+  return res.redirect("/");
+}
+
+/* PAGES */
+app.get("/", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
+app.get("/launcher", requireAuth, (req, res) => res.sendFile(path.join(PUBLIC_DIR, "launcher.html")));
+
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.json({ success: true });
+  });
 });
 
+/* SEND EMAIL */
+app.post("/send", requireAuth, async (req, res) => {
+  try {
+    const { senderName, email, password, subject, message, recipients } = req.body;
 
-// 💠 SEND MAIL ENDPOINT
-app.post("/send", async (req,res)=>{
-  try{
-    const { email,password,message,subject,recipients } = req.body;
+    const list = recipients
+      .split(/[\n,]+/)
+      .map(e => e.trim())
+      .filter(e => e.includes("@"));
 
-    // list clean
-    const list = recipients.split(/[\n,]+/)
-      .map(e=>e.trim())
-      .filter(Boolean);
+    if (!list.length) return res.json({ success: false, message: "No valid email list found ❌" });
 
-    let validEmails = [];
-    let invalidEmails = [];
-
-    // ✔ STEP-1 Validate Emails (legal & ethical)
-    for(const mail of list){
-      const ok = await validateEmail(mail);
-      ok ? validEmails.push(mail) : invalidEmails.push(mail);
-    }
-
-    // TRACK limit per email-ID
-    if(!LIMITS[email]) LIMITS[email] = {
-      count: 0,
-      expires: Date.now() + ONE_HOUR
-    };
-
-    if(Date.now() > LIMITS[email].expires){
-      LIMITS[email] = { count:0, expires: Date.now()+ONE_HOUR };
-    }
-
-    // SAFETY LIMIT CHECK
-    if(LIMITS[email].count + validEmails.length > LIMIT_PER_EMAIL){
-      return res.json({success:false, type:"limit"});
-    }
-
-    // ✔ STEP-2 Create Safe SMTP Transport
-    let transporter;
-    try{
-      transporter = nodemailer.createTransport({
-        host:"smtp.gmail.com",
-        secure:true,
-        port:465,
-        auth:{ user:email, pass:password }
-      });
-
-      await transporter.verify();
-    }
-    catch{
-      return res.json({success:false,type:"wrongpass"});
-    }
-
-    let sent = 0;
-
-    // ✔ STEP-3 Send ONLY VALID emails
-    for(const to of validEmails){
-
-      await transporter.sendMail({
-        from: email,
-        to,
-        subject,
-        html: `
-          <div style="font-size:16px; color:#333; line-height:1.6;">
-            ${message.replace(/\n/g,"<br>")}
-          </div>
-          <p style="font-size:12px; margin-top:8px; color:#777;">
-            📩 Secure — www.avast.com
-          </p>
-        `
-      });
-
-      sent++;
-      LIMITS[email].count++;
-    }
-
-    // Final Response
-    return res.json({
-      success:true,
-      sent,
-      invalidCount: invalidEmails.length,
-      invalidEmails
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      secure: true,
+      port: 465,
+      auth: { user: email, pass: password }
     });
 
-  }catch(err){
-    return res.json({success:false});
+    await transporter.verify().catch(() => {
+      return res.json({ success: false, message: "Wrong App Password ❌" });
+    });
+
+    let sent = 0;
+    let failed = 0;
+
+    for (let r of list) {
+      try {
+        await transporter.sendMail({
+          from: `"${senderName || "Secure Sender"}" <${email}>`,
+          to: r,
+          subject,
+          html: `
+            <div style="font-size:15px;line-height:1.5;">${message.replace(/\n/g, "<br>")}</div>
+            <br><br>
+            <small style="color:#888;font-size:11px;">This email is scanned — www.avast.com 🔐</small>
+          `
+        });
+        sent++;
+      } catch {
+        failed++;
+      }
+
+      await delay(rand(MIN_DELAY, MAX_DELAY)); // SAFE SPEED
+    }
+
+    return res.json({
+      success: true,
+      message: `Mail Sent Successfully ✔ [${sent}]`
+    });
+
+  } catch (err) {
+    return res.json({ success: false, message: err.message });
   }
 });
 
-// Server Start ======================================================
-app.listen(PORT, ()=> console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log("Server running 🔐"));
