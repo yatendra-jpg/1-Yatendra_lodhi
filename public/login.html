@@ -6,29 +6,31 @@
 </head>
 
 <body>
-  <div class="login-card">
-    <input id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <p id="loginStatus"></p>
-  </div>
+
+<div class="login-card">
+  <input id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <p id="loginStatus"></p>
+</div>
 
 <script>
 loginBtn.onclick = () => {
-  fetch("/login", {
+  fetch("/login",{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
-      username: username.value,
-      password: password.value
+      username:username.value,
+      password:password.value
     })
   })
-  .then(res=>res.json())
-  .then(data=>{
-    if(data.success) location.href="/launcher";
-    else loginStatus.innerText="Incorrect Login!";
-  });
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.success) location.href="/launcher";
+    else loginStatus.innerText="Invalid Login";
+  })
 }
 </script>
+
 </body>
 </html>
