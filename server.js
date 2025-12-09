@@ -1,22 +1,21 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
 const bodyParser = require('body-parser');
+const session = require('express-session');
 const nodemailer = require('nodemailer');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const PUBLIC_DIR = path.join(__dirname, "public");
 
-/* FIXED LOGIN */
 const HARD_USER = "secure-user@#882";
 const HARD_PASS = "secure-user@#882";
 
-/* SAFE SPEED */
-const MIN_DELAY = 150;
-const MAX_DELAY = 250;
+/* Optimized SAFE Speed */
+const SAFE_MIN_DELAY = 120;
+const SAFE_MAX_DELAY = 180;
 
+/* delay helper */
 function delay(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
@@ -24,25 +23,26 @@ function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-app.use(express.static(PUBLIC_DIR));
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "mail-secure-key",
+    secret: "secure-fast-key",
     resave: false,
     saveUninitialized: true
   })
 );
 
-/* LOGIN HANDLER */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
+
   if (username === HARD_USER && password === HARD_PASS) {
     req.session.user = username;
     return res.json({ success: true });
   }
-  res.json({ success: false, message: "Invalid Credentials ❌" });
+
+  return res.json({ success: false, message: "Invalid Access ❌" });
 });
 
 function requireAuth(req, res, next) {
@@ -50,65 +50,65 @@ function requireAuth(req, res, next) {
   return res.redirect("/");
 }
 
-/* PAGES */
-app.get("/", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
-app.get("/launcher", requireAuth, (req, res) => res.sendFile(path.join(PUBLIC_DIR, "launcher.html")));
+app.get("/", (req, res) =>
+  res.sendFile(path.join(__dirname, "public/login.html"))
+);
+
+app.get("/launcher", requireAuth, (req, res) =>
+  res.sendFile(path.join(__dirname, "public/launcher.html"))
+);
 
 app.post("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.json({ success: true });
-  });
+  req.session.destroy(() => res.json({ success: true }));
 });
 
-/* SEND EMAIL */
+/* SEND MAIL LOGIC */
 app.post("/send", requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, subject, message, recipients } = req.body;
 
     const list = recipients
-      .split(/[\n,]+/)
-      .map(e => e.trim())
-      .filter(e => e.includes("@"));
+      .split(/[\n,]+/).map(e => e.trim()).filter(e => e.includes("@"));
 
-    if (!list.length) return res.json({ success: false, message: "No valid email list found ❌" });
+    if (!list.length)
+      return res.json({ success: false, message: "No valid emails ❌" });
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      secure: true,
       port: 465,
+      secure: true,
       auth: { user: email, pass: password }
     });
 
-    await transporter.verify().catch(() => {
-      return res.json({ success: false, message: "Wrong App Password ❌" });
-    });
+    try {
+      await transporter.verify();
+    } catch {
+      return res.json({ success: false, message: "Wrong Password/App key ❌" });
+    }
 
     let sent = 0;
-    let failed = 0;
 
-    for (let r of list) {
-      try {
-        await transporter.sendMail({
-          from: `"${senderName || "Secure Sender"}" <${email}>`,
-          to: r,
-          subject,
-          html: `
-            <div style="font-size:15px;line-height:1.5;">${message.replace(/\n/g, "<br>")}</div>
-            <br><br>
-            <small style="color:#888;font-size:11px;">This email is scanned — www.avast.com 🔐</small>
-          `
-        });
-        sent++;
-      } catch {
-        failed++;
-      }
+    for (let to of list) {
+      await transporter.sendMail({
+        from: `"${senderName || "Verified User"}" <${email}>`,
+        to,
+        subject,
+        html: `
+          <div style="font-size:15px;line-height:1.5;">${message.replace(/\n/g,"<br>")}</div>
+          <br><br>
+          <small style="font-size:11px;color:#666;">
+            Secure Scan Verified — www.avast.com 🔐
+          </small>
+        `
+      });
 
-      await delay(rand(MIN_DELAY, MAX_DELAY)); // SAFE SPEED
+      sent++;
+      await delay(rand(SAFE_MIN_DELAY, SAFE_MAX_DELAY)); // SAFE FAST
     }
 
     return res.json({
       success: true,
-      message: `Mail Sent Successfully ✔ [${sent}]`
+      message: `Mail Sent Successfully ✔ (${sent})`
     });
 
   } catch (err) {
@@ -116,4 +116,4 @@ app.post("/send", requireAuth, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log("Server running 🔐"));
+app.listen(PORT, () => console.log("Running securely..."));
