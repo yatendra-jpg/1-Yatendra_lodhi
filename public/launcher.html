@@ -2,15 +2,14 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Fast Mail Launcher</title>
+  <title>Secure Mail Launcher</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
 <div class="container">
 
-  <h2 class="heading-title">📧 Fast Mail Launcher</h2>
+  <h2>📧 Fast Mail Launcher</h2>
 
   <div class="row">
     <input id="senderName" placeholder="Sender Name">
@@ -18,20 +17,21 @@
   </div>
 
   <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
+    <input id="pass" placeholder="App Password" type="password">
+    <input id="subject" placeholder="Subject">
   </div>
 
   <div class="row">
     <textarea id="message" class="bigbox-left" placeholder="Message Body"></textarea>
 
     <div class="recipient-box">
-      <textarea id="recipients" class="bigbox-right" placeholder="Recipients (comma or newline)"></textarea>
+      <textarea id="recipients" class="bigbox-right" placeholder="Recipients"></textarea>
 
       <div class="small-info">
         <span id="emailCount">Total Emails: 0</span><br>
         <span id="remainingCount">Remaining this hour: 31</span>
       </div>
+
     </div>
   </div>
 
