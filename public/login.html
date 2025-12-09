@@ -4,32 +4,31 @@
 <title>Login</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
 
-<div class="login-card">
-  <input id="username" placeholder="Username">
-  <input type="password" id="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <p id="loginStatus"></p>
-</div>
+<body>
+  <div class="login-card">
+    <input id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <p id="loginStatus"></p>
+  </div>
 
 <script>
 loginBtn.onclick = () => {
   fetch("/login", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
+    body:JSON.stringify({
       username: username.value,
       password: password.value
     })
   })
-  .then(r=>r.json())
-  .then(d=>{
-    if(d.success) location.href="/launcher";
-    else loginStatus.innerText="Invalid Login";
-  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.success) location.href="/launcher";
+    else loginStatus.innerText="Incorrect Login!";
+  });
 }
 </script>
-
 </body>
 </html>
