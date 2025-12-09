@@ -1,7 +1,7 @@
 sendBtn.onclick = () => {
 
-  sendBtn.disabled = true;
-  sendBtn.innerHTML = "Sending...";
+  sendBtn.disabled=true;
+  sendBtn.innerText="Sending...";
 
   fetch("/send", {
     method:"POST",
@@ -18,28 +18,20 @@ sendBtn.onclick = () => {
   .then(r=>r.json())
   .then(d=>{
     if(d.success){
-      statusMessage.innerHTML = `Sent: ${d.sent}`;
-      openPopup(`Mail Sent Successfully`);
-    }
-    else{
-      openPopup("Mail Not Sent");
+      statusMessage.innerText = `Sent: ${d.sent}`;
+      alert("Mail Sent Successfully");
+    } else {
+      alert("Not Sent");
     }
   })
   .finally(()=>{
     sendBtn.disabled=false;
-    sendBtn.innerHTML="Send All";
+    sendBtn.innerText="Send All";
   });
+
 };
 
-popupOk.onclick = closePopup;
-
-function openPopup(msg){
-  popupMsg.innerText = msg;
-  popup.style.display = "block";
-  overlay.style.display = "block";
-}
-
-function closePopup(){
-  popup.style.display = "none";
-  overlay.style.display = "none";
+logoutBtn.onclick = () => {
+  fetch("/logout", {method:"POST"})
+  .then(()=>location.href="/");
 }
