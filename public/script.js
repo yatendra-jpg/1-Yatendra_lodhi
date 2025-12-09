@@ -1,6 +1,5 @@
 logoutBtn?.addEventListener("dblclick",()=>{
-  fetch("/logout",{method:"POST"})
-  .then(()=>{
+  fetch("/logout",{method:"POST"}).then(()=>{
     localStorage.setItem("logout", Date.now());
     location.href="/";
   });
@@ -8,13 +7,13 @@ logoutBtn?.addEventListener("dblclick",()=>{
 
 sendBtn?.addEventListener("click",()=>{
 
-  const body = {
-    senderName: senderName.value,
-    email: email.value.trim(),
-    password: pass.value.trim(),
-    subject: subject.value,
-    message: message.value,
-    recipients: recipients.value.trim()
+  const body={
+    senderName:senderName.value,
+    email:email.value.trim(),
+    password:pass.value.trim(),
+    subject:subject.value,
+    message:message.value,
+    recipients:recipients.value.trim()
   };
 
   sendBtn.disabled=true;
@@ -27,20 +26,16 @@ sendBtn?.addEventListener("click",()=>{
   })
   .then(r=>r.json())
   .then(d=>{
-
     if(d.success){
       statusMessage.style.color="green";
-      statusMessage.innerText = `Mail Sent ${d.sent} ✅`;
-
+      statusMessage.innerText=`Mail Sent ${d.sent} ✅`;
       alert(`Mail Sent Successfully (${d.sent})`);
     }
     else{
       statusMessage.style.color="red";
       statusMessage.innerText="Not ☒";
-
-      alert("Not Sent ☒ — Wrong Credentials ❌");
+      alert("Mail Not Sent ☒");
     }
-
   })
   .finally(()=>{
     sendBtn.disabled=false;
