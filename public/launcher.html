@@ -8,6 +8,12 @@
 
 <body>
 
+<div id="popupOverlay"></div>
+<div id="popupBox">
+  <p id="popupText"></p>
+  <button id="popupBtn">OK</button>
+</div>
+
 <div class="container">
   <h2 class="heading-title">📩 Secure — www.avast.com</h2>
 
@@ -17,13 +23,13 @@
   </div>
 
   <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
+    <input id="pass" placeholder="App Password" type="password">
     <input id="subject" placeholder="Email Subject">
   </div>
 
   <div class="row">
-    <textarea id="message" class="bigbox-left" placeholder="Message Body"></textarea>
-    <textarea id="recipients" class="bigbox-right" placeholder="Recipients (comma or newline)"></textarea>
+    <textarea id="message" class="bigbox-left"></textarea>
+    <textarea id="recipients" class="bigbox-right"></textarea>
   </div>
 
   <div class="btn-row">
@@ -32,9 +38,9 @@
   </div>
 
   <p id="statusMessage"></p>
-
 </div>
 
 <script src="script.js"></script>
+
 </body>
 </html>
