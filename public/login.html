@@ -9,16 +9,16 @@
 
 <div class="login-card">
   <input id="username" placeholder="Username">
-  <input type="password" id="password" placeholder="Password">
+  <input id="password" type="password" placeholder="Password">
   <button id="loginBtn">Login</button>
   <p id="loginStatus"></p>
 </div>
 
 <script>
-loginBtn.onclick = () => {
+loginBtn.onclick = ()=>{
   fetch("/login",{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       username:username.value,
       password:password.value
@@ -27,7 +27,7 @@ loginBtn.onclick = () => {
   .then(r=>r.json())
   .then(d=>{
     if(d.success) location.href="/launcher";
-    else loginStatus.innerText="Invalid Login";
+    else loginStatus.innerText="Invalid Credentials ❌";
   })
 }
 </script>
