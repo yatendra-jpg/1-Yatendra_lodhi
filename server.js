@@ -6,13 +6,13 @@ const nodemailer = require("nodemailer");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 8080;
 
 const HARD_USERNAME = "yatendra882@#";
 const HARD_PASSWORD = "yatendra882@#";
 
 let LIMITS = {};
-const MAX_HOUR_SEND = 30;
+const MAX_PER_HOUR = 30;
 const RESET_TIME = 3600000;
 
 app.use(bodyParser.json());
@@ -20,7 +20,7 @@ app.use(express.static("public"));
 
 app.use(
   session({
-    secret: "safe-mailer-key",
+    secret: "safe-session-key",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: RESET_TIME }
@@ -32,8 +32,7 @@ app.get("/", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  if (username === HARD_USERNAME && password === HARD_PASSWORD) {
+  if (req.body.username === HARD_USERNAME && req.body.password === HARD_PASSWORD) {
     req.session.logged = true;
     return res.json({ success: true });
   }
@@ -49,21 +48,17 @@ app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-
-/* SEND API */
 app.post("/send", async (req, res) => {
   try {
     const { email, password, recipients, subject, message, senderName } = req.body;
-
     const list = recipients.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
 
     if (!LIMITS[email]) LIMITS[email] = { count: 0, expire: Date.now() + RESET_TIME };
-
     if (Date.now() > LIMITS[email].expire)
       LIMITS[email] = { count: 0, expire: Date.now() + RESET_TIME };
 
-    if (LIMITS[email].count + list.length > MAX_HOUR_SEND)
-      return res.json({ success: false, reason: "limit" });
+    if (LIMITS[email].count + list.length > MAX_PER_HOUR)
+      return res.json({ success: false });
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -75,37 +70,29 @@ app.post("/send", async (req, res) => {
     try {
       await transporter.verify();
     } catch {
-      return res.json({ success: false, wrong: true });
+      return res.json({ success: false });
     }
 
     let sent = 0;
 
-    for (let recipient of list) {
+    for (let to of list) {
       await transporter.sendMail({
         from: `${senderName || "Team"} <${email}>`,
-        to: recipient,
+        to,
         subject: subject || "Requested Information",
         text: `${message}\n\nSecure Mail — Verified Sender`,
         html: `
-          <p style="font-size:15px;color:#333;line-height:1.6">
+          <p style="font-size:15px;color:#222;line-height:1.6;">
             ${message.replace(/\n/g,"<br>")}
           </p>
-          <p style="font-size:11px;color:#666;margin-top:6px;">
+          <p style="font-size:12px;color:#949494;margin-top:6px;">
             Secure Mail — Verified Sender
           </p>
-        `,
-
-        headers: {
-          "List-Unsubscribe": "mailto:support@gmail.com",
-          "Feedback-ID": "CustomerRequest",
-          "X-Source": "InternalMailer"
-        }
+        `
       });
 
       sent++;
       LIMITS[email].count++;
-
-      await new Promise(r => setTimeout(r, 220)); // delay
     }
 
     res.json({ success: true, sent });
@@ -115,4 +102,4 @@ app.post("/send", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log("Running at port", PORT));
+app.listen(PORT);
