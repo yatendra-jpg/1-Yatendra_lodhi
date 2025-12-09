@@ -11,112 +11,105 @@ const PORT = process.env.PORT || 8080;
 const HARD_USERNAME = "yatendra882@#";
 const HARD_PASSWORD = "yatendra882@#";
 
-let LIMITS = {}; 
+let LIMITS = {}; // {email:{count,expires}}
 const LIMIT_PER_EMAIL = 30;
 const ONE_HOUR = 60 * 60 * 1000;
 
-// SUPER FAST SAFE DELAY
-const FAST_MIN = 40;
-const FAST_MAX = 120;
+// SUPER FAST SAFE MODE DELAY
+const FAST_MIN = 20;
+const FAST_MAX = 60;
 
-const wait = ms => new Promise(res => setTimeout(res, ms));
-const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+function wait(ms) {
+  return new Promise(res => setTimeout(res, ms));
+}
+function rand(a,b){
+  return Math.floor(Math.random()*(b-a+1))+a;
+}
 
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
-app.use(
-  session({
-    secret:"safe-key",
-    resave:false,
-    saveUninitialized:true,
-    cookie:{ maxAge:ONE_HOUR }
-  })
-);
+app.use(session({
+  secret:"safe-mailer-key",
+  resave:false,
+  saveUninitialized:true,
+  cookie:{ maxAge:ONE_HOUR }
+}));
 
-app.get("/", (req,res)=>{
-  res.sendFile(path.join(process.cwd(),"public/login.html"));
+app.get("/", (_,res)=> res.sendFile(path.join(process.cwd(),"public/login.html")));
+app.get("/launcher", (req,res)=>{
+  if(!req.session.logged) return res.redirect("/");
+  res.sendFile(path.join(process.cwd(),"public/launcher.html"));
 });
 
 app.post("/login",(req,res)=>{
-  const {username,password} = req.body;
-
-  if(username===HARD_USERNAME && password===HARD_PASSWORD){
-    req.session.logged=true;
+  if(req.body.username===HARD_USERNAME && req.body.password===HARD_PASSWORD){
+    req.session.logged = true;
     return res.json({success:true});
   }
   res.json({success:false});
 });
 
-app.get("/launcher",(req,res)=>{
-  if(!req.session.logged) return res.redirect("/");
-  res.sendFile(path.join(process.cwd(),"public/launcher.html"));
-});
-
 app.post("/logout",(req,res)=>{
-  req.session.destroy(()=>res.json({success:true}));
+  req.session.destroy(()=> res.json({success:true}));
 });
 
-app.post("/send", async (req,res)=>{
+
+app.post("/send", async(req,res)=>{
   try{
 
-    const { email,password,recipients,subject,message,senderName } = req.body;
+    const {email,password,recipients,subject,message,senderName} = req.body;
+    const list = recipients.split(/[\n,]+/).map(e=>e.trim()).filter(Boolean);
 
-    const list = recipients.split(/[\n,]+/)
-                  .map(e=>e.trim())
-                  .filter(Boolean);
-
-    if(!LIMITS[email])
-      LIMITS[email] = { count:0, expires:Date.now()+ONE_HOUR };
-
+    if(!LIMITS[email]) LIMITS[email] = {count:0,expires:Date.now()+ONE_HOUR};
     if(Date.now()>LIMITS[email].expires){
       LIMITS[email].count=0;
       LIMITS[email].expires=Date.now()+ONE_HOUR;
     }
 
-    if(LIMITS[email].count + list.length > LIMIT_PER_EMAIL)
+    if((LIMITS[email].count + list.length) > LIMIT_PER_EMAIL)
       return res.json({success:false,type:"limit"});
 
     const transporter = nodemailer.createTransport({
       host:"smtp.gmail.com",
       secure:true,
       port:465,
-      auth:{ user:email,pass:password }
+      auth:{user:email,pass:password}
     });
 
-    try{ await transporter.verify(); }
-    catch(Err){
-      return res.json({success:false,type:"wrongpass"});
+    try { await transporter.verify(); }
+    catch {
+      return res.json({success:false,type:"wrong"});
     }
 
-    let sent=0;
+    let sent = 0;
 
-    for(let sendTo of list){
+    for(let to of list){
 
       await transporter.sendMail({
         from:`"${senderName || "Sender"}" <${email}>`,
-        to: sendTo,
-        subject: subject || "",
-        html: `
-          <div style="font-size:15px;line-height:1.5;color:#333;">
-            ${message.replace(/\n/g,"<br>")}
+        to,
+        subject,
+        html:`
+          <div style="font-size:15px;line-height:1.6;color:#333;">
+            ${message.replace(/\n/g,'<br>')}
           </div>
           <br>
-          <div style="font-size:12px;color:#777;">
+          <p style="color:#797979;font-size:12px;">
             📩 Secure — www.avast.com
-          </div>
+          </p>
         `
       });
 
-      LIMITS[email].count++;
       sent++;
+      LIMITS[email].count++;
 
-      await wait(rand(FAST_MIN,FAST_MAX)); // SUPER FAST DELAY
+      await wait(rand(FAST_MIN,FAST_MAX));
     }
 
-    return res.json({success:true, sent});
+    return res.json({success:true,sent});
 
-  }catch(err){
+  }catch{
     return res.json({success:false});
   }
 });
