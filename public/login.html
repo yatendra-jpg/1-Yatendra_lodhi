@@ -8,9 +8,7 @@
 
 <body>
   <div class="login-card">
-    <div class="login-logo">📧</div>
-    <h2>Welcome Back</h2>
-    <p class="subtitle">Login to continue</p>
+    <h2>Login</h2>
 
     <input id="username" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
@@ -20,19 +18,18 @@
   </div>
 
 <script>
-loginBtn.addEventListener("click", () => {
-  fetch("/login", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      username: username.value.trim(),
-      password: password.value.trim()
+  loginBtn.addEventListener("click", () => {
+    fetch("/login", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        username: username.value.trim(),
+        password: password.value.trim()
+      })
     })
-  })
-  .then(r => r.json())
-  .then(d => d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
-});
+    .then(r => r.json())
+    .then(d => d.success ? location.href="/launcher" : loginStatus.innerText=d.message);
+  });
 </script>
-
 </body>
 </html>
