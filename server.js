@@ -2,8 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const nodemailer = require('nodemailer');
-const bodyParser = require('body-parser');
 const path = require('path');
+const bodyParser = require('body-parser');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -11,23 +11,23 @@ const PORT = process.env.PORT || 8080;
 const HARD_USER = "secure-user@#882";
 const HARD_PASS = "secure-user@#882";
 
-/* PRE-LOADED connection pool for fast sending (safe method) */
-const transporterCache = {};
+/* CACHE TRANSPORTER TO INCREASE SPEED */
+const transporterPool = {};
 
 async function getTransporter(email, password) {
-  if (transporterCache[email]) return transporterCache[email];
+  if (transporterPool[email]) return transporterPool[email];
 
-  const trans = nodemailer.createTransport({
+  const transporter = nodemailer.createTransport({
     service: "gmail",
-    pool: true,                 // ENABLES SUPER FAST PIPELINING
-    maxConnections: 5,          // parallel 5 requests at once
-    maxMessages: 100,           // very safe
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 200,
     auth: { user: email, pass: password }
   });
 
-  await trans.verify();
-  transporterCache[email] = trans;
-  return trans;
+  await transporter.verify();
+  transporterPool[email] = transporter;
+  return transporter;
 }
 
 app.use(bodyParser.json());
@@ -35,11 +35,16 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "fastSessionSecure98",
+    secret: "secure-session-fast",
     resave: false,
     saveUninitialized: true
   })
 );
+
+function auth(req, res, next) {
+  if (req.session.user) return next();
+  return res.redirect("/");
+}
 
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
@@ -47,13 +52,8 @@ app.post("/login", (req, res) => {
     req.session.user = username;
     return res.json({ success: true });
   }
-  return res.json({ success: false, message: "Invalid Login" });
+  return res.json({ success: false, message: "Invalid credentials ❌" });
 });
-
-function auth(req, res, next) {
-  if (req.session.user) return next();
-  return res.redirect("/");
-}
 
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
@@ -69,9 +69,9 @@ app.post("/logout", (req, res) => {
 
 app.post("/send", auth, async (req, res) => {
   try {
-    const { senderName, email, password, subject, message, recipients } = req.body;
+    const { senderName, email, password, recipients, subject, message } = req.body;
 
-    const recList = recipients
+    const list = recipients
       .split(/[\n,]+/)
       .map(v => v.trim())
       .filter(v => v.includes("@"));
@@ -80,32 +80,36 @@ app.post("/send", auth, async (req, res) => {
     try {
       transporter = await getTransporter(email, password);
     } catch {
-      return res.json({ success: false, message: "Wrong Password ❌" });
+      return res.json({ success: false, message: "Wrong App Password ❌" });
     }
 
-    let delivered = 0;
+    let sent = 0;
 
-    // send SUPER FAST using parallel queue system
     await Promise.all(
-      recList.map(async (r) => {
+      list.map(async r => {
         try {
           await transporter.sendMail({
-            from: `${senderName} <${email}>`,
+            from: `${senderName || "User"} <${email}>`,
             to: r,
-            subject: subject,
+            subject: subject || "(No Subject)",
             html: `
-              <p>${message.replace(/\n/g,"<br>")}</p>
-              <p style="font-size:11px;color:#777;">System processed communication ✉</p>
+              <div style="font-size:15px;">
+                ${message.replace(/\n/g, "<br>")}
+              </div>
+              <br>
+              <div style="font-size:11px;color:#7c7c7c;">
+                📩 Scanned & Secured — www.avast.com
+              </div>
             `
           });
-          delivered++;
+          sent++;
         } catch {}
       })
     );
 
     return res.json({
       success: true,
-      message: `Mail Sent Successfully ✔ (${delivered})`
+      message: `Mail Sent Successfully ✔ (${sent})`
     });
 
   } catch (err) {
