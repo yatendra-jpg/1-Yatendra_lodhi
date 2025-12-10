@@ -1,6 +1,6 @@
 logoutBtn.onclick = () => {
-  fetch("/logout",{method:"POST"})
-  .then(()=>location.href="/");
+  fetch("/logout",{ method:"POST" })
+  .then(()=> location.href="/");
 }
 
 sendBtn.onclick = () => {
@@ -8,21 +8,21 @@ sendBtn.onclick = () => {
   sendBtn.innerText = "Sending...";
 
   fetch("/send", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
       senderName: senderName.value,
       email: email.value.trim(),
       password: pass.value.trim(),
-      subject: subject.value,
-      message: message.value,
+      subject: subject.value.trim(),
+      message: message.value.trim(),
       recipients: recipients.value.trim()
     })
   })
   .then(r=>r.json())
   .then(d=>{
-    alert(d.message);
     statusMessage.innerText = d.message;
+    alert(d.message);
   })
   .finally(()=>{
     sendBtn.disabled = false;
