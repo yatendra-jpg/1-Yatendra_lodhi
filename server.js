@@ -12,9 +12,9 @@ const PORT = process.env.PORT || 8080;
 const HARD_USER = "secure-user@#882";
 const HARD_PASS = "secure-user@#882";
 
-/* SAFE delay */
-const SAFE_MIN = 150;
-const SAFE_MAX = 250;
+/* SAFE FAST SPEED */
+const SAFE_MIN = 140;
+const SAFE_MAX = 210;
 
 function delay(ms) {
   return new Promise(res => setTimeout(res, ms));
@@ -29,108 +29,106 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "safe-key",
+    secret: "secure-fast-session",
     resave: false,
     saveUninitialized: true
   })
 );
 
 app.post("/login", (req, res) => {
-  if(req.body.username === HARD_USER && req.body.password === HARD_PASS){
+  const { username, password } = req.body;
+  if (username === HARD_USER && password === HARD_PASS) {
     req.session.user = HARD_USER;
     return res.json({ success: true });
   }
-
   return res.json({ success: false, message: "Invalid Login ❌" });
 });
 
-function requireAuth(req, res, next){
-  if(req.session.user) return next();
+function requireAuth(req, res, next) {
+  if (req.session.user) return next();
   return res.redirect("/");
 }
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/login.html"));
-});
+/* PAGES */
+app.get("/", (req, res) =>
+  res.sendFile(path.join(__dirname, "public/login.html"))
+);
 
-app.get("/launcher", requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, "public/launcher.html"));
-});
+app.get("/launcher", requireAuth, (req, res) =>
+  res.sendFile(path.join(__dirname, "public/launcher.html"))
+);
 
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* SEND LOGIC */
+/* SEND */
 app.post("/send", requireAuth, async (req, res) => {
-  try{
+  try {
     const { senderName, email, password, subject, message, recipients } = req.body;
 
-    const list = recipients.split(/[\n,]+/)
-    .map(v => v.trim())
-    .filter(v => v.includes("@"));
+    const list = recipients
+      .split(/[\n,]+/)
+      .map(e => e.trim())
+      .filter(e => e.includes("@"));
 
-    if(!list.length){
-      return res.json({ success: false, message: "No valid recipients found ❌"});
+    if (!list.length) {
+      return res.json({ success: false, message: "Recipient list not valid ❌" });
     }
-
-    const safeSubject = subject || "Quick Update for You";
-    const scannedFooter = `
-      <br><br>
-      <div style="font-size:12px;color:#777;">
-        Verified communication – Secured scan firewall<br>
-        Scanned via avast.com®
-      </div>`;
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      secure: true,
       port: 465,
-      auth: {
-        user: email,
-        pass: password
-      }
+      secure: true,
+      auth: { user: email, pass: password }
     });
 
-    try { await transporter.verify(); }
-    catch { return res.json({ success:false, message:"Wrong App Password ❌"}); }
+    try {
+      await transporter.verify();
+    } catch {
+      return res.json({ success: false, message: "Wrong App Password ❌" });
+    }
 
-    let sent = 0;
+    let sentCount = 0;
 
-    for(let r of list){
-      try{
+    for (let r of list) {
+      try {
         await transporter.sendMail({
-          from: `"${senderName || "Team Support"}" <${email}>`,
+          from: `"${senderName || "Secure Sender"}" <${email}>`,
           to: r,
-          subject: safeSubject,
+          subject: subject || "Quick message for you",
+          text: message.replace(/\n/g, " "),
+          html: `
+            <div style="font-size:15px;line-height:1.6;color:#333;">
+              ${message.replace(/\n/g, "<br>")}
+            </div>
+            <br>
+            <div style="font-size:12px;color:#777;">
+              Verified email — scanned via www.avast.com 🔐
+            </div>
+          `,
           headers: {
-            "X-Priority": "3",
-            "X-Mailer": "SecureMailer v3",
-            "List-Unsubscribe": `<mailto:unsubscribe@${email}>`
-          },
-          text: message.replace(/\n/g," "),
-          html: `<div style="font-size:15px;line-height:1.6;">
-            ${message.replace(/\n/g,"<br>")}
-          </div>
-          ${scannedFooter}`
+            "X-Verified-Sender": "true",
+            "List-Unsubscribe": `<mailto:unsubscribe@${email}>`,
+            "X-Mailer": "SecureFastMailer v2"
+          }
         });
-
-        sent++;
-      }catch(err){
-        console.log("FAILED:", r);
+        sentCount++;
+      } catch (err) {
+        console.log("Fail:", r);
       }
 
       await delay(randomDelay());
     }
 
     return res.json({
-      success:true,
-      message:`Mail Sent Successfully ✔ (${sent})`
+      success: true,
+      message: `Mail Sent Successfully ✔ (${sentCount})`
     });
 
-  }catch(err){
-    return res.json({ success:false, message:err.message });
+  } catch (e) {
+    return res.json({ success: false, message: e.message });
   }
 });
 
-app.listen(PORT, () => console.log("Server running securely"));
+app.listen(PORT, () => console.log("SAFE FAST MAIL LAUNCHER ACTIVE…"));
