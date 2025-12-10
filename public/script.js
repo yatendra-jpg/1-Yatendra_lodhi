@@ -1,8 +1,3 @@
-logoutBtn.onclick = () => {
-  fetch("/logout",{ method:"POST" })
-  .then(()=> location.href="/");
-}
-
 sendBtn.onclick = () => {
   sendBtn.disabled = true;
   sendBtn.innerText = "Sending...";
