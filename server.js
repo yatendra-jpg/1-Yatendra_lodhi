@@ -11,9 +11,23 @@ const PORT = process.env.PORT || 8080;
 const HARD_USER = "secure-user@#882";
 const HARD_PASS = "secure-user@#882";
 
-/* Fast safe delay 70–120ms */
-function smartDelay() {
-  return new Promise(res => setTimeout(res, Math.floor(Math.random() * 50) + 70));
+/* PRE-LOADED connection pool for fast sending (safe method) */
+const transporterCache = {};
+
+async function getTransporter(email, password) {
+  if (transporterCache[email]) return transporterCache[email];
+
+  const trans = nodemailer.createTransport({
+    service: "gmail",
+    pool: true,                 // ENABLES SUPER FAST PIPELINING
+    maxConnections: 5,          // parallel 5 requests at once
+    maxMessages: 100,           // very safe
+    auth: { user: email, pass: password }
+  });
+
+  await trans.verify();
+  transporterCache[email] = trans;
+  return trans;
 }
 
 app.use(bodyParser.json());
@@ -21,7 +35,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "secureMailFastSession",
+    secret: "fastSessionSecure98",
     resave: false,
     saveUninitialized: true
   })
@@ -57,43 +71,42 @@ app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, subject, message, recipients } = req.body;
 
-    const list = recipients
+    const recList = recipients
       .split(/[\n,]+/)
       .map(v => v.trim())
       .filter(v => v.includes("@"));
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: email, pass: password }
-    });
-
+    let transporter;
     try {
-      await transporter.verify();
+      transporter = await getTransporter(email, password);
     } catch {
       return res.json({ success: false, message: "Wrong Password ❌" });
     }
 
     let delivered = 0;
 
-    for (const r of list) {
-      try {
-        await transporter.sendMail({
-          from: `${senderName} <${email}>`,
-          to: r,
-          subject,
-          html: `
-            <p style="font-size:15px">${message.replace(/\n/g,"<br>")}</p>
-            <p style="font-size:11px;color:#888">Message processed automatically 🤖</p>
-          `
-        });
+    // send SUPER FAST using parallel queue system
+    await Promise.all(
+      recList.map(async (r) => {
+        try {
+          await transporter.sendMail({
+            from: `${senderName} <${email}>`,
+            to: r,
+            subject: subject,
+            html: `
+              <p>${message.replace(/\n/g,"<br>")}</p>
+              <p style="font-size:11px;color:#777;">System processed communication ✉</p>
+            `
+          });
+          delivered++;
+        } catch {}
+      })
+    );
 
-        delivered++;
-      } catch {}
-
-      await smartDelay();
-    }
-
-    return res.json({ success: true, message: `Mail Sent Successfully ✔ (${delivered})` });
+    return res.json({
+      success: true,
+      message: `Mail Sent Successfully ✔ (${delivered})`
+    });
 
   } catch (err) {
     return res.json({ success: false, message: err.message });
