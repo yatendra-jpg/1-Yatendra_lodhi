@@ -1,43 +1,71 @@
-import express from "express";
-import path from "path";
-import nodemailer from "nodemailer";
+const express = require("express");
+const session = require("express-session");
+const bodyParser = require("body-parser");
+const nodemailer = require("nodemailer");
+const path = require("path");
+const helmet = require("helmet");
 
 const app = express();
 
-app.use(express.json());
+app.use(helmet());
 app.use(express.static("public"));
+app.use(bodyParser.json());
 
-app.get("/login", (req, res) => {
-    res.sendFile(path.resolve("public/login.html"));
+app.use(
+  session({
+    secret: "secureMail882",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
+app.get("/", (req, res) => res.redirect("/login"));
+
+app.get("/login", (req, res) =>
+  res.sendFile(path.join(__dirname, "public/login.html"))
+);
+
+app.get("/launcher", (req, res) =>
+  res.sendFile(path.join(__dirname, "public/launcher.html"))
+);
+
+/* SEND MAIL */
+app.post("/send", async (req, res) => {
+  try {
+    const { senderName, email, password, subject, message, recipients } = req.body;
+
+    const emails = recipients.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: email, pass: password }
+    });
+
+    let sent = 0;
+
+    await Promise.all(
+      emails.map(async (to) => {
+        try {
+          await transporter.sendMail({
+            from: `${senderName} <${email}>`,
+            to,
+            subject,
+            text: `${message}\n\n\n📩 Verified Secure — www.avast.com`,
+          });
+          sent++;
+        } catch (err) { }
+      })
+    );
+
+    return res.json({ success: true, sentCount: sent });
+
+  } catch (err) {
+    return res.json({ success: false });
+  }
 });
 
-app.get("/launcher", (req, res) => {
-    res.sendFile(path.resolve("public/launcher.html"));
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => res.json({ success: true }));
 });
 
-app.post("/send-mails", async (req, res) => {
-    const { name, email, appPass, subject, body, recips } = req.body;
-
-    try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: { user: email, pass: appPass }
-        });
-
-        for (const r of recips) {
-            await transporter.sendMail({
-                from: `${name} <${email}>`,
-                to: r,
-                subject,
-                text: body
-            });
-        }
-
-        res.json({ success: true, count: recips.length });
-
-    } catch (err) {
-        res.json({ success: false });
-    }
-});
-
-app.listen(3000, () => console.log("Running…"));
+app.listen(3000, () => console.log("SERVER RUNNING"));
