@@ -1,67 +1,64 @@
 body {
-  background: #e9edfc;
-  font-family: Arial;
+  background: #e9efff;
+  font-family: Arial, sans-serif;
+}
+
+/* CENTERED LOGIN BOX */
+.login-box {
+  width: 350px;
+  margin: 120px auto;
+  padding: 40px;
+  background: #fff;
+  border-radius: 20px;
   text-align: center;
-  margin: 0;
-  padding: 0;
+  box-shadow: 0px 0px 25px rgba(0,0,0,0.15);
 }
 
 .title {
+  text-align: center;
   margin-top: 40px;
-  font-size: 32px;
 }
 
 .container {
-  width: 85%;
+  width: 80%;
   margin: auto;
   background: white;
   padding: 40px;
-  border-radius: 20px;
-  margin-top: 30px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  border-radius: 30px;
+  box-shadow: 0px 0px 25px rgba(0,0,0,0.15);
+  margin-bottom: 40px;
 }
 
 .row {
   display: flex;
-  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
-.input {
-  width: 48%;
-  padding: 14px;
-  border-radius: 8px;
+input, textarea {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
   border: 1px solid #ccc;
-  font-size: 16px;
 }
 
-.textbox {
-  width: 48%;
+textarea {
   height: 160px;
-  padding: 14px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 15px;
 }
 
-.btn {
-  width: 48%;
+button {
+  width: 100%;
   padding: 16px;
-  background: #2e77ff;
-  color: white;
-  border-radius: 10px;
+  border-radius: 12px;
   border: none;
+  background: #2f74ff;
+  color: white;
   font-size: 20px;
   cursor: pointer;
 }
 
-.logout {
-  background: #2e77ff;
-}
-
-.status {
+#status {
   text-align: center;
-  color: green;
   font-size: 18px;
-  margin-top: 15px;
+  margin-top: 10px;
 }
