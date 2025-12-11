@@ -1,31 +1,35 @@
 logoutBtn.addEventListener("dblclick", () => {
-  fetch("/logout", { method:"POST"})
-  .then(()=> location.href="/");
+  fetch("/logout", { method: "POST" })
+    .then(() => location.href = "/");
 });
 
-sendBtn.onclick = ()=> {
+/* SEND MAIL */
+sendBtn.addEventListener("click", () => {
+  const body = {
+    senderName: senderName.value,
+    email: email.value.trim(),
+    password: pass.value.trim(),
+    subject: subject.value,
+    message: message.value,
+    recipients: recipients.value.trim()
+  };
+
   sendBtn.disabled = true;
-  sendBtn.innerText = "Sending...";
+  sendBtn.innerHTML = "Sending...";
 
   fetch("/send", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      senderName: senderName.value,
-      email: email.value.trim(),
-      password: pass.value.trim(),
-      subject: subject.value.trim(),
-      message: message.value.trim(),
-      recipients: recipients.value.trim()
-    })
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
   })
-  .then(r=>r.json())
-  .then(d=>{
-    statusMessage.innerText = d.message;
+  .then(r => r.json())
+  .then(d => {
+    statusMessage.innerText = d.success ? d.message : "Error";
+
     alert(d.message);
   })
-  .finally(()=>{
+  .finally(() => {
     sendBtn.disabled = false;
-    sendBtn.innerText = "Send All";
+    sendBtn.innerHTML = "Send All";
   });
-};
+});
