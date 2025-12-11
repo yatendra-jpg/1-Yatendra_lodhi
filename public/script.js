@@ -1,37 +1,31 @@
-document.getElementById("sendBtn").onclick = sendEmails;
-document.getElementById("logoutBtn").ondblclick = () => {
-  window.location.href = "/";
-};
+logoutBtn.addEventListener("dblclick", () => {
+  fetch("/logout", { method:"POST"})
+  .then(()=> location.href="/");
+});
 
-async function sendEmails() {
-  const senderName = val("senderName");
-  const gmail = val("gmail");
-  const appPassword = val("appPass");
-  const subject = val("subject");
-  const message = val("message");
+sendBtn.onclick = ()=> {
+  sendBtn.disabled = true;
+  sendBtn.innerText = "Sending...";
 
-  let recipients = val("recipients")
-    .split(/[\n,]/)
-    .map(e => e.trim())
-    .filter(e => e);
-
-  const res = await fetch("/api/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ senderName, gmail, appPassword, subject, message, recipients })
+  fetch("/send", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      senderName: senderName.value,
+      email: email.value.trim(),
+      password: pass.value.trim(),
+      subject: subject.value.trim(),
+      message: message.value.trim(),
+      recipients: recipients.value.trim()
+    })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    statusMessage.innerText = d.message;
+    alert(d.message);
+  })
+  .finally(()=>{
+    sendBtn.disabled = false;
+    sendBtn.innerText = "Send All";
   });
-
-  const data = await res.json();
-
-  if (data.success) {
-    document.getElementById("status").innerHTML =
-      `Mail Sent Successfully ✅ (${data.sent})`;
-  } else {
-    document.getElementById("status").innerHTML =
-      `Failed ❌ (${data.error})`;
-  }
-}
-
-function val(id) {
-  return document.getElementById(id).value;
-}
+};
