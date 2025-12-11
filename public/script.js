@@ -1,23 +1,34 @@
-// LOGOUT FUNCTION
-function logout() {
-    window.location.href = "/login";
+// LOGIN FUNCTION
+async function login() {
+    const username = document.getElementById("username")?.value.trim();
+    const password = document.getElementById("password")?.value.trim();
+
+    if (!username || !password) return alert("Enter login details");
+
+    // FIXED LOGIN
+    if (username === "secure-user@#882" && password === "secure-user@#882") {
+        return window.location.href = "/launcher";
+    }
+
+    alert("Incorrect Login ❌");
 }
 
-// MAIN SEND FUNCTION
-async function sendAll() {
 
-    const btn = document.getElementById("sendBtn");
-    btn.innerText = "Sending...";
-    btn.disabled = true;
+// SEND MAIL FUNCTION
+document.getElementById("sendAll")?.addEventListener("click", async () => {
 
     const payload = {
-        senderName: document.getElementById("senderName").value.trim(),
-        gmail: document.getElementById("gmail").value.trim(),
-        appPass: document.getElementById("appPass").value.trim(),
-        subject: document.getElementById("subject").value.trim(),
-        message: document.getElementById("message").value.trim(),
-        recipients: document.getElementById("recipients").value.trim()
+        senderName: senderName.value,
+        gmail: yourGmail.value,
+        appPass: appPassword.value,
+        subject: emailSubject.value,
+        message: messageBody.value,
+        recipients: recipients.value
     };
+
+    const btn = document.getElementById("sendAll");
+    btn.disabled = true;
+    btn.innerText = "Sending...";
 
     const res = await fetch("/api/send", {
         method: "POST",
@@ -27,13 +38,18 @@ async function sendAll() {
 
     const data = await res.json();
 
-    // SUCCESS POPUP
     if (data.success) {
-        alert(`Mail Sent Successfully - (${data.sent})`);
+        alert(`Mail Sent Successfully ✔ (${data.sent})`);
     } else {
         alert("Sending Failed ❌");
     }
 
-    btn.innerText = "Send All";
     btn.disabled = false;
-}
+    btn.innerText = "Send All";
+});
+
+
+// DOUBLE CLICK LOGOUT
+document.getElementById("logoutBtn")?.addEventListener("dblclick", () => {
+    window.location.href = "/login";
+});
