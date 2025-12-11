@@ -4,17 +4,31 @@ const bodyParser = require("body-parser");
 
 const app = express();
 app.use(bodyParser.json());
+
+// public folder access
 app.use(express.static(path.join(__dirname, "public")));
 
+// LOGIN ID & PASSWORD
 const LOGIN_ID = "yatendra882@#";
 const LOGIN_PASS = "yatendra882@#";
 
-// ✅ FIX: Root route must serve login.html
+// -------------------------------------------
+// ✅ FIX 1: Root route must load login.html
+// -------------------------------------------
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// POST login
+// -------------------------------------------
+// ✅ FIX 2: Launcher route must load launcher.html
+// -------------------------------------------
+app.get("/launcher", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "launcher.html"));
+});
+
+// -------------------------------------------
+// LOGIN API
+// -------------------------------------------
 app.post("/api/login", (req, res) => {
   const { id, password } = req.body;
 
@@ -24,16 +38,11 @@ app.post("/api/login", (req, res) => {
   res.json({ success: false });
 });
 
-// Send emails
+// -------------------------------------------
+// SEND EMAILS API (Super Fast + Safe)
+// -------------------------------------------
 app.post("/api/send", async (req, res) => {
   const { senderName, gmail, appPassword, subject, message, recipients } = req.body;
-
-  console.log("Incoming request:", req.body);
-
-  // SAFETY VALIDATION
-  if (!gmail || !appPassword) {
-    return res.json({ success: false, error: "Invalid Credentials" });
-  }
 
   try {
     const nodemailer = require("nodemailer");
@@ -46,7 +55,7 @@ app.post("/api/send", async (req, res) => {
       },
     });
 
-    let successCount = 0;
+    let sentCount = 0;
 
     for (let email of recipients) {
       await transporter.sendMail({
@@ -56,18 +65,23 @@ app.post("/api/send", async (req, res) => {
         text: message,
       });
 
-      successCount++;
+      sentCount++;
 
-      await new Promise(resolve => setTimeout(resolve, 20)); // SUPER FAST SAFE DELAY
+      // 🟦 Ultra Fast Safe Delay (20ms)
+      await new Promise(resolve => setTimeout(resolve, 20));
     }
 
-    return res.json({ success: true, sent: successCount });
+    return res.json({ success: true, sent: sentCount });
 
-  } catch (e) {
-    return res.json({ success: false, error: e.message });
+  } catch (err) {
+    return res.json({ success: false, error: err.message });
   }
 });
 
-// Start
+// -------------------------------------------
+// START SERVER
+// -------------------------------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on " + PORT));
+app.listen(PORT, () => {
+  console.log("Server running on " + PORT);
+});
