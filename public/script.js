@@ -1,52 +1,37 @@
-document.getElementById("logout").addEventListener("dblclick", () => {
-    localStorage.clear();
-    window.location.href = "/login";
-});
+document.getElementById("sendBtn").onclick = sendEmails;
+document.getElementById("logoutBtn").ondblclick = () => {
+  window.location.href = "/";
+};
 
-document.getElementById("sendAll").addEventListener("click", async () => {
-    const senderName = document.getElementById("senderName").value.trim();
-    const senderEmail = document.getElementById("senderEmail").value.trim();
-    const appPassword = document.getElementById("appPassword").value.trim();
-    const emailSubject = document.getElementById("emailSubject").value.trim();
-    const emailBody = document.getElementById("emailBody").value.trim();
-    const recipients = document
-        .getElementById("recipients")
-        .value.split(/[\n,]/)
-        .map(r => r.trim())
-        .filter(r => r.length > 3);
+async function sendEmails() {
+  const senderName = val("senderName");
+  const gmail = val("gmail");
+  const appPassword = val("appPass");
+  const subject = val("subject");
+  const message = val("message");
 
-    if (!senderEmail || !appPassword || !recipients.length) {
-        alert("Fill all required fields.");
-        return;
-    }
+  let recipients = val("recipients")
+    .split(/[\n,]/)
+    .map(e => e.trim())
+    .filter(e => e);
 
-    const safeFooter =
-        "\n\n\n✨ Verified & Delivered Securely — System Mail Gateway";
+  const res = await fetch("/api/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ senderName, gmail, appPassword, subject, message, recipients })
+  });
 
-    const finalBody = emailBody + safeFooter;
+  const data = await res.json();
 
-    document.getElementById("status").innerHTML = "Sending...";
+  if (data.success) {
+    document.getElementById("status").innerHTML =
+      `Mail Sent Successfully ✅ (${data.sent})`;
+  } else {
+    document.getElementById("status").innerHTML =
+      `Failed ❌ (${data.error})`;
+  }
+}
 
-    const res = await fetch("/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            senderName,
-            senderEmail,
-            appPassword,
-            emailSubject,
-            emailBody: finalBody,
-            recipients
-        }),
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-        document.getElementById("status").innerHTML =
-            `Mail Sent Successfully ✅ (${data.sent})`;
-    } else {
-        document.getElementById("status").innerHTML =
-            "Error: " + data.error;
-    }
-});
+function val(id) {
+  return document.getElementById(id).value;
+}
