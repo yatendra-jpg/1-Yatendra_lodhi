@@ -23,7 +23,7 @@ app.post("/api/login", (req, res) => {
     return res.json({ success: false });
 });
 
-// SEND MAIL (SAFE FAST MODE)
+// SEND MAIL
 app.post("/api/send", upload.array("files"), async (req, res) => {
     const { senderName, gmail, appPass, subject, message, recipients } = req.body;
 
@@ -59,8 +59,8 @@ app.post("/api/send", upload.array("files"), async (req, res) => {
 
             sent++;
 
-            // Gmail safe maximum fast rate → ~1 sec per mail
-            await new Promise(res => setTimeout(res, 1000));
+            // SAFE SPEED → approx 1 second per email
+            await new Promise(r => r(1 * 1000));
         }
 
         return res.json({ success: true, count: sent });
@@ -81,4 +81,4 @@ app.get("/launcher", (req, res) =>
     res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-app.listen(5000, () => console.log("SAFE FAST MAIL SERVER RUNNING"));
+app.listen(5000, () => console.log("SERVER RUNNING SAFE ✔"));
