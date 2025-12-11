@@ -1,74 +1,77 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const nodemailer = require("nodemailer");
-const path = require("path");
+import express from "express";
+import bodyParser from "body-parser";
+import nodemailer from "nodemailer";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
-app.use(bodyParser.json({ limit: "3mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(bodyParser.json());
+app.use(express.static("public"));
 
-const USER = "secure-user@#882";
-const PASS = "secure-user@#882";
+// Fix ES module path issues
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// DEFAULT ROUTE → LOGIN PAGE
-app.get("/", (req, res) => {
-    res.redirect("/login");
-});
-
-// LOGIN PAGE
+// ROUTE: LOGIN PAGE
 app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "public/login.html"));
 });
 
-// MAIN DASHBOARD
+// ROUTE: LAUNCHER PAGE
 app.get("/launcher", (req, res) => {
     res.sendFile(path.join(__dirname, "public/launcher.html"));
 });
 
-// LOGIN API
-app.post("/api/login", (req, res) => {
-    const { username, password } = req.body;
-    const ok = username === USER && password === PASS;
-    res.json({ success: ok });
+// DEFAULT ROUTE FIX
+app.get("/", (req, res) => {
+    res.redirect("/login");
 });
 
-// SEND EMAILS API
+
+// SEND MAIL API (Gmail-safe speed)
 app.post("/api/send", async (req, res) => {
-    const { senderName, gmail, appPass, subject, message, recipients } = req.body;
-
-    const list = recipients
-        .split(/[\n,]+/)
-        .map(e => e.trim())
-        .filter(e => e.length > 3);
-
-    // Gmail Transport
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: gmail, pass: appPass }
-    });
-
     try {
-        let count = 0;
+        const { senderName, gmail, appPass, subject, message, recipients } = req.body;
+
+        // preserve user formatting
+        const msg = message.replace(/\r/g, "");
+
+        // clean list
+        const list = recipients
+            .split(/[\n,]/)
+            .map(x => x.trim())
+            .filter(x => x.length > 2);
+
+        // Gmail transporter
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: { user: gmail, pass: appPass }
+        });
+
+        let sent = 0;
 
         for (let email of list) {
-
             await transporter.sendMail({
                 from: `${senderName} <${gmail}>`,
                 to: email,
                 subject,
-                html: message
+                text: msg
             });
 
-            count++;
+            sent++;
 
-            // SUPER SAFE + FAST SPEED → ~0.4–0.5 sec / 25 mails
-            await new Promise(r => setTimeout(r, 15)); 
+            // Gmail-approved safe delay ≈ 1 sec per email
+            await new Promise(r => setTimeout(r, 1000));
         }
 
-        res.json({ success: true, sent: count });
+        return res.json({ success: true, sent });
+
     } catch (err) {
-        res.json({ success: false });
+        return res.json({ success: false });
     }
 });
 
-app.listen(5000, () => console.log("SAFE MAILER RUNNING ✔"));
+
+// START SERVER
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log("SERVER RUNNING ✔ SAFE MODE"));
