@@ -2,17 +2,14 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mail Communication Console</title>
+<title>Secure Fast Launcher</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h2 class="headTitle">
-📧 Mail Communication Console
-</h2>
-
 <div class="container">
+  <h1>📩 Secure — www.avast.com</h1>
 
   <div class="row">
     <input id="senderName" placeholder="Sender Name">
@@ -24,9 +21,9 @@
     <input id="subject" placeholder="Email Subject">
   </div>
 
-  <div class="row">
-    <textarea id="message" placeholder="Message Body"></textarea>
-    <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+  <div class="row landscape-row">
+    <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
+    <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
   </div>
 
   <div class="row">
@@ -35,9 +32,9 @@
   </div>
 
   <p id="statusMessage"></p>
-
 </div>
 
 <script src="script.js"></script>
+
 </body>
 </html>
