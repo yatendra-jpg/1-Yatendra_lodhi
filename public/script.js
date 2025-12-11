@@ -1,30 +1,11 @@
-// LOGIN FUNCTION
-async function login() {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-        window.location.href = "/launcher";
-    } else {
-        alert("Incorrect Login ❌");
-    }
-}
-
 // LOGOUT FUNCTION
 function logout() {
     window.location.href = "/login";
 }
 
-// SEND ALL EMAILS
+// MAIN SEND FUNCTION
 async function sendAll() {
+
     const btn = document.getElementById("sendBtn");
     btn.innerText = "Sending...";
     btn.disabled = true;
@@ -46,12 +27,11 @@ async function sendAll() {
 
     const data = await res.json();
 
+    // SUCCESS POPUP
     if (data.success) {
-        document.getElementById("status").innerHTML =
-            `Mail Sent Successfully ✔ (${data.sent})`;
+        alert(`Mail Sent Successfully - (${data.sent})`);
     } else {
-        document.getElementById("status").innerHTML =
-            `Password Wrong ❌`;
+        alert("Sending Failed ❌");
     }
 
     btn.innerText = "Send All";
