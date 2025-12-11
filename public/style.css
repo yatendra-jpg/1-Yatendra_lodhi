@@ -3,7 +3,6 @@ body {
   font-family: Arial, sans-serif;
 }
 
-/* CENTERED LOGIN BOX */
 .login-box {
   width: 350px;
   margin: 120px auto;
@@ -42,9 +41,7 @@ input, textarea {
   border: 1px solid #ccc;
 }
 
-textarea {
-  height: 160px;
-}
+textarea { height: 160px; }
 
 button {
   width: 100%;
@@ -58,7 +55,7 @@ button {
 }
 
 #status {
+  margin-top: 12px;
   text-align: center;
   font-size: 18px;
-  margin-top: 10px;
 }
