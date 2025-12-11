@@ -1,6 +1,6 @@
 const express = require("express");
-const path = require("path");
 const bodyParser = require("body-parser");
+const path = require("path");
 const nodemailer = require("nodemailer");
 const multer = require("multer");
 
@@ -13,67 +13,42 @@ app.use(express.static(path.join(__dirname, "public")));
 const LOGIN_USER = "secure-user@#882";
 const LOGIN_PASS = "secure-user@#882";
 
-// LOGIN
 app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
-
-    if (username === LOGIN_USER && password === LOGIN_PASS) {
-        return res.json({ success: true });
-    }
-    return res.json({ success: false });
+    res.json({ success: username === LOGIN_USER && password === LOGIN_PASS });
 });
 
-// SEND MAIL
 app.post("/api/send", upload.array("files"), async (req, res) => {
     const { senderName, gmail, appPass, subject, message, recipients } = req.body;
 
-    const list = recipients
-        .split(/[\n,]+/)
-        .map(e => e.trim())
-        .filter(Boolean);
+    const list = recipients.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
 
     const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: { user: gmail, pass: appPass }
     });
 
-    let attachments = [];
-    if (req.files) {
-        attachments = req.files.map((file) => ({
-            filename: file.originalname,
-            path: file.path
-        }));
-    }
-
-    let sent = 0;
-
     try {
+        let count = 0;
+
         for (let email of list) {
             await transporter.sendMail({
                 from: `${senderName} <${gmail}>`,
                 to: email,
                 subject,
-                text: message,
-                attachments
+                text: message
             });
 
-            sent++;
-
-            // SAFE SPEED → approx 1 second per email
-            await new Promise(r => r(1 * 1000));
+            count++;
+            await new Promise(r => setTimeout(r, 500)); // 0.5 sec safe delay
         }
 
-        return res.json({ success: true, count: sent });
-
+        res.json({ success: true, count });
     } catch (err) {
-        return res.json({ success: false, error: "PASSWORD_WRONG" });
+        res.json({ success: false });
     }
 });
 
-// ROUTES
-app.get("/", (req, res) =>
-    res.sendFile(path.join(__dirname, "public/login.html"))
-);
 app.get("/login", (req, res) =>
     res.sendFile(path.join(__dirname, "public/login.html"))
 );
@@ -81,4 +56,4 @@ app.get("/launcher", (req, res) =>
     res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-app.listen(5000, () => console.log("SERVER RUNNING SAFE ✔"));
+app.listen(5000, () => console.log("SERVER RUNNING ✔"));
