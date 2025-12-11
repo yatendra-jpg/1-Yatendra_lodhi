@@ -1,53 +1,52 @@
-function doLogin() {
-    fetch("/login", {
+async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            username: document.getElementById("username").value.trim(),
-            password: document.getElementById("password").value.trim()
-        })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) location.href = "/launcher";
-        else alert("Invalid Login!");
+        body: JSON.stringify({ username, password })
     });
+
+    const data = await res.json();
+    if (data.success) window.location.href = "/launcher";
+    else alert("Invalid credentials");
 }
 
 function logout() {
-    fetch("/logout", { method: "POST" })
-        .then(() => location.href = "/login");
+    window.location.href = "/login";
 }
 
-function sendAll() {
-
-    const btn = document.getElementById("sendBtn");
-    btn.innerText = "Sending...";
+async function sendAll() {
+    const btn = document.getElementById("sendAllBtn");
     btn.disabled = true;
+    btn.innerText = "Sending...";
 
-    fetch("/send-mails", {
+    const payload = {
+        senderName: document.getElementById("senderName").value,
+        userEmail: document.getElementById("userEmail").value,
+        appPassword: document.getElementById("appPassword").value,
+        subject: document.getElementById("emailSubject").value,
+        message: document.getElementById("messageBody").value,
+        recipients: document.getElementById("recipients").value
+    };
+
+    const res = await fetch("/api/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            gmail: gmail.value.trim(),
-            appPassword: appPass.value.trim(),
-            subject: subject.value.trim(),
-            message: message.value + "\n\n\n📩 Scanned & Secured — www.avast.com",
-            recipients: recipients.value
-        })
-    })
-    .then(r => r.json())
-    .then(d => {
-
-        btn.disabled = false;
-        btn.innerText = "Send All";
-
-        if (d.success) {
-            alert(`Mail Sent Successfully ✅ (${d.sent})\nTime: ${d.time}s`);
-            document.getElementById("status").innerText =
-                `Mail Sent Successfully ✔ (${d.sent})`;
-        } else {
-            alert("Sending Failed ❌\n" + d.message);
-        }
+        body: JSON.stringify(payload)
     });
+
+    const data = await res.json();
+
+    if (data.success) {
+        alert(`Mail Sent Successfully (${data.sent})`);
+        document.getElementById("status").innerText =
+            `Mail Sent Successfully ✔ (${data.sent})`;
+    } else {
+        alert("Sending Failed");
+    }
+
+    btn.disabled = false;
+    btn.innerText = "Send All";
 }
