@@ -1,63 +1,62 @@
 body {
-    background: #eef3ff;
-    font-family: Arial, sans-serif;
+    background: #e8edff;
+    font-family: Arial;
 }
 
-.login-box, .main-box {
-    width: 60%;
-    margin: 80px auto;
+.main-box, .login-box {
+    width: 70%;
     background: #fff;
     padding: 35px;
-    border-radius: 18px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    margin: 70px auto;
+    border-radius: 20px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
-h1.title {
+.title {
     text-align: center;
+    font-size: 32px;
     margin-bottom: 25px;
-}
-
-.icon {
-    width: 32px;
-    margin-right: 8px;
 }
 
 .row {
     display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 22px;
+    margin-bottom: 22px;
 }
 
-.row input, textarea {
+textarea, input {
     width: 100%;
-    padding: 14px;
-    border-radius: 8px;
-    border: 1px solid #bbb;
-    font-size: 15px;
+    padding: 15px;
+    font-size: 16px;
+    border: 1px solid #bfc8d8;
+    border-radius: 12px;
+}
+
+textarea {
+    height: 160px;
 }
 
 .btn-row {
     display: flex;
-    justify-content: space-between;
+    gap: 25px;
     margin-top: 25px;
 }
 
 button {
-    background: #2f78ff;
+    flex: 1;
+    background: #2f76ff;
     color: #fff;
-    padding: 14px 45px;
+    padding: 16px;
     font-size: 18px;
     border: none;
-    border-radius: 10px;
-    cursor: pointer;
+    border-radius: 12px;
 }
 
 button:disabled {
-    background: #888;
+    background: gray;
 }
 
-#status {
-    text-align: center;
-    margin-top: 18px;
-    font-size: 18px;
+.icon {
+    width: 35px;
+    margin-right: 10px;
 }
