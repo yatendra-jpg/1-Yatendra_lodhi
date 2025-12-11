@@ -1,39 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Mail Console</title>
-<link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mail Communication Console</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<h1 class="title">✉️ Mail Communication Console</h1>
+<div class="main-box">
 
-<div class="container">
+    <h1 class="title">
+        <img src="mail.png" class="icon"> Mail Communication Console
+    </h1>
 
     <div class="row">
-        <input id="senderName" placeholder="Sender Name" />
-        <input id="gmail" placeholder="Your Gmail" />
+        <input id="senderName" placeholder="Sender Name">
+        <input id="gmail" placeholder="Your Gmail">
     </div>
 
     <div class="row">
-        <input id="appPass" placeholder="App Password" />
-        <input id="subject" placeholder="Email Subject" />
+        <input id="appPass" placeholder="App Password">
+        <input id="subject" placeholder="Email Subject">
     </div>
 
     <div class="row">
         <textarea id="message" placeholder="Message Body"></textarea>
-
-        <div class="column">
-            <textarea id="recipients" placeholder="Recipients"></textarea>
-            <input id="files" type="file" multiple accept="image/*,.png,.jpg,.jpeg" />
-        </div>
+        <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
     </div>
 
-    <div class="row">
+    <input id="fileInput" type="file" multiple>
+
+    <div class="btn-row">
         <button id="sendBtn" onclick="sendAll()">Send All</button>
-        <button ondblclick="logout()">Logout</button>
+        <button onclick="logout()">Logout</button>
     </div>
 
     <p id="status"></p>
@@ -41,6 +41,5 @@
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
