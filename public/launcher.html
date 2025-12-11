@@ -1,41 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mail Communication Console</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
 <div class="container">
+    <h1 class="title"><img src="mail.png" class="icon"> Mail Communication Console</h1>
 
-  <h1>📧 Mail Communication Console</h1>
+    <div class="row">
+        <input id="senderName" class="input" placeholder="Sender Name">
+        <input id="yourEmail" class="input" placeholder="Your Gmail">
+    </div>
 
-  <div class="row">
-    <input id="senderName" placeholder="Sender Name">
-    <input id="email" placeholder="Your Gmail">
-  </div>
+    <div class="row">
+        <input id="appPassword" class="input" placeholder="App Password">
+        <input id="emailSubject" class="input" placeholder="Email Subject">
+    </div>
 
-  <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
-  </div>
+    <div class="row">
+        <textarea id="messageBody" class="textarea" placeholder="Message Body"></textarea>
+        <textarea id="recipients" class="textarea" placeholder="Recipients (comma or newline)"></textarea>
+    </div>
 
-  <div class="row landscape-row">
-    <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
-    <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
-  </div>
+    <div class="row center">
+        <button id="sendAllBtn" class="btn send">Send All</button>
+        <button id="logoutBtn" class="btn logout">Logout</button>
+    </div>
 
-  <div class="row">
-    <button id="sendBtn">Send All</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
-
-  <p id="statusMessage"></p>
+    <p id="status" class="status"></p>
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
