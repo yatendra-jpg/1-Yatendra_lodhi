@@ -27,7 +27,6 @@ function sendAll() {
     btn.innerText = "Sending...";
 
     const form = new FormData();
-
     form.append("senderName", document.getElementById("senderName").value);
     form.append("gmail", document.getElementById("gmail").value);
     form.append("appPass", document.getElementById("appPass").value);
@@ -38,10 +37,7 @@ function sendAll() {
     const files = document.getElementById("files").files;
     for (let f of files) form.append("files", f);
 
-    fetch("/api/send", {
-        method: "POST",
-        body: form
-    })
+    fetch("/api/send", { method: "POST", body: form })
         .then(r => r.json())
         .then(d => {
             btn.disabled = false;
