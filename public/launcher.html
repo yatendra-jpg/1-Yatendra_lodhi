@@ -1,34 +1,41 @@
-<script>
-async function sendAll() {
-    const btn = document.getElementById("sendBtn");
-    btn.disabled = true;
-    btn.innerText = "Sending...";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Mail Communication Console</title>
+<link rel="stylesheet" href="style.css" />
+</head>
 
-    const payload = {
-        senderName: document.getElementById("senderName").value,
-        userEmail: document.getElementById("userEmail").value,
-        appPassword: document.getElementById("appPassword").value,
-        subject: document.getElementById("emailSubject").value,
-        message: document.getElementById("messageBody").value,
-        recipients: document.getElementById("recipients").value
-    };
+<body ondblclick="logout()">
 
-    const res = await fetch("/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
+<h1 class="title">✉ Mail Communication Console</h1>
 
-    const data = await res.json();
+<div class="container">
 
-    btn.disabled = false;
-    btn.innerText = "Send All";
+  <div class="row">
+    <input id="senderName" placeholder="Sender Name" class="input" />
+    <input id="gmail" placeholder="Your Gmail" class="input" />
+  </div>
 
-    if (!data.success && data.error === "PASSWORD_WRONG") {
-        alert("Password Wrong ❌");
-        return;
-    }
+  <div class="row">
+    <input id="appPass" placeholder="App Password" class="input" />
+    <input id="subject" placeholder="Email Subject" class="input" />
+  </div>
 
-    alert(`Mail Sent Successfully ✔ (${data.sent})`);
-}
-</script>
+  <div class="row">
+    <textarea id="message" placeholder="Message Body" class="textbox"></textarea>
+    <textarea id="recipients" placeholder="Recipients (comma or newline)" class="textbox"></textarea>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="sendBtn" onclick="sendMails()">Send All</button>
+    <button class="btn logout" onclick="logout()">Logout</button>
+  </div>
+
+  <p id="status" class="status"></p>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
