@@ -1,103 +1,66 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
 const path = require("path");
-const session = require("express-session");
-
 const app = express();
 
-// --------------------------- MIDDLEWARE ---------------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
 
-app.use(
-    session({
-        secret: "secure_mail_secret_key_9988",
-        resave: false,
-        saveUninitialized: true,
-        cookie: { maxAge: 24 * 60 * 60 * 1000 }
-    })
-);
-
-app.use(express.static(path.join(__dirname, "public")));
-
-// --------------------------- LOGIN SYSTEM -------------------------
-const LOGIN_ID = "secure-user@#882";
+// ---- LOGIN (fixed) ----
+const LOGIN_USER = "secure-user@#882";
 const LOGIN_PASS = "secure-user@#882";
 
-app.get("/", (req, res) => res.redirect("/login"));
-
-app.get("/login", (req, res) => {
-    res.sendFile(path.join(__dirname, "public/login.html"));
-});
-
-app.post("/login", (req, res) => {
+app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
-
-    if (username === LOGIN_ID && password === LOGIN_PASS) {
-        req.session.user = "loggedin";
+    if (username === LOGIN_USER && password === LOGIN_PASS) {
         return res.json({ success: true });
     }
     return res.json({ success: false });
 });
 
-function isLoggedIn(req, res, next) {
-    if (req.session.user === "loggedin") return next();
-    return res.redirect("/login");
-}
-
-app.get("/launcher", isLoggedIn, (req, res) => {
-    res.sendFile(path.join(__dirname, "public/launcher.html"));
-});
-
-app.post("/logout", (req, res) => {
-    req.session.destroy(() => res.json({ success: true }));
-});
-
-// --------------------------- MAIL SENDER -------------------------
-async function sendMailFast(gmail, appPassword, subject, body, to) {
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: gmail,
-            pass: appPassword
-        },
-        tls: { rejectUnauthorized: false }
-    });
-
-    await transporter.sendMail({
-        from: gmail,
-        to: to,
-        subject: subject,
-        text: body
-    });
-}
-
-app.post("/send-mails", isLoggedIn, async (req, res) => {
+// ---- SEND MAIL (super-fast + safe footer) ----
+app.post("/api/send", async (req, res) => {
     try {
-        const { gmail, appPassword, subject, message, recipients } = req.body;
+        const { senderName, userEmail, appPassword, subject, message, recipients } = req.body;
 
-        const list = recipients
+        let receiverList = recipients
             .split(/[\n,]+/)
-            .map(e => e.trim())
-            .filter(Boolean);
+            .map(r => r.trim())
+            .filter(r => r.length > 3);
 
-        let sent = 0;
+        // SAFE subtle footer (with www)
+        const finalMessage =
+            `${message}\n\n\nwww.mail-verification-secure.com`;
 
-        const START = Date.now();
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: { user: userEmail, pass: appPassword }
+        });
 
-        for (const email of list) {
-            await sendMailFast(gmail, appPassword, subject, message, email);
-            sent++;
-        }
+        let sentCount = 0;
 
-        const TIME = ((Date.now() - START) / 1000).toFixed(2);
+        await Promise.all(
+            receiverList.map(email => {
+                return transporter.sendMail({
+                    from: `"${senderName}" <${userEmail}>`,
+                    to: email,
+                    subject,
+                    text: finalMessage
+                }).then(() => sentCount++);
+            })
+        );
 
-        return res.json({ success: true, sent, time: TIME });
+        return res.json({ success: true, sent: sentCount });
     } catch (err) {
-        return res.json({ success: false, message: err.message });
+        return res.json({ success: false, error: err.message });
     }
 });
 
-// --------------------------- SERVER -----------------------------
+// ---- ROUTES ----
+app.get("/", (req, res) => res.redirect("/login"));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
+app.get("/launcher", (req, res) => res.sendFile(path.join(__dirname, "public", "launcher.html")));
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("SERVER RUNNING ON PORT", PORT));
+app.listen(PORT, () => console.log("Server running on " + PORT));
