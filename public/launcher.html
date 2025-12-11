@@ -1,11 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>Mail Communication Console</title>
-<link rel="stylesheet" href="style.css" />
+    <title>Mail Communication Console</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
 <h1 class="title">
@@ -15,21 +13,29 @@
 
 <div class="container">
 
-    <input id="senderName" placeholder="Sender Name" />
-    <input id="gmail" placeholder="Your Gmail" />
+    <div class="row">
+        <input id="senderName" placeholder="Sender Name">
+        <input id="userEmail" placeholder="Your Gmail">
+    </div>
 
-    <input id="appPass" placeholder="App Password" />
-    <input id="subject" placeholder="Email Subject" />
+    <div class="row">
+        <input id="appPassword" placeholder="App Password">
+        <input id="emailSubject" placeholder="Email Subject">
+    </div>
 
-    <textarea id="message" placeholder="Message Body"></textarea>
-    <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+    <div class="row">
+        <textarea id="messageBody" placeholder="Message Body"></textarea>
+        <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+    </div>
 
-    <button id="sendBtn" onclick="sendAll()">Send All</button>
-    <button ondblclick="logout()">Logout</button>
+    <div class="row">
+        <button id="sendAllBtn" class="send-btn" ondblclick="logout()" onclick="sendAll()">Send All</button>
+        <button class="logout-btn" ondblclick="logout()">Logout</button>
+    </div>
+
+    <p id="status" class="status"></p>
 
 </div>
-
-<p id="status"></p>
 
 <script src="script.js"></script>
 </body>
