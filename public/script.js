@@ -1,22 +1,18 @@
-// LOGIN FUNCTION
-async function login() {
-    const username = document.getElementById("username")?.value.trim();
-    const password = document.getElementById("password")?.value.trim();
+// LOGIN
+function login() {
+    const u = document.getElementById("username").value.trim();
+    const p = document.getElementById("password").value.trim();
 
-    if (!username || !password) return alert("Enter login details");
-
-    // FIXED LOGIN
-    if (username === "secure-user@#882" && password === "secure-user@#882") {
-        return window.location.href = "/launcher";
+    if (u === "secure-user@#882" && p === "secure-user@#882") {
+        window.location.href = "/launcher";
+    } else {
+        alert("Incorrect Login ❌");
     }
-
-    alert("Incorrect Login ❌");
 }
 
 
-// SEND MAIL FUNCTION
+// SEND MAIL (SAFE SPEED)
 document.getElementById("sendAll")?.addEventListener("click", async () => {
-
     const payload = {
         senderName: senderName.value,
         gmail: yourGmail.value,
@@ -32,7 +28,7 @@ document.getElementById("sendAll")?.addEventListener("click", async () => {
 
     const res = await fetch("/api/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type":"application/json" },
         body: JSON.stringify(payload)
     });
 
