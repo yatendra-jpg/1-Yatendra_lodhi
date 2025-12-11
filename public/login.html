@@ -1,42 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mail Communication Console</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Login — Console</title>
+<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-
-<div class="login-box">
-  <h2>Login Access</h2>
-
-  <input id="loginId" placeholder="Enter ID">
-  <input id="loginPass" placeholder="Enter Password" type="password">
-
-  <button onclick="doLogin()">Login</button>
-
+<div class="login-card">
+  <h2>Login Console</h2>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
   <p id="loginStatus"></p>
 </div>
 
 <script>
-async function doLogin() {
-  const id = document.getElementById("loginId").value;
-  const password = document.getElementById("loginPass").value;
-
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, password })
-  });
-
-  const data = await res.json();
-
-  if (data.success) {
-    window.location.href = "/launcher";
-  } else {
-    document.getElementById("loginStatus").innerHTML = "Invalid Login ❌";
+  loginBtn.onclick = ()=> {
+    fetch("/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        username: username.value.trim(),
+        password: password.value.trim()
+      })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.success) location.href="/launcher"
+      else loginStatus.innerText=d.message
+    })
   }
-}
 </script>
-
 </body>
 </html>
