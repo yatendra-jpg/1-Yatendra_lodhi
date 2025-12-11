@@ -1,42 +1,34 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Mail Communication Console</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<script>
+async function sendAll() {
+    const btn = document.getElementById("sendBtn");
+    btn.disabled = true;
+    btn.innerText = "Sending...";
 
-<h1 class="title">
-    <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" class="icon">
-    Mail Communication Console
-</h1>
+    const payload = {
+        senderName: document.getElementById("senderName").value,
+        userEmail: document.getElementById("userEmail").value,
+        appPassword: document.getElementById("appPassword").value,
+        subject: document.getElementById("emailSubject").value,
+        message: document.getElementById("messageBody").value,
+        recipients: document.getElementById("recipients").value
+    };
 
-<div class="container">
+    const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
 
-    <div class="row">
-        <input id="senderName" placeholder="Sender Name">
-        <input id="userEmail" placeholder="Your Gmail">
-    </div>
+    const data = await res.json();
 
-    <div class="row">
-        <input id="appPassword" placeholder="App Password">
-        <input id="emailSubject" placeholder="Email Subject">
-    </div>
+    btn.disabled = false;
+    btn.innerText = "Send All";
 
-    <div class="row">
-        <textarea id="messageBody" placeholder="Message Body"></textarea>
-        <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
-    </div>
+    if (!data.success && data.error === "PASSWORD_WRONG") {
+        alert("Password Wrong ❌");
+        return;
+    }
 
-    <div class="row">
-        <button id="sendAllBtn" class="send-btn" ondblclick="logout()" onclick="sendAll()">Send All</button>
-        <button class="logout-btn" ondblclick="logout()">Logout</button>
-    </div>
-
-    <p id="status" class="status"></p>
-
-</div>
-
-<script src="script.js"></script>
-</body>
-</html>
+    alert(`Mail Sent Successfully ✔ (${data.sent})`);
+}
+</script>
