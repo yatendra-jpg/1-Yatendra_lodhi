@@ -1,19 +1,16 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const path = require("path");
 const nodemailer = require("nodemailer");
-const multer = require("multer");
-
-const upload = multer({ dest: "uploads/" });
+const path = require("path");
 
 const app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const LOGIN_USER = "secure-user@#882";
-const LOGIN_PASS = "secure-user@#882";
+const USER = "secure-user@#882";
+const PASS = "secure-user@#882";
 
-// ⭐ FIX: Home route → अब Cannot GET / नहीं आएगा
+// Redirect fix
 app.get("/", (req, res) => {
     res.redirect("/login");
 });
@@ -28,15 +25,15 @@ app.get("/launcher", (req, res) => {
 
 // LOGIN API
 app.post("/api/login", (req, res) => {
-    const { username, password } = req.body;
-    res.json({ success: username === LOGIN_USER && password === LOGIN_PASS });
+    res.json({
+        success: req.body.username === USER && req.body.password === PASS
+    });
 });
 
-// SEND MAILS API
-app.post("/api/send", upload.array("files"), async (req, res) => {
+// SEND MAIL API
+app.post("/api/send", async (req, res) => {
     const { senderName, gmail, appPass, subject, message, recipients } = req.body;
-
-    const list = recipients.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
+    const list = recipients.split(/[\n,]+/).map(a => a.trim()).filter(Boolean);
 
     const transporter = nodemailer.createTransport({
         service: "gmail",
@@ -51,16 +48,16 @@ app.post("/api/send", upload.array("files"), async (req, res) => {
                 from: `${senderName} <${gmail}>`,
                 to: email,
                 subject,
-                text: message
+                html: message  
             });
 
             count++;
 
-            await new Promise(r => setTimeout(r, 80)); // safe fast speed
+            await new Promise(r => setTimeout(r, 120)); // SAFE SPEED
         }
 
         res.json({ success: true, count });
-    } catch (err) {
+    } catch (e) {
         res.json({ success: false });
     }
 });
