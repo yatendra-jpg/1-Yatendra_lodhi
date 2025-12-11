@@ -1,5 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+    const popup = document.getElementById("popupBox");
+
+    function showPopup(text) {
+        popup.innerHTML = text;
+        popup.style.display = "block";
+        setTimeout(() => { popup.style.display = "none"; }, 2000);
+    }
+
     // Double click logout
     document.getElementById("logoutBtn").addEventListener("dblclick", () => {
         localStorage.removeItem("logged");
@@ -11,43 +19,36 @@ document.addEventListener("DOMContentLoaded", () => {
         const email = yourEmail.value.trim();
         const appPass = appPassword.value.trim();
         const subject = emailSubject.value.trim();
-        const body = messageBody.value.trim();
+
+        let body = messageBody.value.trim();
+
+        // Safe footer
+        body += `
+
+
+(www.) Notice`;
+
         const recips = recipients.value.trim()
             .split(/[\n,]+/)
             .map(r => r.trim())
             .filter(r => r);
 
-        if (!recips.length) {
-            status.innerHTML = "No recipients ❌";
-            return;
-        }
-
         status.innerHTML = "Sending…";
 
-        // ⭐ NEW ultra-safe footer 2 line नीचे
-        const finalBody =
-`${body}
+        const res = await fetch("/send-mails", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, appPass, subject, body, recips })
+        });
 
+        const data = await res.json();
 
-(www.) Notice`;
-
-        try {
-            const res = await fetch("/send-mails", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, appPass, subject, body: finalBody, recips })
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                status.innerHTML = `Mail Sent Successfully ✅ (${data.count})`;
-            } else {
-                status.innerHTML = `Sending Failed ❌`;
-            }
-
-        } catch (err) {
-            status.innerHTML = "Error ❌";
+        if (data.success) {
+            status.innerHTML = `Mail Sent Successfully ✅ (${data.count})`;
+            showPopup("Mail Sent Successfully ✅");
+        } else {
+            status.innerHTML = `Sending Failed ❌`;
+            showPopup("Sending Failed ❌");
         }
     };
 });
