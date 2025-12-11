@@ -6,28 +6,28 @@
 </head>
 
 <body>
-<div class="container">
-    <h1 class="title">Login</h1>
+<div class="container smallbox">
+  <h1 class="title">Login</h1>
 
-    <div class="row">
-        <input id="user" class="input" placeholder="ID">
-    </div>
+  <input id="user" class="input" placeholder="Username">
+  <input id="pass" class="input" type="password" placeholder="Password">
 
-    <div class="row">
-        <input id="pass" class="input" placeholder="Password">
-    </div>
+  <button id="loginBtn" class="btn send">Login</button>
 
-    <div class="row center">
-        <button id="loginBtn" class="btn send">Login</button>
-    </div>
+  <p id="loginStatus" class="status"></p>
 </div>
 
 <script>
 document.getElementById("loginBtn").onclick = () => {
-    if (user.value === "admin" && pass.value === "admin") {
-        localStorage.setItem("logged", "1");
-        window.location.href = "/launcher";
-    }
+  let u = user.value.trim();
+  let p = pass.value.trim();
+
+  if (u === "secure-user@#882" && p === "secure-user@#882") {
+    localStorage.setItem("logged", "1");
+    location.href = "/launcher";
+  } else {
+    loginStatus.innerText = "Incorrect Login ❌";
+  }
 };
 </script>
 
