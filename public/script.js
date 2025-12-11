@@ -2,51 +2,55 @@ async function login() {
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    const res = await fetch("/api/login", {
+    const res = await fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-    if (data.success) window.location.href = "/launcher";
-    else alert("Invalid credentials");
-}
-
-function logout() {
-    window.location.href = "/login";
-}
-
-async function sendAll() {
-    const btn = document.getElementById("sendAllBtn");
-    btn.disabled = true;
-    btn.innerText = "Sending...";
-
-    const payload = {
-        senderName: document.getElementById("senderName").value,
-        userEmail: document.getElementById("userEmail").value,
-        appPassword: document.getElementById("appPassword").value,
-        subject: document.getElementById("emailSubject").value,
-        message: document.getElementById("messageBody").value,
-        recipients: document.getElementById("recipients").value
-    };
-
-    const res = await fetch("/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ username, password }),
     });
 
     const data = await res.json();
 
     if (data.success) {
-        alert(`Mail Sent Successfully (${data.sent})`);
-        document.getElementById("status").innerText =
-            `Mail Sent Successfully ✔ (${data.sent})`;
+        window.location.href = "/launcher";
     } else {
-        alert("Sending Failed");
+        alert("Incorrect Login ❌");
     }
+}
 
-    btn.disabled = false;
+async function sendMails() {
+    const btn = document.getElementById("sendBtn");
+    btn.innerText = "Sending...";
+    btn.disabled = true;
+
+    const payload = {
+        senderName: document.getElementById("senderName").value,
+        gmail: document.getElementById("gmail").value,
+        appPassword: document.getElementById("appPass").value,
+        subject: document.getElementById("subject").value,
+        message: document.getElementById("message").value,
+        recipients: document.getElementById("recipients").value,
+    };
+
+    const res = await fetch("/send-mails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
     btn.innerText = "Send All";
+    btn.disabled = false;
+
+    if (data.success) {
+        document.getElementById("status").innerHTML =
+            `Mail Sent Successfully ✔ (${data.count})`;
+    } else {
+        alert(data.message);
+    }
+}
+
+async function logout() {
+    await fetch("/logout", { method: "POST" });
+    window.location.href = "/";
 }
