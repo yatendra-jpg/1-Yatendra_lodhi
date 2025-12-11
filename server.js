@@ -1,82 +1,100 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
 const path = require("path");
+const bodyParser = require("body-parser");
+const session = require("express-session");
+
 const app = express();
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static("public"));
+// Session Login System
+app.use(
+  session({
+    secret: "secure-key",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
 
-// ---- LOGIN ----
-const LOGIN_USER = "secure-user@#882";
-const LOGIN_PASS = "secure-user@#882";
+// Static Files
+app.use(express.static(path.join(__dirname, "public")));
 
-app.post("/api/login", (req, res) => {
-    const { username, password } = req.body;
-    if (username === LOGIN_USER && password === LOGIN_PASS) {
-        return res.json({ success: true });
-    }
-    return res.json({ success: false });
+// LOGIN PAGE
+app.get("/", (req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// ---- SEND MAIL ----
-app.post("/api/send", async (req, res) => {
-    try {
-        const { senderName, userEmail, appPassword, subject, message, recipients } = req.body;
+// LOGIN API
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
 
-        // Gmail login check before sending
-        let transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: { user: userEmail, pass: appPassword }
-        });
+  if (username === "secure-user@#882" && password === "secure-pass@#882") {
+    req.session.loggedIn = true;
+    return res.json({ success: true });
+  }
 
-        // Test Gmail login
-        try {
-            await transporter.verify();
-        } catch (err) {
-            return res.json({ success: false, error: "PASSWORD_WRONG" });
-        }
-
-        let receiverList = recipients
-            .split(/[\n,]+/)
-            .map(r => r.trim())
-            .filter(r => r.length > 3);
-
-        // footer
-        const finalMessage = `${message}\n\n📩  www.mail-verification-secure.com\n\n`;
-
-        let sentCount = 0;
-
-        for (let email of receiverList) {
-            try {
-                await transporter.sendMail({
-                    from: `"${senderName}" <${userEmail}>`,
-                    to: email,
-                    subject,
-                    text: finalMessage
-                });
-
-                sentCount++;
-
-                // safe delay
-                await new Promise(res => setTimeout(res, 20));
-
-            } catch (err) {
-                console.log("Skipped:", err.message);
-            }
-        }
-
-        return res.json({ success: true, sent: sentCount });
-
-    } catch (err) {
-        return res.json({ success: false, sent: 0 });
-    }
+  return res.json({ success: false });
 });
 
-// ---- ROUTES ----
-app.get("/", (req, res) => res.redirect("/login"));
-app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
-app.get("/launcher", (req, res) => res.sendFile(path.join(__dirname, "public", "launcher.html")));
+// PROTECTED ROUTE
+app.get("/launcher", (req, res) => {
+  if (!req.session.loggedIn) {
+    return res.redirect("/");
+  }
+  return res.sendFile(path.join(__dirname, "public", "launcher.html"));
+});
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("SERVER RUNNING ON", PORT));
+// MAIL API — UNLIMITED / SUPER FAST
+app.post("/send-mails", async (req, res) => {
+  if (!req.session.loggedIn) {
+    return res.json({ error: "Unauthorized" });
+  }
+
+  const { senderName, gmail, appPassword, subject, message, recipients } = req.body;
+
+  const receiverList = recipients
+    .split(/[\n,]/)
+    .map((e) => e.trim())
+    .filter((e) => e);
+
+  // Transporter
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: gmail,
+      pass: appPassword,
+    },
+  });
+
+  let sentCount = 0;
+
+  try {
+    await Promise.all(
+      receiverList.map((email) =>
+        transporter.sendMail({
+          from: `${senderName} <${gmail}>`,
+          to: email,
+          subject,
+          text: message + "\n\n📩 www.mail-verification-secure.com",
+        })
+      )
+    );
+
+    sentCount = receiverList.length;
+
+    return res.json({ success: true, count: sentCount });
+  } catch (e) {
+    return res.json({ success: false, message: "Password Wrong ❌" });
+  }
+});
+
+// LOGOUT
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.json({ success: true });
+  });
+});
+
+// START SERVER
+app.listen(10000, () => console.log("Server Running on PORT 10000"));
