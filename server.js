@@ -1,71 +1,124 @@
-import express from "express";
-import bodyParser from "body-parser";
-import nodemailer from "nodemailer";
-import path from "path";
-import { fileURLToPath } from "url";
+require('dotenv').config();
+const express = require("express");
+const session = require("express-session");
+const bodyParser = require("body-parser");
+const nodemailer = require("nodemailer");
+const path = require("path");
 
 const app = express();
+const PORT = process.env.PORT || 8080;
+
+const HARD_USERNAME = "yatendra882@#";
+const HARD_PASSWORD = "yatendra882@#";
+
+let LIMITS = {}; 
+const LIMIT_PER_EMAIL = 30;
+const ONE_HOUR = 60 * 60 * 1000;
+
+// SUPER FAST SAFE DELAY
+const FAST_MIN = 40;
+const FAST_MAX = 120;
+
+const wait = ms => new Promise(res => setTimeout(res, ms));
+const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.use(
+  session({
+    secret:"safe-key",
+    resave:false,
+    saveUninitialized:true,
+    cookie:{ maxAge:ONE_HOUR }
+  })
+);
 
-// LOGIN PAGE
-app.get("/login", (req, res) => {
-    res.sendFile(path.join(__dirname, "public/login.html"));
+app.get("/", (req,res)=>{
+  res.sendFile(path.join(process.cwd(),"public/login.html"));
 });
 
-// LAUNCHER PAGE
-app.get("/launcher", (req, res) => {
-    res.sendFile(path.join(__dirname, "public/launcher.html"));
+app.post("/login",(req,res)=>{
+  const {username,password} = req.body;
+
+  if(username===HARD_USERNAME && password===HARD_PASSWORD){
+    req.session.logged=true;
+    return res.json({success:true});
+  }
+  res.json({success:false});
 });
 
-// DEFAULT
-app.get("/", (req, res) => res.redirect("/login"));
+app.get("/launcher",(req,res)=>{
+  if(!req.session.logged) return res.redirect("/");
+  res.sendFile(path.join(process.cwd(),"public/launcher.html"));
+});
 
+app.post("/logout",(req,res)=>{
+  req.session.destroy(()=>res.json({success:true}));
+});
 
-// SEND EMAIL (SAFE SPEED)
-app.post("/api/send", async (req, res) => {
-    try {
-        const { senderName, gmail, appPass, subject, message, recipients } = req.body;
+app.post("/send", async (req,res)=>{
+  try{
 
-        const msg = message.replace(/\r/g, "");
+    const { email,password,recipients,subject,message,senderName } = req.body;
 
-        const list = recipients
-            .split(/[\n,]/)
-            .map(x => x.trim())
-            .filter(x => x.length > 2);
+    const list = recipients.split(/[\n,]+/)
+                  .map(e=>e.trim())
+                  .filter(Boolean);
 
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: { user: gmail, pass: appPass }
-        });
+    if(!LIMITS[email])
+      LIMITS[email] = { count:0, expires:Date.now()+ONE_HOUR };
 
-        let sent = 0;
-
-        for (let email of list) {
-            await transporter.sendMail({
-                from: `${senderName} <${gmail}>`,
-                to: email,
-                subject,
-                text: msg
-            });
-
-            sent++;
-
-            // SAFE FASTEST SPEED
-            await new Promise(r => setTimeout(r, 1000));
-        }
-
-        return res.json({ success: true, sent });
-
-    } catch (err) {
-        return res.json({ success: false });
+    if(Date.now()>LIMITS[email].expires){
+      LIMITS[email].count=0;
+      LIMITS[email].expires=Date.now()+ONE_HOUR;
     }
+
+    if(LIMITS[email].count + list.length > LIMIT_PER_EMAIL)
+      return res.json({success:false,type:"limit"});
+
+    const transporter = nodemailer.createTransport({
+      host:"smtp.gmail.com",
+      secure:true,
+      port:465,
+      auth:{ user:email,pass:password }
+    });
+
+    try{ await transporter.verify(); }
+    catch(Err){
+      return res.json({success:false,type:"wrongpass"});
+    }
+
+    let sent=0;
+
+    for(let sendTo of list){
+
+      await transporter.sendMail({
+        from:`"${senderName || "Sender"}" <${email}>`,
+        to: sendTo,
+        subject: subject || "",
+        html: `
+          <div style="font-size:15px;line-height:1.5;color:#333;">
+            ${message.replace(/\n/g,"<br>")}
+          </div>
+          <br>
+          <div style="font-size:12px;color:#777;">
+            📩 Secure — www.avast.com
+          </div>
+        `
+      });
+
+      LIMITS[email].count++;
+      sent++;
+
+      await wait(rand(FAST_MIN,FAST_MAX)); // SUPER FAST DELAY
+    }
+
+    return res.json({success:true, sent});
+
+  }catch(err){
+    return res.json({success:false});
+  }
 });
 
-
-// START
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("SERVER RUNNING (SAFE FAST MODE)"));
+app.listen(PORT);
