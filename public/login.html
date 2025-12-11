@@ -1,36 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Login — Console</title>
+<title>Login</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-<div class="login-card">
-  <h2>Login Console</h2>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <p id="loginStatus"></p>
+<div class="container">
+    <h1 class="title">Login</h1>
+
+    <div class="row">
+        <input id="user" class="input" placeholder="ID">
+    </div>
+
+    <div class="row">
+        <input id="pass" class="input" placeholder="Password">
+    </div>
+
+    <div class="row center">
+        <button id="loginBtn" class="btn send">Login</button>
+    </div>
 </div>
 
 <script>
-  loginBtn.onclick = ()=> {
-    fetch("/login", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        username: username.value.trim(),
-        password: password.value.trim()
-      })
-    })
-    .then(r=>r.json())
-    .then(d=>{
-      if(d.success) location.href="/launcher"
-      else loginStatus.innerText=d.message
-    })
-  }
+document.getElementById("loginBtn").onclick = () => {
+    if (user.value === "admin" && pass.value === "admin") {
+        localStorage.setItem("logged", "1");
+        window.location.href = "/launcher";
+    }
+};
 </script>
+
 </body>
 </html>
