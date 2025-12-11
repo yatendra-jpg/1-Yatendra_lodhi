@@ -5,27 +5,26 @@ body {
 
 .login-box {
   width: 350px;
-  margin: 120px auto;
+  margin: 150px auto;
   padding: 40px;
-  background: #fff;
+  background: white;
   border-radius: 20px;
   text-align: center;
-  box-shadow: 0px 0px 25px rgba(0,0,0,0.15);
+  box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
+}
+
+.container {
+  width: 80%;
+  margin: 40px auto;
+  padding: 40px;
+  background: white;
+  border-radius: 25px;
+  box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
 }
 
 .title {
   text-align: center;
   margin-top: 40px;
-}
-
-.container {
-  width: 80%;
-  margin: auto;
-  background: white;
-  padding: 40px;
-  border-radius: 30px;
-  box-shadow: 0px 0px 25px rgba(0,0,0,0.15);
-  margin-bottom: 40px;
 }
 
 .row {
@@ -41,21 +40,22 @@ input, textarea {
   border: 1px solid #ccc;
 }
 
-textarea { height: 160px; }
+textarea {
+  height: 160px;
+}
 
 button {
   width: 100%;
   padding: 16px;
   border-radius: 12px;
-  border: none;
   background: #2f74ff;
-  color: white;
   font-size: 20px;
+  border: none;
+  color: white;
   cursor: pointer;
 }
 
 #status {
-  margin-top: 12px;
   text-align: center;
-  font-size: 18px;
+  margin-top: 10px;
 }
