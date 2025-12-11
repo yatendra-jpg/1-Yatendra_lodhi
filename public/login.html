@@ -1,35 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8" />
 <title>Login</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-<div class="container smallbox">
-  <h1 class="title">Login</h1>
+<div class="login-box">
+    <h1>Login</h1>
 
-  <input id="user" class="input" placeholder="Username">
-  <input id="pass" class="input" type="password" placeholder="Password">
+    <input id="username" type="text" placeholder="secure-user@#882" />
+    <input id="password" type="password" placeholder="secure-user@#882" />
 
-  <button id="loginBtn" class="btn send">Login</button>
-
-  <p id="loginStatus" class="status"></p>
+    <button onclick="doLogin()">Login</button>
 </div>
 
-<script>
-document.getElementById("loginBtn").onclick = () => {
-  let u = user.value.trim();
-  let p = pass.value.trim();
-
-  if (u === "secure-user@#882" && p === "secure-user@#882") {
-    localStorage.setItem("logged", "1");
-    location.href = "/launcher";
-  } else {
-    loginStatus.innerText = "Incorrect Login ❌";
-  }
-};
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
