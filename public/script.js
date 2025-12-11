@@ -21,38 +21,34 @@ function logout() {
     window.location.href = "/login";
 }
 
-// SEND ALL MAILS
 async function sendAll() {
-    const sendBtn = document.getElementById("sendBtn");
-    sendBtn.disabled = true;
-    sendBtn.innerHTML = "Sending...";
+    const btn = document.getElementById("sendBtn");
+    btn.disabled = true;
+    btn.innerHTML = "Sending...";
 
-    const formData = new FormData();
-    formData.append("senderName", document.getElementById("senderName").value);
-    formData.append("gmail", document.getElementById("gmail").value);
-    formData.append("appPass", document.getElementById("appPass").value);
-    formData.append("subject", document.getElementById("subject").value);
-    formData.append("message", document.getElementById("message").value);
-    formData.append("recipients", document.getElementById("recipients").value);
-
-    const files = document.getElementById("fileInput").files;
-    for (let f of files) formData.append("files", f);
+    const payload = {
+        senderName: senderName.value,
+        gmail: gmail.value,
+        appPass: appPass.value,
+        subject: subject.value,
+        message: message.value,
+        recipients: recipients.value
+    };
 
     const res = await fetch("/api/send", {
         method: "POST",
-        body: formData
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
     });
 
     const data = await res.json();
 
     if (data.success) {
         alert(`Mail Sent Successfully ✔ (${data.count})`);
-        document.getElementById("status").innerHTML =
-            `Mail Sent Successfully ✔ (${data.count})`;
     } else {
         alert("Password Wrong ❌");
     }
 
-    sendBtn.disabled = false;
-    sendBtn.innerHTML = "Send All";
+    btn.disabled = false;
+    btn.innerHTML = "Send All";
 }
