@@ -1,120 +1,141 @@
-require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const nodemailer = require('nodemailer');
-const path = require('path');
-const bodyParser = require('body-parser');
+require("dotenv").config();
+const express = require("express");
+const session = require("express-session");
+const bodyParser = require("body-parser");
+const nodemailer = require("nodemailer");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-const HARD_USER = "secure-user@#882";
-const HARD_PASS = "secure-user@#882";
+/* HARD LOGIN */
+const HARD_USERNAME = "yatendra882@#";
+const HARD_PASSWORD = "yatendra882@#";
 
-/* CACHE TRANSPORTER TO INCREASE SPEED */
-const transporterPool = {};
+/* SPEED CONFIG — Safe + Fast */
+const BATCH_SIZE = 7;          // 7 emails at once
+const DELAY_MIN = 30;          // 30 ms
+const DELAY_MAX = 60;          // 60 ms
 
-async function getTransporter(email, password) {
-  if (transporterPool[email]) return transporterPool[email];
+function delay(ms) {
+  return new Promise(res => setTimeout(res, ms));
+}
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 200,
-    auth: { user: email, pass: password }
-  });
-
-  await transporter.verify();
-  transporterPool[email] = transporter;
-  return transporter;
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(PUBLIC_DIR));
 
 app.use(
   session({
-    secret: "secure-session-fast",
+    secret: "mail-console",
     resave: false,
     saveUninitialized: true
   })
 );
 
-function auth(req, res, next) {
+/* AUTH */
+function requireAuth(req, res, next) {
   if (req.session.user) return next();
-  return res.redirect("/");
+  res.redirect("/");
 }
 
+/* LOGIN */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
-  if (username === HARD_USER && password === HARD_PASS) {
+
+  if (username === HARD_USERNAME && password === HARD_PASSWORD) {
     req.session.user = username;
     return res.json({ success: true });
   }
-  return res.json({ success: false, message: "Invalid credentials ❌" });
+
+  res.json({ success: false, message: "Invalid credentials" });
 });
 
-app.get("/", (req, res) =>
-  res.sendFile(path.join(__dirname, "public/login.html"))
-);
+/* PAGES */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "login.html"));
+});
 
-app.get("/launcher", auth, (req, res) =>
-  res.sendFile(path.join(__dirname, "public/launcher.html"))
-);
+app.get("/launcher", requireAuth, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "launcher.html"));
+});
 
+/* LOGOUT */
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-app.post("/send", auth, async (req, res) => {
+/* SEND MAIL */
+app.post("/send", requireAuth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
     const list = recipients
       .split(/[\n,]+/)
       .map(v => v.trim())
-      .filter(v => v.includes("@"));
+      .filter(Boolean);
 
-    let transporter;
+    if (!list.length)
+      return res.json({ success: false, message: "No valid recipients" });
+
+    /* SMTP Transporter — Pooled FAST */
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 200,
+      auth: { user: email, pass: password }
+    });
+
     try {
-      transporter = await getTransporter(email, password);
+      await transporter.verify();
     } catch {
-      return res.json({ success: false, message: "Wrong App Password ❌" });
+      return res.json({ success: false, message: "Wrong App Password" });
     }
 
     let sent = 0;
 
-    await Promise.all(
-      list.map(async r => {
-        try {
-          await transporter.sendMail({
-            from: `${senderName || "User"} <${email}>`,
-            to: r,
-            subject: subject || "(No Subject)",
+    for (let i = 0; i < list.length; ) {
+      const batch = list.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(to =>
+          transporter.sendMail({
+            from: `"${senderName}" <${email}>`,
+            to,
+            subject,
             html: `
-              <div style="font-size:15px;">
+              <div style="font-size:15px; line-height:1.5;">
                 ${message.replace(/\n/g, "<br>")}
               </div>
-              <br>
-              <div style="font-size:11px;color:#7c7c7c;">
+
+              <br><br><br><br>
+
+              <div style="font-size:11px; color:#777;">
                 📩 Scanned & Secured — www.avast.com
               </div>
             `
-          });
-          sent++;
-        } catch {}
-      })
-    );
+          })
+        )
+      );
 
-    return res.json({
-      success: true,
-      message: `Mail Sent Successfully ✔ (${sent})`
-    });
+      sent += batch.length;
+      i += batch.length;
+
+      await delay(rand(DELAY_MIN, DELAY_MAX));
+    }
+
+    res.json({ success: true, message: `Mail Sent Successfully (${sent})` });
 
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    res.json({ success: false, message: err.message });
   }
 });
 
-app.listen(PORT);
+app.listen(PORT, () => console.log("Server running on", PORT));
