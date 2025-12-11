@@ -2,7 +2,6 @@ body {
     background: #e9edfc;
     font-family: system-ui;
     margin: 0;
-    padding: 0;
 }
 
 .main-box {
@@ -11,12 +10,13 @@ body {
     background: white;
     padding: 40px;
     border-radius: 20px;
-    box-shadow: 0 5px 20px #d1d1d1;
+    box-shadow: 0 5px 18px #d0d0d0;
 }
 
 .title {
     text-align: center;
     margin-bottom: 40px;
+    font-size: 32px;
 }
 
 .row {
@@ -29,7 +29,7 @@ input, textarea {
     width: 100%;
     padding: 15px;
     border-radius: 10px;
-    border: 1px solid #d4d4d4;
+    border: 1px solid #cfcfcf;
     font-size: 16px;
 }
 
@@ -41,35 +41,14 @@ textarea {
 button {
     width: 100%;
     padding: 18px;
+    background: #2979ff;
+    color: #fff;
     font-size: 18px;
     border-radius: 10px;
     border: none;
     cursor: pointer;
-    background: #2f78ff;
-    color: white;
 }
 
 button:hover {
-    background: #2064d8;
-}
-
-.login-box {
-    width: 350px;
-    margin: 100px auto;
-    padding: 40px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px #cfcfcf;
-    text-align: center;
-}
-
-.login-box input {
-    margin-bottom: 20px;
-    width: 100%;
-}
-
-#status {
-    text-align: center;
-    font-size: 18px;
-    margin-top: 20px;
+    background: #1f63d6;
 }
