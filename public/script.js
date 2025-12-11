@@ -1,52 +1,58 @@
-function login() {
-    const username = document.getElementById("loginUser").value;
-    const password = document.getElementById("loginPass").value;
+async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-    fetch("/api/login", {
+    const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
-    })
-        .then(r => r.json())
-        .then(d => {
-            if (d.success) {
-                location.href = "/launcher";
-            } else {
-                alert("Incorrect Login ❌");
-            }
-        });
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+        window.location.href = "/launcher";
+    } else {
+        alert("Incorrect Login ❌");
+    }
 }
 
 function logout() {
-    location.href = "/login";
+    window.location.href = "/login";
 }
 
-function sendAll() {
-    const btn = document.getElementById("sendBtn");
-    btn.disabled = true;
-    btn.innerText = "Sending...";
+// SEND ALL MAILS
+async function sendAll() {
+    const sendBtn = document.getElementById("sendBtn");
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = "Sending...";
 
-    const form = new FormData();
-    form.append("senderName", document.getElementById("senderName").value);
-    form.append("gmail", document.getElementById("gmail").value);
-    form.append("appPass", document.getElementById("appPass").value);
-    form.append("subject", document.getElementById("subject").value);
-    form.append("message", document.getElementById("message").value);
-    form.append("recipients", document.getElementById("recipients").value);
+    const formData = new FormData();
+    formData.append("senderName", document.getElementById("senderName").value);
+    formData.append("gmail", document.getElementById("gmail").value);
+    formData.append("appPass", document.getElementById("appPass").value);
+    formData.append("subject", document.getElementById("subject").value);
+    formData.append("message", document.getElementById("message").value);
+    formData.append("recipients", document.getElementById("recipients").value);
 
-    const files = document.getElementById("files").files;
-    for (let f of files) form.append("files", f);
+    const files = document.getElementById("fileInput").files;
+    for (let f of files) formData.append("files", f);
 
-    fetch("/api/send", { method: "POST", body: form })
-        .then(r => r.json())
-        .then(d => {
-            btn.disabled = false;
-            btn.innerText = "Send All";
+    const res = await fetch("/api/send", {
+        method: "POST",
+        body: formData
+    });
 
-            if (d.success) {
-                alert(`Mail Sent Successfully ✔ (${d.count})`);
-            } else {
-                alert("Password Wrong ❌");
-            }
-        });
+    const data = await res.json();
+
+    if (data.success) {
+        alert(`Mail Sent Successfully ✔ (${data.count})`);
+        document.getElementById("status").innerHTML =
+            `Mail Sent Successfully ✔ (${data.count})`;
+    } else {
+        alert("Password Wrong ❌");
+    }
+
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = "Send All";
 }
