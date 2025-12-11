@@ -26,6 +26,14 @@ app.use(express.static(path.join(__dirname, "public")));
 const LOGIN_ID = "secure-user@#882";
 const LOGIN_PASS = "secure-user@#882";
 
+app.get("/", (req, res) => {
+    return res.redirect("/login");   // FIXED 🔥
+});
+
+app.get("/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/login.html"));
+});
+
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
 
@@ -43,40 +51,38 @@ function isLoggedIn(req, res, next) {
 }
 
 app.get("/launcher", isLoggedIn, (req, res) => {
-    res.sendFile(path.join(__dirname, "/public/launcher.html"));
+    res.sendFile(path.join(__dirname, "public/launcher.html"));
 });
 
-// LOGOUT
 app.post("/logout", (req, res) => {
     req.session.destroy(() => {
         res.json({ success: true });
     });
 });
 
+
 // ----------------------------------------------------------
 // -------------------- MAIL SENDING API --------------------
 // ----------------------------------------------------------
 
-async function sendEmailFastSafe(gmail, appPassword, subject, message, recipient) {
+async function sendFastMail(gmail, appPassword, subject, body, to) {
     const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
             user: gmail,
             pass: appPassword
         },
-        tls: {
-            rejectUnauthorized: false
-        }
+        tls: { rejectUnauthorized: false }
     });
 
-    const mailOptions = {
+    const options = {
         from: gmail,
-        to: recipient,
+        to: to,
         subject: subject,
-        text: message
+        text: body
     };
 
-    await transporter.sendMail(mailOptions);
+    await transporter.sendMail(options);
 }
 
 app.post("/send-mails", isLoggedIn, async (req, res) => {
@@ -88,28 +94,25 @@ app.post("/send-mails", isLoggedIn, async (req, res) => {
             .map(e => e.trim())
             .filter(Boolean);
 
-        let count = 0;
+        let sentCount = 0;
 
         for (const email of list) {
-            await sendEmailFastSafe(gmail, appPassword, subject, message, email);
-            count++;
+            await sendFastMail(gmail, appPassword, subject, message, email);
+            sentCount++;
         }
 
-        res.json({ success: true, sent: count });
+        return res.json({ success: true, sent: sentCount });
 
     } catch (err) {
-        res.json({ success: false, message: "Mail send failed", error: err.message });
+        return res.json({
+            success: false,
+            message: "Mail sending failed",
+            error: err.message
+        });
     }
 });
 
 // ----------------------------------------------------------
-// -------------------- LOGIN PAGE --------------------------
-// ----------------------------------------------------------
 
-app.get("/login", (req, res) => {
-    res.sendFile(path.join(__dirname, "/public/login.html"));
-});
-
-// ----------------------------------------------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on PORT ${PORT}`));
+app.listen(PORT, () => console.log("Server running on port", PORT));
