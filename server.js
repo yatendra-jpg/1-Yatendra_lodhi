@@ -2,6 +2,9 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const nodemailer = require("nodemailer");
+const multer = require("multer");
+
+const upload = multer({ dest: "uploads/" });
 
 const app = express();
 app.use(bodyParser.json());
@@ -10,35 +13,38 @@ app.use(express.static(path.join(__dirname, "public")));
 const LOGIN_USER = "secure-user@#882";
 const LOGIN_PASS = "secure-user@#882";
 
-// LOGIN API
+// LOGIN
 app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
-
     if (username === LOGIN_USER && password === LOGIN_PASS) {
         return res.json({ success: true });
     }
-
     return res.json({ success: false });
 });
 
-// SEND MAIL (SAFE MODE – 1 BY 1)
-app.post("/api/send", async (req, res) => {
+// SEND MAIL WITH ATTACHMENTS (SAFE SPEED)
+app.post("/api/send", upload.array("files"), async (req, res) => {
     const { senderName, gmail, appPass, subject, message, recipients } = req.body;
 
-    let list = recipients
+    const list = recipients
         .split(/[\n,]+/)
         .map(e => e.trim())
         .filter(Boolean);
 
+    // Gmail-safe transporter
     const transporter = nodemailer.createTransport({
         service: "gmail",
-        auth: {
-            user: gmail,
-            pass: appPass
-        }
+        auth: { user: gmail, pass: appPass }
     });
 
-    const footer = "\n\n📩 mail-check";
+    let attachments = [];
+    if (req.files) {
+        attachments = req.files.map((file) => ({
+            filename: file.originalname,
+            path: file.path
+        }));
+    }
+
     let sent = 0;
 
     try {
@@ -47,31 +53,25 @@ app.post("/api/send", async (req, res) => {
                 from: `${senderName} <${gmail}>`,
                 to: email,
                 subject,
-                text: message + footer
+                text: message,
+                attachments
             });
 
             sent++;
 
-            // Gmail-approved safe delay (prevents block)
-            await new Promise(resolve => setTimeout(resolve, 1200));
+            // SAFE OPTIMAL SPEED (Gmail's max without dropping mails)
+            await new Promise(res => setTimeout(res, 900));
         }
 
         return res.json({ success: true, count: sent });
-
     } catch (err) {
         return res.json({ success: false, error: "PASSWORD_WRONG" });
     }
 });
 
 // ROUTES
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-app.get("/login", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-app.get("/launcher", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "launcher.html"));
-});
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/launcher", (req, res) => res.sendFile(path.join(__dirname, "public/launcher.html")));
 
-app.listen(5000, () => console.log("SAFE MAIL SERVER RUNNING"));
+app.listen(5000, () => console.log("SAFE MAIL SERVER WITH ATTACHMENTS STARTED"));
