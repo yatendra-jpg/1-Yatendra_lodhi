@@ -1,49 +1,37 @@
-/* Multi-tab logout */
-function broadcastLogout() {
-  localStorage.setItem("logout", Date.now());
-}
-window.addEventListener("storage", e => {
-  if (e.key === "logout") location.href = "/login";
-});
-
-/* DOUBLE CLICK LOGOUT */
+/* Double-click logout */
 logoutBtn?.addEventListener("dblclick", () => {
-  fetch("/logout", { method: "POST" })
-    .then(() => {
-      broadcastLogout();
-      location.href = "/login";
-    });
+  fetch("/logout",{method:"POST"}).then(()=>{
+    localStorage.removeItem("logged");
+    location.href="/login";
+  });
 });
 
-/* SHOW POPUP */
-function showPopup(msg) {
-  const box = document.createElement("div");
-  box.style.position = "fixed";
-  box.style.top = "30px";
-  box.style.left = "50%";
-  box.style.transform = "translateX(-50%)";
-  box.style.background = "#1d77ff";
-  box.style.color = "#fff";
-  box.style.padding = "14px 26px";
-  box.style.borderRadius = "10px";
-  box.style.fontSize = "18px";
-  box.style.boxShadow = "0 4px 18px rgba(0,0,0,0.25)";
-  box.style.zIndex = "9999";
-  box.innerText = msg;
+/* Popup */
+function popup(msg){
+  let box=document.createElement("div");
+  box.style.position="fixed";
+  box.style.top="25px";
+  box.style.left="50%";
+  box.style.transform="translateX(-50%)";
+  box.style.background="#1d77ff";
+  box.style.color="#fff";
+  box.style.padding="14px 26px";
+  box.style.fontSize="18px";
+  box.style.borderRadius="10px";
+  box.style.zIndex="9999";
+  box.style.boxShadow="0 4px 20px rgba(0,0,0,.25)";
+  box.innerText=msg;
 
   document.body.appendChild(box);
 
-  setTimeout(() => {
-    box.style.transition = "0.4s";
-    box.style.opacity = "0";
-    setTimeout(() => box.remove(), 400);
-  }, 1600);
+  setTimeout(()=>{ box.style.opacity="0"; box.style.transition="0.4s"; },1500);
+  setTimeout(()=>box.remove(),1900);
 }
 
 /* SEND MAIL */
-sendBtn?.addEventListener("click", () => {
+sendBtn.addEventListener("click", () => {
 
-  const body = {
+  const data = {
     senderName: senderName.value,
     email: email.value.trim(),
     password: pass.value.trim(),
@@ -52,33 +40,29 @@ sendBtn?.addEventListener("click", () => {
     recipients: recipients.value.trim()
   };
 
-  if (!body.email || !body.password || !body.recipients) {
-    alert("❌ Email, password & recipients are required!");
-    return;
+  if(!data.email || !data.password || !data.recipients){
+    return alert("❌ Email, Password & Recipients Required");
   }
 
-  // Disable button during sending
-  sendBtn.disabled = true;
-  sendBtn.innerHTML = "⏳ Sending…";
+  sendBtn.disabled=true;
+  sendBtn.innerHTML="⏳ Sending…";
 
-  fetch("/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+  fetch("/send",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
   })
-    .then(r => r.json())
-    .then(d => {
-
-      if (d.success) {
-        showPopup(`Mail Sent Successfully ✔ (${d.sentCount})`);
-      } else {
-        showPopup("Mail Not Sent ✖ (Check App Password)");
-      }
-
-    })
-    .finally(() => {
-      sendBtn.disabled = false;
-      sendBtn.innerHTML = "Send All";
-    });
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.success){
+      popup(`Mail Sent Successfully ✔ (${d.sentCount})`);
+    } else {
+      popup("Mail Not Sent ✖ (App Password Wrong)");
+    }
+  })
+  .finally(()=>{
+    sendBtn.disabled=false;
+    sendBtn.innerHTML="Send All";
+  });
 
 });
