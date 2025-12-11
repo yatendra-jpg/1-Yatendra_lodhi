@@ -13,11 +13,26 @@ app.use(express.static(path.join(__dirname, "public")));
 const LOGIN_USER = "secure-user@#882";
 const LOGIN_PASS = "secure-user@#882";
 
+// ⭐ FIX: Home route → अब Cannot GET / नहीं आएगा
+app.get("/", (req, res) => {
+    res.redirect("/login");
+});
+
+app.get("/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/login.html"));
+});
+
+app.get("/launcher", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/launcher.html"));
+});
+
+// LOGIN API
 app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
     res.json({ success: username === LOGIN_USER && password === LOGIN_PASS });
 });
 
+// SEND MAILS API
 app.post("/api/send", upload.array("files"), async (req, res) => {
     const { senderName, gmail, appPass, subject, message, recipients } = req.body;
 
@@ -40,7 +55,8 @@ app.post("/api/send", upload.array("files"), async (req, res) => {
             });
 
             count++;
-            await new Promise(r => setTimeout(r, 500)); // 0.5 sec safe delay
+
+            await new Promise(r => setTimeout(r, 80)); // safe fast speed
         }
 
         res.json({ success: true, count });
@@ -48,12 +64,5 @@ app.post("/api/send", upload.array("files"), async (req, res) => {
         res.json({ success: false });
     }
 });
-
-app.get("/login", (req, res) =>
-    res.sendFile(path.join(__dirname, "public/login.html"))
-);
-app.get("/launcher", (req, res) =>
-    res.sendFile(path.join(__dirname, "public/launcher.html"))
-);
 
 app.listen(5000, () => console.log("SERVER RUNNING ✔"));
