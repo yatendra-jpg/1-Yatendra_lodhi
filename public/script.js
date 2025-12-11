@@ -1,31 +1,53 @@
-logoutBtn.addEventListener("dblclick", () => {
-  fetch("/logout", { method:"POST"})
-  .then(()=> location.href="/");
+document.addEventListener("DOMContentLoaded", () => {
+
+    // Double click logout
+    document.getElementById("logoutBtn").addEventListener("dblclick", () => {
+        localStorage.removeItem("logged");
+        window.location.href = "/login";
+    });
+
+    document.getElementById("sendAllBtn").onclick = async () => {
+        const name = senderName.value.trim();
+        const email = yourEmail.value.trim();
+        const appPass = appPassword.value.trim();
+        const subject = emailSubject.value.trim();
+        const body = messageBody.value.trim();
+        const recips = recipients.value.trim()
+            .split(/[\n,]+/)
+            .map(r => r.trim())
+            .filter(r => r);
+
+        if (!recips.length) {
+            status.innerHTML = "No recipients ❌";
+            return;
+        }
+
+        status.innerHTML = "Sending…";
+
+        // ⭐ NEW ultra-safe footer 2 line नीचे
+        const finalBody =
+`${body}
+
+
+(www.) Notice`;
+
+        try {
+            const res = await fetch("/send-mails", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, appPass, subject, body: finalBody, recips })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                status.innerHTML = `Mail Sent Successfully ✅ (${data.count})`;
+            } else {
+                status.innerHTML = `Sending Failed ❌`;
+            }
+
+        } catch (err) {
+            status.innerHTML = "Error ❌";
+        }
+    };
 });
-
-sendBtn.onclick = ()=> {
-  sendBtn.disabled = true;
-  sendBtn.innerText = "Sending...";
-
-  fetch("/send", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      senderName: senderName.value,
-      email: email.value.trim(),
-      password: pass.value.trim(),
-      subject: subject.value.trim(),
-      message: message.value.trim(),
-      recipients: recipients.value.trim()
-    })
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    statusMessage.innerText = d.message;
-    alert(d.message);
-  })
-  .finally(()=>{
-    sendBtn.disabled = false;
-    sendBtn.innerText = "Send All";
-  });
-};
