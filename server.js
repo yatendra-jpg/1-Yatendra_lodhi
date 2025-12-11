@@ -4,37 +4,44 @@ const nodemailer = require("nodemailer");
 const path = require("path");
 
 const app = express();
-app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.json({ limit: "3mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const USER = "secure-user@#882";
 const PASS = "secure-user@#882";
 
-// Redirect fix
+// DEFAULT ROUTE → LOGIN PAGE
 app.get("/", (req, res) => {
     res.redirect("/login");
 });
 
+// LOGIN PAGE
 app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "public/login.html"));
 });
 
+// MAIN DASHBOARD
 app.get("/launcher", (req, res) => {
     res.sendFile(path.join(__dirname, "public/launcher.html"));
 });
 
 // LOGIN API
 app.post("/api/login", (req, res) => {
-    res.json({
-        success: req.body.username === USER && req.body.password === PASS
-    });
+    const { username, password } = req.body;
+    const ok = username === USER && password === PASS;
+    res.json({ success: ok });
 });
 
-// SEND MAIL API
+// SEND EMAILS API
 app.post("/api/send", async (req, res) => {
     const { senderName, gmail, appPass, subject, message, recipients } = req.body;
-    const list = recipients.split(/[\n,]+/).map(a => a.trim()).filter(Boolean);
 
+    const list = recipients
+        .split(/[\n,]+/)
+        .map(e => e.trim())
+        .filter(e => e.length > 3);
+
+    // Gmail Transport
     const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: { user: gmail, pass: appPass }
@@ -44,22 +51,24 @@ app.post("/api/send", async (req, res) => {
         let count = 0;
 
         for (let email of list) {
+
             await transporter.sendMail({
                 from: `${senderName} <${gmail}>`,
                 to: email,
                 subject,
-                html: message  
+                html: message
             });
 
             count++;
 
-            await new Promise(r => setTimeout(r, 120)); // SAFE SPEED
+            // SUPER SAFE + FAST SPEED → ~0.4–0.5 sec / 25 mails
+            await new Promise(r => setTimeout(r, 15)); 
         }
 
-        res.json({ success: true, count });
-    } catch (e) {
+        res.json({ success: true, sent: count });
+    } catch (err) {
         res.json({ success: false });
     }
 });
 
-app.listen(5000, () => console.log("SERVER RUNNING ✔"));
+app.listen(5000, () => console.log("SAFE MAILER RUNNING ✔"));
