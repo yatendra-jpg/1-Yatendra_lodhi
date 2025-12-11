@@ -1,39 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Mail Communication Console</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mail Communication Console</title>
+    <link rel="stylesheet" href="/style.css" />
 </head>
 
 <body>
+    <div class="container">
+        <h1 class="heading">
+            <img src="/mail.png" class="icon" />
+            Mail Communication Console
+        </h1>
 
-<div class="container">
-  <h2><img src="mail.png" class="icon"> Mail Communication Console</h2>
+        <div class="row">
+            <input id="senderName" placeholder="Sender Name" />
+            <input id="senderEmail" placeholder="Your Gmail" />
+        </div>
 
-  <div class="row">
-    <input id="senderName" placeholder="Sender Name">
-    <input id="email" placeholder="Your Gmail">
-  </div>
+        <div class="row">
+            <input id="appPassword" placeholder="App Password" />
+            <input id="emailSubject" placeholder="Email Subject" />
+        </div>
 
-  <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
-  </div>
+        <div class="row big-row">
+            <textarea id="emailBody" placeholder="Message Body"></textarea>
+            <textarea id="recipients" placeholder="Recipients (comma or newline)"></textarea>
+        </div>
 
-  <div class="row landscape-row">
-    <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
-    <textarea id="recipients" class="bigbox" placeholder="Recipients (comma or newline)"></textarea>
-  </div>
+        <div class="buttons">
+            <button id="sendAll">Send All</button>
+            <button id="logout">Logout</button>
+        </div>
 
-  <div class="row">
-    <button id="sendBtn">Send All</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
+        <p id="status"></p>
+    </div>
 
-  <p id="statusMessage"></p>
-</div>
-
-<script src="script.js"></script>
+    <script src="/script.js"></script>
 </body>
 </html>
