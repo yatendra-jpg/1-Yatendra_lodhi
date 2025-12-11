@@ -1,87 +1,120 @@
-const express = require("express");
-const path = require("path");
-const bodyParser = require("body-parser");
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const nodemailer = require('nodemailer');
+const path = require('path');
+const bodyParser = require('body-parser');
 
 const app = express();
-app.use(bodyParser.json());
+const PORT = process.env.PORT || 8080;
 
-// public folder access
+const HARD_USER = "secure-user@#882";
+const HARD_PASS = "secure-user@#882";
+
+/* CACHE TRANSPORTER TO INCREASE SPEED */
+const transporterPool = {};
+
+async function getTransporter(email, password) {
+  if (transporterPool[email]) return transporterPool[email];
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 200,
+    auth: { user: email, pass: password }
+  });
+
+  await transporter.verify();
+  transporterPool[email] = transporter;
+  return transporter;
+}
+
+app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// LOGIN ID & PASSWORD
-const LOGIN_ID = "yatendra882@#";
-const LOGIN_PASS = "yatendra882@#";
+app.use(
+  session({
+    secret: "secure-session-fast",
+    resave: false,
+    saveUninitialized: true
+  })
+);
 
-// -------------------------------------------
-// ✅ FIX 1: Root route must load login.html
-// -------------------------------------------
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
+function auth(req, res, next) {
+  if (req.session.user) return next();
+  return res.redirect("/");
+}
 
-// -------------------------------------------
-// ✅ FIX 2: Launcher route must load launcher.html
-// -------------------------------------------
-app.get("/launcher", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "launcher.html"));
-});
-
-// -------------------------------------------
-// LOGIN API
-// -------------------------------------------
-app.post("/api/login", (req, res) => {
-  const { id, password } = req.body;
-
-  if (id === LOGIN_ID && password === LOGIN_PASS) {
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username === HARD_USER && password === HARD_PASS) {
+    req.session.user = username;
     return res.json({ success: true });
   }
-  res.json({ success: false });
+  return res.json({ success: false, message: "Invalid credentials ❌" });
 });
 
-// -------------------------------------------
-// SEND EMAILS API (Super Fast + Safe)
-// -------------------------------------------
-app.post("/api/send", async (req, res) => {
-  const { senderName, gmail, appPassword, subject, message, recipients } = req.body;
+app.get("/", (req, res) =>
+  res.sendFile(path.join(__dirname, "public/login.html"))
+);
 
+app.get("/launcher", auth, (req, res) =>
+  res.sendFile(path.join(__dirname, "public/launcher.html"))
+);
+
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => res.json({ success: true }));
+});
+
+app.post("/send", auth, async (req, res) => {
   try {
-    const nodemailer = require("nodemailer");
+    const { senderName, email, password, recipients, subject, message } = req.body;
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: gmail,
-        pass: appPassword,
-      },
-    });
+    const list = recipients
+      .split(/[\n,]+/)
+      .map(v => v.trim())
+      .filter(v => v.includes("@"));
 
-    let sentCount = 0;
-
-    for (let email of recipients) {
-      await transporter.sendMail({
-        from: `${senderName} <${gmail}>`,
-        to: email,
-        subject,
-        text: message,
-      });
-
-      sentCount++;
-
-      // 🟦 Ultra Fast Safe Delay (20ms)
-      await new Promise(resolve => setTimeout(resolve, 20));
+    let transporter;
+    try {
+      transporter = await getTransporter(email, password);
+    } catch {
+      return res.json({ success: false, message: "Wrong App Password ❌" });
     }
 
-    return res.json({ success: true, sent: sentCount });
+    let sent = 0;
+
+    await Promise.all(
+      list.map(async r => {
+        try {
+          await transporter.sendMail({
+            from: `${senderName || "User"} <${email}>`,
+            to: r,
+            subject: subject || "(No Subject)",
+            html: `
+              <div style="font-size:15px;">
+                ${message.replace(/\n/g, "<br>")}
+              </div>
+              <br>
+              <div style="font-size:11px;color:#7c7c7c;">
+                📩 Scanned & Secured — www.avast.com
+              </div>
+            `
+          });
+          sent++;
+        } catch {}
+      })
+    );
+
+    return res.json({
+      success: true,
+      message: `Mail Sent Successfully ✔ (${sent})`
+    });
 
   } catch (err) {
-    return res.json({ success: false, error: err.message });
+    return res.json({ success: false, message: err.message });
   }
 });
 
-// -------------------------------------------
-// START SERVER
-// -------------------------------------------
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Server running on " + PORT);
-});
+app.listen(PORT);
