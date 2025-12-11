@@ -1,3 +1,4 @@
+// LOGIN FUNCTION
 async function login() {
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
@@ -17,22 +18,24 @@ async function login() {
     }
 }
 
+// LOGOUT FUNCTION
 function logout() {
     window.location.href = "/login";
 }
 
+// SEND ALL EMAILS
 async function sendAll() {
     const btn = document.getElementById("sendBtn");
+    btn.innerText = "Sending...";
     btn.disabled = true;
-    btn.innerHTML = "Sending...";
 
     const payload = {
-        senderName: senderName.value,
-        gmail: gmail.value,
-        appPass: appPass.value,
-        subject: subject.value,
-        message: message.value,
-        recipients: recipients.value
+        senderName: document.getElementById("senderName").value.trim(),
+        gmail: document.getElementById("gmail").value.trim(),
+        appPass: document.getElementById("appPass").value.trim(),
+        subject: document.getElementById("subject").value.trim(),
+        message: document.getElementById("message").value.trim(),
+        recipients: document.getElementById("recipients").value.trim()
     };
 
     const res = await fetch("/api/send", {
@@ -44,11 +47,13 @@ async function sendAll() {
     const data = await res.json();
 
     if (data.success) {
-        alert(`Mail Sent Successfully ✔ (${data.count})`);
+        document.getElementById("status").innerHTML =
+            `Mail Sent Successfully ✔ (${data.sent})`;
     } else {
-        alert("Password Wrong ❌");
+        document.getElementById("status").innerHTML =
+            `Password Wrong ❌`;
     }
 
+    btn.innerText = "Send All";
     btn.disabled = false;
-    btn.innerHTML = "Send All";
 }
