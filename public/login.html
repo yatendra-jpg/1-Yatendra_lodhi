@@ -1,75 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Access</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #e8edff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0px 4px 20px rgba(0,0,0,0.15);
-            width: 360px;
-            text-align: center;
-        }
-        input {
-            width: 90%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            font-size: 15px;
-        }
-        button {
-            width: 95%;
-            padding: 14px;
-            background: #2f75ff;
-            border: none;
-            color: white;
-            font-size: 18px;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        button:hover { opacity: 0.9; }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Secure Access</title>
+<link rel="stylesheet" href="style.css" />
 </head>
-<body>
 
+<body>
 <div class="login-box">
     <h2>Secure Access</h2>
 
-    <input id="username" placeholder="Username">
-    <input id="password" type="password" placeholder="Password">
+    <input id="loginUser" placeholder="Username" />
+    <input id="loginPass" placeholder="Password" type="password" />
 
     <button onclick="login()">Login</button>
 </div>
 
-<script>
-function login() {
-    const u = document.getElementById("username").value;
-    const p = document.getElementById("password").value;
-
-    // NEW updated login credentials
-    const USER = "secure-user@#882";
-    const PASS = "secure-user@#882";
-
-    if (u === USER && p === PASS) {
-        window.location.href = "/launcher";
-    } else {
-        alert("Incorrect Login ❌");
-    }
-}
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
