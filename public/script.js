@@ -48,7 +48,7 @@ function sendAll() {
       if (data.success) {
         alert(`Mail Sent Successfully ✔ (${data.count})`);
       } else {
-        alert("Password Wrong ❌ OR Sending Failed");
+        alert("Password Wrong ❌");
       }
     });
 }
