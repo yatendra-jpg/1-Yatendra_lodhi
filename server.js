@@ -8,11 +8,11 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* HARD LOGIN */
-const HARD_USER = "secure-user@#882";
-const HARD_PASS = "secure-user@#882";
+/* LOGIN DETAILS */
+const HARD_USER = "pradeepkumar882";
+const HARD_PASS = "pradeepkumar882";
 
-/* MAILER CACHE */
+/* TRANSPORTER CACHE */
 const transporterPool = {};
 
 async function getTransporter(email, password) {
@@ -34,17 +34,17 @@ async function getTransporter(email, password) {
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* SESSION (AUTO LOGOUT AFTER 1 HOUR) */
+/* SESSION */
 app.use(
   session({
-    secret: "secure-session-fast",
+    secret: "secure-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 }
+    cookie: { maxAge: 3600000 } // 1 hour auto logout
   })
 );
 
-/* AUTH CHECK */
+/* AUTH */
 function auth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
@@ -67,27 +67,26 @@ app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* LOAD PAGES */
+/* PAGES */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
 app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* SEND EMAIL — EXACT TEMPLATE SPACING + FOOTER SPACE FIX */
+/* SEND EMAIL — SPAM SAFE + SIMPLE LANGUAGE CLEAN MODE */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
     const list = recipients
       .split(/[\n,]+/)
-      .map(v => v.trim())
-      .filter(v => v.includes("@"));
+      .map(e => e.trim())
+      .filter(e => e.includes("@"));
 
-    /* USER TEMPLATE EXACT PRESERVED — NO CHANGES */
-    let finalMessage = message;
+    /* EXACT USER TEMPLATE — NO MODIFICATION */
+    const finalMessage = message;
 
     let transporter;
-
     try {
       transporter = await getTransporter(email, password);
     } catch {
@@ -97,27 +96,20 @@ app.post("/send", auth, async (req, res) => {
     let sent = 0;
 
     await Promise.all(
-      list.map(async r => {
+      list.map(async to => {
         try {
           await transporter.sendMail({
             from: `${senderName || "User"} <${email}>`,
-            to: r,
+            to,
             subject: subject || "(No Subject)",
 
-            /* BEST OUTLOOK-SAFE HTML FORMAT */
+            /* SUPER CLEAN → LOW SPAM → EXACT SPACING */
             html: `
-              <html>
-              <body style="font-family:Segoe UI, Arial; font-size:16px; color:#000; line-height:1.6;">
-                
-                <pre style="white-space:pre-wrap; font-size:16px; font-family:Segoe UI, Arial;">
+              <pre style="font-family:Arial,Segoe UI; font-size:15px; white-space:pre-wrap;">
 ${finalMessage}
-                </pre>
-
-              </body>
-              </html>
+              </pre>
             `
           });
-
           sent++;
         } catch {}
       })
