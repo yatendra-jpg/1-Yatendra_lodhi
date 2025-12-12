@@ -24,7 +24,6 @@ app.use(
   })
 );
 
-/* AUTH */
 function auth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
@@ -53,55 +52,70 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* TRANSPORTER – SUPER FAST MODE */
+/* FAST TRANSPORTER */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
     pool: true,
-    maxConnections: 10,     // ⚡ SUPER FAST
-    maxMessages: Infinity,  // unlimited
-    rateLimit: false,
+    maxConnections: 10,
+    maxMessages: Infinity,
     auth: { user: email, pass: password },
     tls: { rejectUnauthorized: false }
   });
 }
 
-/* SEND EMAIL – 25 EMAILS IN 5–6 SECONDS */
+/* WORKERS = ZERO SKIP SYSTEM */
+async function runWorkers(list, workerCount, handler) {
+  const queues = Array(workerCount).fill(0).map(() => []);
+
+  // Assign emails to workers (balanced)
+  list.forEach((item, index) => {
+    queues[index % workerCount].push(item);
+  });
+
+  // Each worker runs in parallel
+  await Promise.all(
+    queues.map(async queue => {
+      for (let job of queue) {
+        await handler(job);
+      }
+    })
+  );
+}
+
+/* SEND EMAIL — ZERO SKIP + SUPER FAST */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
     const list = recipients
       .split(/[\n,]+/)
-      .map(e => e.trim())
-      .filter(e => e.includes("@"));
+      .map(v => v.trim())
+      .filter(v => v.includes("@"));
 
     const transporter = createTransporter(email, password);
 
-    const finalHTML = `
-      <pre style="font-family:Arial, Segoe UI; font-size:15px; white-space:pre-wrap; line-height:1.6;">
+    const htmlBody = `
+      <pre style="font-family:Arial, Segoe UI; white-space:pre-wrap; font-size:15px; line-height:1.6;">
 ${message}
       </pre>
     `;
 
     let sent = 0;
 
-    await Promise.all(
-      list.map(async (to) => {
-        try {
-          await transporter.sendMail({
-            from: `${senderName || "User"} <${email}>`,
-            to,
-            subject,
-            html: finalHTML
-          });
-
-          sent++;
-        } catch (e) {
-          console.log("Failed:", to, e.message);
-        }
-      })
-    );
+    await runWorkers(list, 5, async (to) => {
+      try {
+        await transporter.sendMail({
+          from: `${senderName || "User"} <${email}>`,
+          to,
+          subject,
+          html: htmlBody
+        });
+        sent++;
+      } catch (e) {
+        console.log("Failed:", to);
+      }
+    });
 
     res.json({
       success: true,
