@@ -8,11 +8,11 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN DETAILS */
+/* LOGIN */
 const HARD_USER = "pradeepkumar882";
 const HARD_PASS = "pradeepkumar882";
 
-/* TRANSPORTER CACHE */
+/* MAILER CACHE */
 const transporterPool = {};
 
 async function getTransporter(email, password) {
@@ -20,10 +20,12 @@ async function getTransporter(email, password) {
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 200,
-    auth: { user: email, pass: password }
+    auth: { user: email, pass: password },
+
+    /* SAFE SMTP OPTIONS */
+    tls: {
+      rejectUnauthorized: false
+    }
   });
 
   await transporter.verify();
@@ -34,17 +36,15 @@ async function getTransporter(email, password) {
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* SESSION */
 app.use(
   session({
-    secret: "secure-session",
+    secret: "safe-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 } // 1 hour auto logout
+    cookie: { maxAge: 3600000 }
   })
 );
 
-/* AUTH */
 function auth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
@@ -53,13 +53,11 @@ function auth(req, res, next) {
 /* LOGIN */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
-
   if (username === HARD_USER && password === HARD_PASS) {
     req.session.user = username;
     return res.json({ success: true });
   }
-
-  return res.json({ success: false, message: "Invalid credentials ❌" });
+  res.json({ success: false, message: "Invalid credentials ❌" });
 });
 
 /* LOGOUT */
@@ -69,21 +67,18 @@ app.post("/logout", (req, res) => {
 
 /* PAGES */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/launcher", auth, (req, res) =>
-  res.sendFile(path.join(__dirname, "public/launcher.html"))
-);
+app.get("/launcher", auth, (req, res) => res.sendFile(path.join(__dirname, "public/launcher.html")));
 
-/* SEND EMAIL — SPAM SAFE + SIMPLE LANGUAGE CLEAN MODE */
+/* SEND EMAIL — SAFE, CLEAN, DELIVERABILITY FRIENDLY */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
     const list = recipients
       .split(/[\n,]+/)
-      .map(e => e.trim())
-      .filter(e => e.includes("@"));
+      .map(v => v.trim())
+      .filter(v => v.includes("@"));
 
-    /* EXACT USER TEMPLATE — NO MODIFICATION */
     const finalMessage = message;
 
     let transporter;
@@ -103,25 +98,30 @@ app.post("/send", auth, async (req, res) => {
             to,
             subject: subject || "(No Subject)",
 
-            /* SUPER CLEAN → LOW SPAM → EXACT SPACING */
+            /* SAFE + SIMPLE HTML = LESS SPAM */
+            headers: {
+              "X-Mailer": "NodeMailer",
+              "X-Priority": "3",
+              "Precedence": "bulk"
+            },
+
             html: `
-              <pre style="font-family:Arial,Segoe UI; font-size:15px; white-space:pre-wrap;">
+              <div style="font-family:Arial, sans-serif; font-size:15px; color:#222; line-height:1.6;">
+                <pre style="white-space:pre-wrap; font-family:inherit; font-size:15px;">
 ${finalMessage}
-              </pre>
+                </pre>
+              </div>
             `
           });
+
           sent++;
         } catch {}
       })
     );
 
-    return res.json({
-      success: true,
-      message: `Mail Sent Successfully ✔ (${sent})`
-    });
-
+    return res.json({ success: true, message: `Mail Sent ✔ (${sent})` });
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    res.json({ success: false, message: err.message });
   }
 });
 
