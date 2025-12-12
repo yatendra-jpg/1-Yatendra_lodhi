@@ -73,7 +73,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* SEND EMAIL (FULLY OUTLOOK OPTIMIZED) */
+/* SEND EMAIL — Outlook Safe + NO AUTO FOOTER */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -83,19 +83,8 @@ app.post("/send", auth, async (req, res) => {
       .map(v => v.trim())
       .filter(v => v.includes("@"));
 
-    /* FOOTER EVERY 2 LINES */
-    let lines = message.split("\n");
-    let finalMessage = "";
-    let count = 0;
-
-    lines.forEach(line => {
-      finalMessage += line + "\n";
-      count++;
-      if (count === 2) {
-        finalMessage += "\n--\nSecure • www.avast.com\n\n";
-        count = 0;
-      }
-    });
+    /* NO AUTO FOOTER — exact message only */
+    let finalMessage = message;  // untouched
 
     let transporter;
 
@@ -115,7 +104,7 @@ app.post("/send", auth, async (req, res) => {
             to: r,
             subject: subject || "(No Subject)",
 
-            /* OUTLOOK SAFE HTML */
+            /* Outlook-friendly readable email */
             html: `
               <html>
               <body style="font-family:Segoe UI, Arial; font-size:16px; line-height:1.6; color:#000;">
