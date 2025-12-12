@@ -15,8 +15,8 @@ sendBtn.onclick = () => {
       email: email.value,
       password: pass.value,
       subject: subject.value,
-      message: message.value,       // NO TRIM — exact line spacing
-      recipients: recipients.value  // NO TRIM
+      message: message.value,
+      recipients: recipients.value
     })
   })
   .then(r=>r.json())
