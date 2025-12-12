@@ -1,6 +1,6 @@
 {
-  "name": "secure-mail-console",
-  "version": "3.1.0",
+  "name": "mail-console",
+  "version": "4.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
