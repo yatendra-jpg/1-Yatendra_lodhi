@@ -67,13 +67,13 @@ app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* PAGES */
+/* LOAD PAGES */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
 app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* SEND EMAIL — Outlook Safe + NO AUTO FOOTER */
+/* SEND EMAIL — EXACT TEMPLATE SPACING + FOOTER SPACE FIX */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -83,8 +83,8 @@ app.post("/send", auth, async (req, res) => {
       .map(v => v.trim())
       .filter(v => v.includes("@"));
 
-    /* NO AUTO FOOTER — exact message only */
-    let finalMessage = message;  // untouched
+    /* USER TEMPLATE EXACT PRESERVED — NO CHANGES */
+    let finalMessage = message;
 
     let transporter;
 
@@ -104,14 +104,14 @@ app.post("/send", auth, async (req, res) => {
             to: r,
             subject: subject || "(No Subject)",
 
-            /* Outlook-friendly readable email */
+            /* BEST OUTLOOK-SAFE HTML FORMAT */
             html: `
               <html>
-              <body style="font-family:Segoe UI, Arial; font-size:16px; line-height:1.6; color:#000;">
+              <body style="font-family:Segoe UI, Arial; font-size:16px; color:#000; line-height:1.6;">
                 
-                <div style="white-space:pre-wrap; font-size:16px;">
+                <pre style="white-space:pre-wrap; font-size:16px; font-family:Segoe UI, Arial;">
 ${finalMessage}
-                </div>
+                </pre>
 
               </body>
               </html>
