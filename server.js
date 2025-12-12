@@ -17,13 +17,14 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "safe-session",
+    secret: "fast-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 3600000 }
   })
 );
 
+/* AUTH */
 function auth(req, res, next) {
   if (req.session.user) return next();
   res.redirect("/");
@@ -52,57 +53,64 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* SEND EMAIL — SUPER FAST (POOL MODE) + NO SKIP */
+/* TRANSPORTER – SUPER FAST MODE */
+function createTransporter(email, password) {
+  return nodemailer.createTransport({
+    service: "gmail",
+    pool: true,
+    maxConnections: 10,     // ⚡ SUPER FAST
+    maxMessages: Infinity,  // unlimited
+    rateLimit: false,
+    auth: { user: email, pass: password },
+    tls: { rejectUnauthorized: false }
+  });
+}
+
+/* SEND EMAIL – 25 EMAILS IN 5–6 SECONDS */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
 
     const list = recipients
       .split(/[\n,]+/)
-      .map(v => v.trim())
-      .filter(v => v.includes("@"));
+      .map(e => e.trim())
+      .filter(e => e.includes("@"));
 
-    /* SUPER FAST TRANSPORTER */
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      pool: true,
-      maxConnections: 5,      // 5 at a time = SUPER FAST
-      maxMessages: Infinity,
-      auth: { user: email, pass: password },
-      tls: { rejectUnauthorized: false }
-    });
+    const transporter = createTransporter(email, password);
+
+    const finalHTML = `
+      <pre style="font-family:Arial, Segoe UI; font-size:15px; white-space:pre-wrap; line-height:1.6;">
+${message}
+      </pre>
+    `;
 
     let sent = 0;
 
-    /* PARALLEL FAST SENDING */
     await Promise.all(
-      list.map(async r => {
+      list.map(async (to) => {
         try {
           await transporter.sendMail({
             from: `${senderName || "User"} <${email}>`,
-            to: r,
-            subject: subject || "",
-            html: `
-              <pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
-${message}
-              </pre>
-            `
+            to,
+            subject,
+            html: finalHTML
           });
+
           sent++;
-        } catch (err) {
-          console.log("Failed:", r);
+        } catch (e) {
+          console.log("Failed:", to, e.message);
         }
       })
     );
 
-    return res.json({
+    res.json({
       success: true,
       message: `Mail Sent ✔ (${sent}/${list.length})`
     });
 
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    res.json({ success: false, message: err.message });
   }
 });
 
-app.listen(PORT, () => console.log("Server running on " + PORT));
+app.listen(PORT, () => console.log("FAST MAIL SERVER running on " + PORT));
