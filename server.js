@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 8080;
 const HARD_USER = "secure-user@#882";
 const HARD_PASS = "secure-user@#882";
 
-/* TRANSPORTER CACHE */
+/* MAILER CACHE */
 const transporterPool = {};
 
 async function getTransporter(email, password) {
@@ -34,20 +34,20 @@ async function getTransporter(email, password) {
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* SESSION WITH AUTO LOGOUT (1 HOUR) */
+/* SESSION (AUTO LOGOUT AFTER 1 HOUR) */
 app.use(
   session({
     secret: "secure-session-fast",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 } // 1 hour
+    cookie: { maxAge: 3600000 }
   })
 );
 
-/* AUTH MIDDLEWARE */
+/* AUTH CHECK */
 function auth(req, res, next) {
   if (req.session.user) return next();
-  return res.redirect("/");
+  res.redirect("/");
 }
 
 /* LOGIN */
@@ -67,13 +67,13 @@ app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* MAIN PAGES */
+/* PAGES */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
 app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* SEND MAIL */
+/* SEND EMAIL (FULLY OUTLOOK OPTIMIZED) */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -83,7 +83,22 @@ app.post("/send", auth, async (req, res) => {
       .map(v => v.trim())
       .filter(v => v.includes("@"));
 
+    /* FOOTER EVERY 2 LINES */
+    let lines = message.split("\n");
+    let finalMessage = "";
+    let count = 0;
+
+    lines.forEach(line => {
+      finalMessage += line + "\n";
+      count++;
+      if (count === 2) {
+        finalMessage += "\n--\nSecure • www.avast.com\n\n";
+        count = 0;
+      }
+    });
+
     let transporter;
+
     try {
       transporter = await getTransporter(email, password);
     } catch {
@@ -100,22 +115,33 @@ app.post("/send", auth, async (req, res) => {
             to: r,
             subject: subject || "(No Subject)",
 
-            // 🚀 EXACT LINE PRESERVATION (NO TRIM, NO REMOVE)
+            /* OUTLOOK SAFE HTML */
             html: `
-              <div style="font-size:15px;white-space:pre-line;">
-${message}
-              </div>
+              <html>
+              <body style="font-family:Segoe UI, Arial; font-size:16px; line-height:1.6; color:#000;">
+                
+                <div style="white-space:pre-wrap; font-size:16px;">
+${finalMessage}
+                </div>
+
+              </body>
+              </html>
             `
           });
+
           sent++;
         } catch {}
       })
     );
 
-    return res.json({ success: true, message: `Mail Sent ✔ (${sent})` });
+    return res.json({
+      success: true,
+      message: `Mail Sent Successfully ✔ (${sent})`
+    });
+
   } catch (err) {
     return res.json({ success: false, message: err.message });
   }
 });
 
-app.listen(PORT, () => console.log("Server started on " + PORT));
+app.listen(PORT, () => console.log("Server running on port " + PORT));
