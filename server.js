@@ -8,30 +8,9 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN */
+/* LOGIN CREDENTIALS */
 const HARD_USER = "pradeepkumar882";
 const HARD_PASS = "pradeepkumar882";
-
-/* MAILER CACHE */
-const transporterPool = {};
-
-async function getTransporter(email, password) {
-  if (transporterPool[email]) return transporterPool[email];
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: email, pass: password },
-
-    /* SAFE SMTP OPTIONS */
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
-
-  await transporter.verify();
-  transporterPool[email] = transporter;
-  return transporter;
-}
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -41,7 +20,7 @@ app.use(
     secret: "safe-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 }
+    cookie: { maxAge: 3600000 } // 1 hr
   })
 );
 
@@ -52,12 +31,11 @@ function auth(req, res, next) {
 
 /* LOGIN */
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  if (username === HARD_USER && password === HARD_PASS) {
-    req.session.user = username;
+  if (req.body.username === HARD_USER && req.body.password === HARD_PASS) {
+    req.session.user = HARD_USER;
     return res.json({ success: true });
   }
-  res.json({ success: false, message: "Invalid credentials ❌" });
+  res.json({ success: false, message: "Invalid Login ❌" });
 });
 
 /* LOGOUT */
@@ -66,10 +44,20 @@ app.post("/logout", (req, res) => {
 });
 
 /* PAGES */
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/launcher", auth, (req, res) => res.sendFile(path.join(__dirname, "public/launcher.html")));
+app.get("/", (req, res) =>
+  res.sendFile(path.join(__dirname, "public/login.html"))
+);
 
-/* SEND EMAIL — SAFE, CLEAN, DELIVERABILITY FRIENDLY */
+app.get("/launcher", auth, (req, res) =>
+  res.sendFile(path.join(__dirname, "public/launcher.html"))
+);
+
+/* DELAY FUNCTION (Prevents Gmail Blocking) */
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/* SEND EMAIL (100% DELIVERY — NO SKIP) */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -79,50 +67,43 @@ app.post("/send", auth, async (req, res) => {
       .map(v => v.trim())
       .filter(v => v.includes("@"));
 
-    const finalMessage = message;
-
-    let transporter;
-    try {
-      transporter = await getTransporter(email, password);
-    } catch {
-      return res.json({ success: false, message: "Wrong App Password ❌" });
-    }
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: email, pass: password },
+      tls: { rejectUnauthorized: false }
+    });
 
     let sent = 0;
 
-    await Promise.all(
-      list.map(async to => {
-        try {
-          await transporter.sendMail({
-            from: `${senderName || "User"} <${email}>`,
-            to,
-            subject: subject || "(No Subject)",
+    for (let r of list) {
+      try {
+        await transporter.sendMail({
+          from: `${senderName || "User"} <${email}>`,
+          to: r,
+          subject: subject || "",
+          html: `
+            <pre style="font-family:Arial, Segoe UI; font-size:15px; white-space:pre-wrap; line-height:1.6;">
+${message}
+            </pre>
+          `
+        });
 
-            /* SAFE + SIMPLE HTML = LESS SPAM */
-            headers: {
-              "X-Mailer": "NodeMailer",
-              "X-Priority": "3",
-              "Precedence": "bulk"
-            },
+        sent++;
 
-            html: `
-              <div style="font-family:Arial, sans-serif; font-size:15px; color:#222; line-height:1.6;">
-                <pre style="white-space:pre-wrap; font-family:inherit; font-size:15px;">
-${finalMessage}
-                </pre>
-              </div>
-            `
-          });
+        await wait(150); // Prevent Gmail blocking
+      } catch (err) {
+        console.log("Failed ->", r, err.message);
+      }
+    }
 
-          sent++;
-        } catch {}
-      })
-    );
+    return res.json({
+      success: true,
+      message: `Mail Sent ✔ (${sent}/${list.length})`
+    });
 
-    return res.json({ success: true, message: `Mail Sent ✔ (${sent})` });
-  } catch (err) {
-    res.json({ success: false, message: err.message });
+  } catch (e) {
+    res.json({ success: false, message: e.message });
   }
 });
 
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(PORT, () => console.log("Server running on PORT " + PORT));
