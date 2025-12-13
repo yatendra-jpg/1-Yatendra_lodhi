@@ -1,6 +1,6 @@
 logoutBtn.addEventListener("dblclick", () => {
   fetch("/logout", { method:"POST" })
-  .then(()=> location.href="/");
+    .then(() => location.href="/");
 });
 
 sendBtn.onclick = () => {
@@ -19,12 +19,12 @@ sendBtn.onclick = () => {
       recipients: recipients.value
     })
   })
-  .then(r=>r.json())
-  .then(d=>{
+  .then(r => r.json())
+  .then(d => {
     statusMessage.innerText = d.message;
     alert(d.message);
   })
-  .finally(()=>{
+  .finally(() => {
     sendBtn.disabled = false;
     sendBtn.innerText = "Send All";
   });
