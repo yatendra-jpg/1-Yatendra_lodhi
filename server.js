@@ -53,37 +53,19 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* SMALL DELAY (FOR EXACT 10–11s SPEED) */
+/* HARD DELAY */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER */
+/* TRANSPORTER — NO POOL (IMPORTANT) */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
-    pool: true,
-    maxConnections: 5,
-    maxMessages: Infinity,
     auth: { user: email, pass: password },
     tls: { rejectUnauthorized: false }
   });
 }
 
-/* WORKER QUEUE */
-async function runWorkers(list, workers, handler) {
-  const queues = Array.from({ length: workers }, () => []);
-  list.forEach((item, i) => queues[i % workers].push(item));
-
-  await Promise.all(
-    queues.map(async queue => {
-      for (const job of queue) {
-        await handler(job);
-        await wait(140); // 👈 tuned for ~10–11 sec total
-      }
-    })
-  );
-}
-
-/* SEND MAIL (EXACT 10–11 sec) */
+/* SEND MAIL — REAL 10–11 SEC SPEED */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -103,17 +85,30 @@ ${message}
 
     let sent = 0;
 
-    await runWorkers(list, 3, async (to) => {
-      try {
-        await transporter.sendMail({
-          from: `${senderName || "User"} <${email}>`,
-          to,
-          subject: subject || "",
-          html: htmlBody
-        });
-        sent++;
-      } catch {}
-    });
+    /* 2 PARALLEL CHAINS */
+    const half = Math.ceil(list.length / 2);
+    const batchA = list.slice(0, half);
+    const batchB = list.slice(half);
+
+    async function sendBatch(batch) {
+      for (const to of batch) {
+        try {
+          await transporter.sendMail({
+            from: `${senderName || "User"} <${email}>`,
+            to,
+            subject: subject || "",
+            html: htmlBody
+          });
+          sent++;
+        } catch {}
+        await wait(400); // 👈 REAL throttle
+      }
+    }
+
+    await Promise.all([
+      sendBatch(batchA),
+      sendBatch(batchB)
+    ]);
 
     res.json({
       success: true,
