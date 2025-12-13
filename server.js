@@ -56,7 +56,7 @@ app.get("/launcher", auth, (req, res) =>
 /* HARD DELAY */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER — NO POOL (IMPORTANT) */
+/* TRANSPORTER (NO POOL = TRUE SPEED CONTROL) */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -65,7 +65,7 @@ function createTransporter(email, password) {
   });
 }
 
-/* SEND MAIL — REAL 10–11 SEC SPEED */
+/* SEND MAIL — 8–9 SECONDS REAL */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -85,7 +85,7 @@ ${message}
 
     let sent = 0;
 
-    /* 2 PARALLEL CHAINS */
+    /* SPLIT INTO 2 PARALLEL CHAINS */
     const half = Math.ceil(list.length / 2);
     const batchA = list.slice(0, half);
     const batchB = list.slice(half);
@@ -101,7 +101,7 @@ ${message}
           });
           sent++;
         } catch {}
-        await wait(400); // 👈 REAL throttle
+        await wait(300); // 👈 tuned for 8–9 sec
       }
     }
 
