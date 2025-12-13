@@ -53,10 +53,10 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* HARD DELAY */
+/* HARD DELAY (REAL SPEED CONTROL) */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER (NO POOL = TRUE SPEED CONTROL) */
+/* TRANSPORTER — NO POOL */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -65,7 +65,7 @@ function createTransporter(email, password) {
   });
 }
 
-/* SEND MAIL — 8–9 SECONDS REAL */
+/* SEND MAIL — REAL 6–7 SECONDS */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -101,7 +101,7 @@ ${message}
           });
           sent++;
         } catch {}
-        await wait(300); // 👈 tuned for 8–9 sec
+        await wait(200); // 👈 tuned for REAL 6–7 sec
       }
     }
 
