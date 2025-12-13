@@ -53,7 +53,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* SMALL DELAY (just to slow a bit) */
+/* SMALL DELAY (FOR EXACT 10–11s SPEED) */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 /* TRANSPORTER */
@@ -77,13 +77,13 @@ async function runWorkers(list, workers, handler) {
     queues.map(async queue => {
       for (const job of queue) {
         await handler(job);
-        await wait(80); // 👈 very small slowdown
+        await wait(140); // 👈 tuned for ~10–11 sec total
       }
     })
   );
 }
 
-/* SEND MAIL (SLIGHTLY SLOW + STABLE) */
+/* SEND MAIL (EXACT 10–11 sec) */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
