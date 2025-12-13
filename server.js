@@ -8,30 +8,31 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN */
-const HARD_USER = "pradeepkumar882";
-const HARD_PASS = "pradeepkumar882";
+/* LOGIN (ID = PASSWORD) */
+const HARD_USER = "yatendrakumar882";
+const HARD_PASS = "yatendrakumar882";
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "fast-session",
+    secret: "stable-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 }
+    cookie: { maxAge: 3600000 } // 1 hour
   })
 );
 
 function auth(req, res, next) {
   if (req.session.user) return next();
-  res.redirect("/");
+  return res.redirect("/");
 }
 
 /* LOGIN */
 app.post("/login", (req, res) => {
-  if (req.body.username === HARD_USER && req.body.password === HARD_PASS) {
+  const { username, password } = req.body;
+  if (username === HARD_USER && password === HARD_PASS) {
     req.session.user = HARD_USER;
     return res.json({ success: true });
   }
@@ -52,38 +53,33 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* FAST TRANSPORTER */
+/* TRANSPORTER (BALANCED SPEED MODE) */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
     pool: true,
-    maxConnections: 10,
+    maxConnections: 5,       // balanced
     maxMessages: Infinity,
     auth: { user: email, pass: password },
     tls: { rejectUnauthorized: false }
   });
 }
 
-/* WORKERS = ZERO SKIP SYSTEM */
-async function runWorkers(list, workerCount, handler) {
-  const queues = Array(workerCount).fill(0).map(() => []);
+/* WORKER QUEUE (NO SKIP) */
+async function runWorkers(list, workers, handler) {
+  const queues = Array.from({ length: workers }, () => []);
+  list.forEach((item, i) => queues[i % workers].push(item));
 
-  // Assign emails to workers (balanced)
-  list.forEach((item, index) => {
-    queues[index % workerCount].push(item);
-  });
-
-  // Each worker runs in parallel
   await Promise.all(
     queues.map(async queue => {
-      for (let job of queue) {
+      for (const job of queue) {
         await handler(job);
       }
     })
   );
 }
 
-/* SEND EMAIL — ZERO SKIP + SUPER FAST */
+/* SEND MAIL — 25 mails ≈ 8–9 sec */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -96,19 +92,19 @@ app.post("/send", auth, async (req, res) => {
     const transporter = createTransporter(email, password);
 
     const htmlBody = `
-      <pre style="font-family:Arial, Segoe UI; white-space:pre-wrap; font-size:15px; line-height:1.6;">
+<pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
 ${message}
-      </pre>
+</pre>
     `;
 
     let sent = 0;
 
-    await runWorkers(list, 5, async (to) => {
+    await runWorkers(list, 3, async (to) => {
       try {
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
-          subject,
+          subject: subject || "",
           html: htmlBody
         });
         sent++;
@@ -117,14 +113,16 @@ ${message}
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: `Mail Sent ✔ (${sent}/${list.length})`
     });
 
   } catch (err) {
-    res.json({ success: false, message: err.message });
+    return res.json({ success: false, message: err.message });
   }
 });
 
-app.listen(PORT, () => console.log("FAST MAIL SERVER running on " + PORT));
+app.listen(PORT, () =>
+  console.log("MAIL SERVER running on port " + PORT)
+);
