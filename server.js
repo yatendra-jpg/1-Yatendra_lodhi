@@ -8,7 +8,7 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN (ID = PASSWORD) */
+/* LOGIN */
 const HARD_USER = "yatendrakumar882";
 const HARD_PASS = "yatendrakumar882";
 
@@ -20,7 +20,7 @@ app.use(
     secret: "stable-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 } // 1 hour
+    cookie: { maxAge: 3600000 }
   })
 );
 
@@ -36,7 +36,7 @@ app.post("/login", (req, res) => {
     req.session.user = HARD_USER;
     return res.json({ success: true });
   }
-  res.json({ success: false, message: "Invalid Login ❌" });
+  res.json({ success: false });
 });
 
 /* LOGOUT */
@@ -53,19 +53,22 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* TRANSPORTER (BALANCED SPEED MODE) */
+/* SMALL DELAY (just to slow a bit) */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* TRANSPORTER */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
     pool: true,
-    maxConnections: 5,       // balanced
+    maxConnections: 5,
     maxMessages: Infinity,
     auth: { user: email, pass: password },
     tls: { rejectUnauthorized: false }
   });
 }
 
-/* WORKER QUEUE (NO SKIP) */
+/* WORKER QUEUE */
 async function runWorkers(list, workers, handler) {
   const queues = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => queues[i % workers].push(item));
@@ -74,12 +77,13 @@ async function runWorkers(list, workers, handler) {
     queues.map(async queue => {
       for (const job of queue) {
         await handler(job);
+        await wait(80); // 👈 very small slowdown
       }
     })
   );
 }
 
-/* SEND MAIL — 25 mails ≈ 8–9 sec */
+/* SEND MAIL (SLIGHTLY SLOW + STABLE) */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -108,21 +112,19 @@ ${message}
           html: htmlBody
         });
         sent++;
-      } catch (e) {
-        console.log("Failed:", to);
-      }
+      } catch {}
     });
 
-    return res.json({
+    res.json({
       success: true,
       message: `Mail Sent ✔ (${sent}/${list.length})`
     });
 
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    res.json({ success: false, message: err.message });
   }
 });
 
 app.listen(PORT, () =>
-  console.log("MAIL SERVER running on port " + PORT)
+  console.log("Mail server running on port " + PORT)
 );
