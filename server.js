@@ -8,7 +8,7 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN */
+/* LOGIN (ID = PASSWORD) */
 const HARD_USER = "yatendrakumar882";
 const HARD_PASS = "yatendrakumar882";
 
@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "stable-session",
+    secret: "safe-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 3600000 }
@@ -36,7 +36,7 @@ app.post("/login", (req, res) => {
     req.session.user = HARD_USER;
     return res.json({ success: true });
   }
-  res.json({ success: false });
+  res.json({ success: false, message: "Invalid Login" });
 });
 
 /* LOGOUT */
@@ -48,15 +48,14 @@ app.post("/logout", (req, res) => {
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
 );
-
 app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* HARD DELAY (REAL SPEED CONTROL) */
+/* UTILS */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER — NO POOL */
+/* TRANSPORTER — STABLE (NO POOL) */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -65,7 +64,35 @@ function createTransporter(email, password) {
   });
 }
 
-/* SEND MAIL — REAL 6–7 SECONDS */
+/* RETRY SEND (LEGIT) */
+async function sendWithRetry(transporter, mail, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      await transporter.sendMail(mail);
+      return true;
+    } catch (err) {
+      if (i === retries) return false;
+      await wait(300); // backoff before retry
+    }
+  }
+}
+
+/* WORKER QUEUE (3 workers = low block risk) */
+async function runWorkers(list, workers, handler) {
+  const queues = Array.from({ length: workers }, () => []);
+  list.forEach((item, i) => queues[i % workers].push(item));
+
+  await Promise.all(
+    queues.map(async queue => {
+      for (const job of queue) {
+        await handler(job);
+        await wait(150); // gentle pacing
+      }
+    })
+  );
+}
+
+/* SEND MAIL — FAIL MINIMIZED */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -85,30 +112,16 @@ ${message}
 
     let sent = 0;
 
-    /* SPLIT INTO 2 PARALLEL CHAINS */
-    const half = Math.ceil(list.length / 2);
-    const batchA = list.slice(0, half);
-    const batchB = list.slice(half);
+    await runWorkers(list, 3, async (to) => {
+      const ok = await sendWithRetry(transporter, {
+        from: `${senderName || "User"} <${email}>`,
+        to,
+        subject: subject || "",
+        html: htmlBody
+      }, 2);
 
-    async function sendBatch(batch) {
-      for (const to of batch) {
-        try {
-          await transporter.sendMail({
-            from: `${senderName || "User"} <${email}>`,
-            to,
-            subject: subject || "",
-            html: htmlBody
-          });
-          sent++;
-        } catch {}
-        await wait(200); // 👈 tuned for REAL 6–7 sec
-      }
-    }
-
-    await Promise.all([
-      sendBatch(batchA),
-      sendBatch(batchB)
-    ]);
+      if (ok) sent++;
+    });
 
     res.json({
       success: true,
