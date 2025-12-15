@@ -8,35 +8,35 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN (ID = PASSWORD) */
+/* LOGIN */
 const HARD_USER = "yatendrakumar882";
 const HARD_PASS = "yatendrakumar882";
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(
-  session({
-    secret: "safe-session",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { maxAge: 3600000 }
-  })
-);
+app.use(session({
+  secret: "safe-session",
+  resave: false,
+  saveUninitialized: true,
+  cookie: { maxAge: 3600000 }
+}));
 
 function auth(req, res, next) {
   if (req.session.user) return next();
-  return res.redirect("/");
+  res.redirect("/");
 }
 
 /* LOGIN */
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  if (username === HARD_USER && password === HARD_PASS) {
+  if (
+    req.body.username === HARD_USER &&
+    req.body.password === HARD_PASS
+  ) {
     req.session.user = HARD_USER;
     return res.json({ success: true });
   }
-  res.json({ success: false, message: "Invalid Login" });
+  res.json({ success: false });
 });
 
 /* LOGOUT */
@@ -52,47 +52,18 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* UTILS */
+/* DELAY */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER (STABLE, LOW FAIL) */
+/* TRANSPORTER (SAFE MODE) */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user: email, pass: password },
-    tls: { rejectUnauthorized: false }
+    auth: { user: email, pass: password }
   });
 }
 
-/* RETRY SEND */
-async function sendWithRetry(transporter, mail, retries = 2) {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      await transporter.sendMail(mail);
-      return true;
-    } catch {
-      if (i === retries) return false;
-      await wait(300);
-    }
-  }
-}
-
-/* WORKERS (LOW BLOCK RISK) */
-async function runWorkers(list, workers, handler) {
-  const queues = Array.from({ length: workers }, () => []);
-  list.forEach((item, i) => queues[i % workers].push(item));
-
-  await Promise.all(
-    queues.map(async queue => {
-      for (const job of queue) {
-        await handler(job);
-        await wait(150);
-      }
-    })
-  );
-}
-
-/* SEND MAIL — FIXED FOOTER */
+/* SEND — SAFE & HUMAN */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -104,38 +75,33 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    /* TEMPLATE + EXACT 2 LINE GAP + FIXED FOOTER */
-    const finalBody =
-`${message}
-
-    
-📩 Scanned & Secured — www.avast.com`;
-
-    const htmlBody = `
-<pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
-${finalBody}
-</pre>
-    `;
-
     let sent = 0;
 
-    await runWorkers(list, 3, async (to) => {
-      const ok = await sendWithRetry(
-        transporter,
-        {
-          from: `${senderName || "User"} <${email}>`,
+    for (const to of list) {
+      try {
+        await transporter.sendMail({
+          from: `${senderName || "Team"} <${email}>`,
           to,
           subject: subject || "",
-          html: htmlBody
-        },
-        2
-      );
-      if (ok) sent++;
-    });
+          text:
+`${message}
+
+--
+If you prefer not to receive emails, you may ignore this message.
+
+Sent from ${email}
+`
+        });
+        sent++;
+      } catch (e) {}
+
+      /* VERY IMPORTANT: slow human delay */
+      await wait(2000); // 2 seconds per mail
+    }
 
     res.json({
       success: true,
-      message: `Mail Sent ✔ (${sent}/${list.length})`
+      message: `Sent safely (${sent}/${list.length})`
     });
 
   } catch (err) {
@@ -144,5 +110,5 @@ ${finalBody}
 });
 
 app.listen(PORT, () =>
-  console.log("Mail server running on port " + PORT)
+  console.log("Safe mail server running")
 );
