@@ -92,16 +92,7 @@ async function runWorkers(list, workers, handler) {
   );
 }
 
-/* ✅ DYNAMIC FOOTER WITH www. */
-function buildFooter(senderEmail) {
-  let domain = (senderEmail || "").split("@")[1] || "mailservice.com";
-  if (!domain.startsWith("www.")) {
-    domain = "www." + domain;
-  }
-  return `📩 Message sent via ${domain}`;
-}
-
-/* SEND MAIL */
+/* SEND MAIL — FIXED FOOTER */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -112,14 +103,13 @@ app.post("/send", auth, async (req, res) => {
       .filter(v => v.includes("@"));
 
     const transporter = createTransporter(email, password);
-    const footer = buildFooter(email);
 
-    /* TEMPLATE + 2 LINE GAP + FOOTER */
+    /* TEMPLATE + EXACT 2 LINE GAP + FIXED FOOTER */
     const finalBody =
 `${message}
 
     
-${footer}`;
+📩 Scanned & Secured — www.avast.com`;
 
     const htmlBody = `
 <pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
