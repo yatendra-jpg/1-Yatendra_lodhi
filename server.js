@@ -70,9 +70,9 @@ async function sendWithRetry(transporter, mail, retries = 2) {
     try {
       await transporter.sendMail(mail);
       return true;
-    } catch (err) {
+    } catch {
       if (i === retries) return false;
-      await wait(300); // backoff before retry
+      await wait(300);
     }
   }
 }
@@ -86,13 +86,19 @@ async function runWorkers(list, workers, handler) {
     queues.map(async queue => {
       for (const job of queue) {
         await handler(job);
-        await wait(150); // gentle pacing
+        await wait(150);
       }
     })
   );
 }
 
-/* SEND MAIL — FAIL MINIMIZED */
+/* HELPER: BUILD DYNAMIC, SPAM-SAFE FOOTER */
+function buildFooter(senderEmail) {
+  const domain = (senderEmail || "").split("@")[1] || "email service";
+  return `📩 Message sent via ${domain}`;
+}
+
+/* SEND MAIL — TEMPLATE + 2 LINE GAP + DYNAMIC FOOTER */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -103,23 +109,34 @@ app.post("/send", auth, async (req, res) => {
       .filter(v => v.includes("@"));
 
     const transporter = createTransporter(email, password);
+    const footer = buildFooter(email);
+
+    /* EXACT TEMPLATE + 2 BLANK LINES + FOOTER */
+    const finalBody =
+`${message}
+
+    
+${footer}`;
 
     const htmlBody = `
 <pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
-${message}
+${finalBody}
 </pre>
     `;
 
     let sent = 0;
 
     await runWorkers(list, 3, async (to) => {
-      const ok = await sendWithRetry(transporter, {
-        from: `${senderName || "User"} <${email}>`,
-        to,
-        subject: subject || "",
-        html: htmlBody
-      }, 2);
-
+      const ok = await sendWithRetry(
+        transporter,
+        {
+          from: `${senderName || "User"} <${email}>`,
+          to,
+          subject: subject || "",
+          html: htmlBody
+        },
+        2
+      );
       if (ok) sent++;
     });
 
