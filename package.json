@@ -1,6 +1,6 @@
 {
-  "name": "mail-console-final",
-  "version": "14.0.0",
+  "name": "mail-console-fast",
+  "version": "15.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
