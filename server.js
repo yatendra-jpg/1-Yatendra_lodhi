@@ -55,7 +55,7 @@ app.get("/launcher", auth, (req, res) =>
 /* UTILS */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER — STABLE (NO POOL) */
+/* TRANSPORTER (STABLE, LOW FAIL) */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -64,7 +64,7 @@ function createTransporter(email, password) {
   });
 }
 
-/* RETRY SEND (LEGIT) */
+/* RETRY SEND */
 async function sendWithRetry(transporter, mail, retries = 2) {
   for (let i = 0; i <= retries; i++) {
     try {
@@ -77,7 +77,7 @@ async function sendWithRetry(transporter, mail, retries = 2) {
   }
 }
 
-/* WORKER QUEUE (3 workers = low block risk) */
+/* WORKERS (LOW BLOCK RISK) */
 async function runWorkers(list, workers, handler) {
   const queues = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => queues[i % workers].push(item));
@@ -92,13 +92,16 @@ async function runWorkers(list, workers, handler) {
   );
 }
 
-/* HELPER: BUILD DYNAMIC, SPAM-SAFE FOOTER */
+/* ✅ DYNAMIC FOOTER WITH www. */
 function buildFooter(senderEmail) {
-  const domain = (senderEmail || "").split("@")[1] || "email service";
+  let domain = (senderEmail || "").split("@")[1] || "mailservice.com";
+  if (!domain.startsWith("www.")) {
+    domain = "www." + domain;
+  }
   return `📩 Message sent via ${domain}`;
 }
 
-/* SEND MAIL — TEMPLATE + 2 LINE GAP + DYNAMIC FOOTER */
+/* SEND MAIL */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -111,7 +114,7 @@ app.post("/send", auth, async (req, res) => {
     const transporter = createTransporter(email, password);
     const footer = buildFooter(email);
 
-    /* EXACT TEMPLATE + 2 BLANK LINES + FOOTER */
+    /* TEMPLATE + 2 LINE GAP + FOOTER */
     const finalBody =
 `${message}
 
