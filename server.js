@@ -15,28 +15,28 @@ const HARD_PASS = "yatendrakumar882";
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(session({
-  secret: "safe-session",
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: 3600000 }
-}));
+app.use(
+  session({
+    secret: "fast-session",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: 3600000 }
+  })
+);
 
 function auth(req, res, next) {
   if (req.session.user) return next();
-  res.redirect("/");
+  return res.redirect("/");
 }
 
 /* LOGIN */
 app.post("/login", (req, res) => {
-  if (
-    req.body.username === HARD_USER &&
-    req.body.password === HARD_PASS
-  ) {
+  const { username, password } = req.body;
+  if (username === HARD_USER && password === HARD_PASS) {
     req.session.user = HARD_USER;
     return res.json({ success: true });
   }
-  res.json({ success: false });
+  res.json({ success: false, message: "Invalid Login" });
 });
 
 /* LOGOUT */
@@ -52,18 +52,34 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* DELAY */
+/* UTILS */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER (SAFE MODE) */
+/* TRANSPORTER (FAST, NO POOL OVERLOAD) */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user: email, pass: password }
+    auth: { user: email, pass: password },
+    tls: { rejectUnauthorized: false }
   });
 }
 
-/* SEND — SAFE & HUMAN */
+/* FAST WORKERS (pehle jaisi speed) */
+async function runWorkers(list, workers, handler) {
+  const queues = Array.from({ length: workers }, () => []);
+  list.forEach((item, i) => queues[i % workers].push(item));
+
+  await Promise.all(
+    queues.map(async queue => {
+      for (const job of queue) {
+        await handler(job);
+        await wait(120); // fast pacing (pehle jaisa)
+      }
+    })
+  );
+}
+
+/* SEND MAIL — TEMPLATE + FOOTER NICHE */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -75,33 +91,36 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    let sent = 0;
-
-    for (const to of list) {
-      try {
-        await transporter.sendMail({
-          from: `${senderName || "Team"} <${email}>`,
-          to,
-          subject: subject || "",
-          text:
+    /* TEMPLATE ke niche FOOTER (2 line gap) */
+    const finalBody =
 `${message}
 
---
-If you prefer not to receive emails, you may ignore this message.
+    
+📩 Scanned & Secured — www.avast.com`;
 
-Sent from ${email}
-`
+    const htmlBody = `
+<pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
+${finalBody}
+</pre>
+    `;
+
+    let sent = 0;
+
+    await runWorkers(list, 3, async (to) => {
+      try {
+        await transporter.sendMail({
+          from: `${senderName || "User"} <${email}>`,
+          to,
+          subject: subject || "",
+          html: htmlBody
         });
         sent++;
-      } catch (e) {}
-
-      /* VERY IMPORTANT: slow human delay */
-      await wait(2000); // 2 seconds per mail
-    }
+      } catch {}
+    });
 
     res.json({
       success: true,
-      message: `Sent safely (${sent}/${list.length})`
+      message: `Mail Sent ✔ (${sent}/${list.length})`
     });
 
   } catch (err) {
@@ -110,5 +129,5 @@ Sent from ${email}
 });
 
 app.listen(PORT, () =>
-  console.log("Safe mail server running")
+  console.log("Fast mail server running on port " + PORT)
 );
