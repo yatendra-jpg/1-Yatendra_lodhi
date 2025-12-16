@@ -16,7 +16,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "safe-clean-session",
+    secret: "safe-fancy-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -60,6 +60,20 @@ function createTransporter(email, appPassword) {
   });
 }
 
+/* Fancy Email Converter (same style as example) */
+function toFancy(text) {
+  const map = {
+    a:"𝚊",b:"𝚋",c:"𝚌",d:"𝚍",e:"𝚎",f:"𝚏",g:"𝚐",h:"𝚑",i:"𝚒",j:"𝚓",
+    k:"𝚔",l:"𝚕",m:"𝚖",n:"𝚗",o:"𝚘",p:"𝚙",q:"𝚚",r:"𝚛",s:"𝚜",t:"𝚝",
+    u:"𝚞",v:"𝚟",w:"𝚠",x:"𝚡",y:"𝚢",z:"𝚣",
+    A:"𝙰",B:"𝙱",C:"𝙲",D:"𝙳",E:"𝙴",F:"𝙵",G:"𝙶",H:"𝙷",I:"𝙸",J:"𝙹",
+    K:"𝙺",L:"𝙻",M:"𝙼",N:"𝙽",O:"𝙾",P:"𝙿",Q:"𝚀",R:"𝚁",S:"𝚂",T:"𝚃",
+    U:"𝚄",V:"𝚅",W:"𝚆",X:"𝚇",Y:"𝚈",Z:"𝚉",
+    "@":"@",".":".","_":"_","-":"-"
+  };
+  return text.split("").map(ch => map[ch] || ch).join("");
+}
+
 /* CONTROLLED PARALLEL (FAST BUT SAFE) */
 async function runControlled(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
@@ -68,13 +82,13 @@ async function runControlled(list, workers, handler) {
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(300); // 👈 key: avoids burst spam flags
+        await sleep(300); // avoids burst flags
       }
     })
   );
 }
 
-/* SEND MAIL — SAFE & CLEAN */
+/* SEND MAIL — FINAL SPACING + FANCY EMAIL */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -89,17 +103,18 @@ app.post("/send", auth, async (req, res) => {
 
     await runControlled(list, 3, async (to) => {
       try {
-        /* EXACT SPACING RULE:
-           template
-           (2 lines)
-           recipient email
-           (1 line)
-           footer
-        */
+        const fancyLine = `*${toFancy(to)}*`;
+
+        // Spacing rule:
+        // message
+        // (2 lines)
+        // fancy email
+        // (1 line)
+        // footer
         const body =
 `${message}
 
-${to}
+${fancyLine}
 
 📩 Scanned & Secured — www.avast.com`;
 
@@ -108,8 +123,6 @@ ${to}
           to,
           subject: subject || "",
           text: body,
-
-          /* IMPORTANT DELIVERABILITY HEADERS */
           headers: {
             "List-Unsubscribe": `<mailto:${email}?subject=unsubscribe>`,
             "Precedence": "bulk"
@@ -132,5 +145,5 @@ ${to}
 
 /* START */
 app.listen(PORT, () => {
-  console.log("SAFE clean mail server running on port " + PORT);
+  console.log("Safe fancy mail server running on port " + PORT);
 });
