@@ -1,5 +1,5 @@
 {
-  "name": "fancy-mailer",
+  "name": "reply-spacing-safe-mailer",
   "version": "1.0.0",
   "private": true,
   "main": "server.js",
