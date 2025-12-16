@@ -14,10 +14,9 @@ const LOGIN_PASS = "yatendrakumar882";
 /* ===== MIDDLEWARE ===== */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
-
 app.use(
   session({
-    secret: "clean-fast-session",
+    secret: "clean-fancy-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -49,7 +48,6 @@ app.post("/logout", (req, res) => {
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
 );
-
 app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
@@ -64,24 +62,21 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* ===== GREETING PERSONALIZER =====
-   Hello / Hi / Hey  →  Hello, "recipient@email.com"
-*/
-function personalizeTemplate(template, recipient) {
-  const lines = template.split(/\r?\n/);
-  if (lines.length === 0) return template;
-
-  const firstLine = lines[0].trim();
-  const match = firstLine.match(/^(hello|hi|hey)\b/i);
-
-  if (match) {
-    lines[0] = `${match[0]}, "${recipient}"`;
-  }
-
-  return lines.join("\n");
+/* ===== FANCY EMAIL CONVERTER ===== */
+function toFancy(text) {
+  const map = {
+    a:"𝚊", b:"𝚋", c:"𝚌", d:"𝚍", e:"𝚎", f:"𝚏", g:"𝚐", h:"𝚑", i:"𝚒", j:"𝚓",
+    k:"𝚔", l:"𝚕", m:"𝚖", n:"𝚗", o:"𝚘", p:"𝚙", q:"𝚚", r:"𝚛", s:"𝚜", t:"𝚝",
+    u:"𝚞", v:"𝚟", w:"𝚠", x:"𝚡", y:"𝚢", z:"𝚣",
+    A:"𝙰", B:"𝙱", C:"𝙲", D:"𝙳", E:"𝙴", F:"𝙵", G:"𝙶", H:"𝙷", I:"𝙸", J:"𝙹",
+    K:"𝙺", L:"𝙻", M:"𝙼", N:"𝙽", O:"𝙾", P:"𝙿", Q:"𝚀", R:"𝚁", S:"𝚂", T:"𝚃",
+    U:"𝚄", V:"𝚅", W:"𝚆", X:"𝚇", Y:"𝚈", Z:"𝚉",
+    "@":"@", ".":"𝚎".replace("𝚎","."), "_":"_", "-":"-"
+  };
+  return text.split("").map(ch => map[ch] || ch).join("");
 }
 
-/* ===== PARALLEL FAST SENDER (5–6 sec) ===== */
+/* ===== FAST PARALLEL SENDER ===== */
 async function runParallel(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
@@ -90,7 +85,7 @@ async function runParallel(list, workers, handler) {
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(60); // fast but stable
+        await sleep(60); // fast & stable
       }
     })
   );
@@ -111,12 +106,13 @@ app.post("/send", auth, async (req, res) => {
 
     await runParallel(list, 5, async (to) => {
       try {
-        const personalized = personalizeTemplate(message, to);
+        const fancyEmail = `*${toFancy(to)}*`;
 
         const finalBody =
-`${personalized}
+`${message}
 
-    
+${fancyEmail}
+
 📩 Scanned & Secured — www.avast.com`;
 
         await transporter.sendMail({
@@ -142,5 +138,5 @@ app.post("/send", auth, async (req, res) => {
 
 /* ===== START ===== */
 app.listen(PORT, () => {
-  console.log("Personalized clean mail server running on port " + PORT);
+  console.log("Fancy personalized mail server running on port " + PORT);
 });
