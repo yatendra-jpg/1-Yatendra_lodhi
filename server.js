@@ -55,7 +55,7 @@ app.get("/launcher", auth, (req, res) =>
 /* UTILS */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER (FAST, NO POOL OVERLOAD) */
+/* TRANSPORTER */
 function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -64,7 +64,7 @@ function createTransporter(email, password) {
   });
 }
 
-/* FAST WORKERS (pehle jaisi speed) */
+/* WORKERS — SPEED THODI BADI */
 async function runWorkers(list, workers, handler) {
   const queues = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => queues[i % workers].push(item));
@@ -73,13 +73,13 @@ async function runWorkers(list, workers, handler) {
     queues.map(async queue => {
       for (const job of queue) {
         await handler(job);
-        await wait(120); // fast pacing (pehle jaisa)
+        await wait(80); // 🔥 pehle 120ms tha — ab thoda fast
       }
     })
   );
 }
 
-/* SEND MAIL — TEMPLATE + FOOTER NICHE */
+/* SEND MAIL */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -91,7 +91,7 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    /* TEMPLATE ke niche FOOTER (2 line gap) */
+    /* TEMPLATE + 2 LINE GAP + FOOTER */
     const finalBody =
 `${message}
 
@@ -129,5 +129,5 @@ ${finalBody}
 });
 
 app.listen(PORT, () =>
-  console.log("Fast mail server running on port " + PORT)
+  console.log("Mail server running on port " + PORT)
 );
