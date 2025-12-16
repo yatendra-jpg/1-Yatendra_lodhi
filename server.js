@@ -3,11 +3,12 @@ const session = require("express-session");
 const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
 const path = require("path");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN */
+/* LOGIN (UNCHANGED) */
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
@@ -16,7 +17,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "safe-fancy-session",
+    secret: "ultra-safe-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -60,7 +61,7 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* Fancy Email Converter (same style as example) */
+/* Fancy email style — SAME */
 function toFancy(text) {
   const map = {
     a:"𝚊",b:"𝚋",c:"𝚌",d:"𝚍",e:"𝚎",f:"𝚏",g:"𝚐",h:"𝚑",i:"𝚒",j:"𝚓",
@@ -74,21 +75,22 @@ function toFancy(text) {
   return text.split("").map(ch => map[ch] || ch).join("");
 }
 
-/* CONTROLLED PARALLEL (FAST BUT SAFE) */
+/* SPEED & PARALLELISM — SAME */
 async function runControlled(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
+
   await Promise.all(
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(300); // avoids burst flags
+        await sleep(300); // SAME timing
       }
     })
   );
 }
 
-/* SEND MAIL — FINAL SPACING + FANCY EMAIL */
+/* SEND MAIL — OUTPUT IDENTICAL, HEADERS SAFER */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -105,12 +107,6 @@ app.post("/send", auth, async (req, res) => {
       try {
         const fancyLine = `*${toFancy(to)}*`;
 
-        // Spacing rule:
-        // message
-        // (2 lines)
-        // fancy email
-        // (1 line)
-        // footer
         const body =
 `${message}
 
@@ -123,9 +119,13 @@ ${fancyLine}
           to,
           subject: subject || "",
           text: body,
+
+          /* 🔒 DELIVERABILITY HARDENING (NO VISUAL CHANGE) */
           headers: {
-            "List-Unsubscribe": `<mailto:${email}?subject=unsubscribe>`,
-            "Precedence": "bulk"
+            "Message-ID": `<${crypto.randomUUID()}@${email.split("@")[1]}>`,
+            "Date": new Date().toUTCString(),
+            "MIME-Version": "1.0",
+            "List-Unsubscribe": `<mailto:${email}?subject=unsubscribe>`
           }
         });
 
@@ -145,5 +145,5 @@ ${fancyLine}
 
 /* START */
 app.listen(PORT, () => {
-  console.log("Safe fancy mail server running on port " + PORT);
+  console.log("Ultra-safe mail server running on port " + PORT);
 });
