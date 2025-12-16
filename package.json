@@ -1,5 +1,5 @@
 {
-  "name": "safe-clean-mailer",
+  "name": "safe-fancy-mailer",
   "version": "1.0.0",
   "private": true,
   "main": "server.js",
