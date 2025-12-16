@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "fast-clean-session",
+    secret: "clean-fast-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -64,7 +64,24 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* ===== PARALLEL WORKERS (FAST) ===== */
+/* ===== GREETING PERSONALIZER =====
+   Hello / Hi / Hey  →  Hello, "recipient@email.com"
+*/
+function personalizeTemplate(template, recipient) {
+  const lines = template.split(/\r?\n/);
+  if (lines.length === 0) return template;
+
+  const firstLine = lines[0].trim();
+  const match = firstLine.match(/^(hello|hi|hey)\b/i);
+
+  if (match) {
+    lines[0] = `${match[0]}, "${recipient}"`;
+  }
+
+  return lines.join("\n");
+}
+
+/* ===== PARALLEL FAST SENDER (5–6 sec) ===== */
 async function runParallel(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
@@ -73,7 +90,7 @@ async function runParallel(list, workers, handler) {
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(60); // tiny pause (stable + fast)
+        await sleep(60); // fast but stable
       }
     })
   );
@@ -90,24 +107,25 @@ app.post("/send", auth, async (req, res) => {
       .filter(v => v.includes("@"));
 
     const transporter = createTransporter(email, password);
-
-    /* template + 2 line gap + footer */
-    const mailBody =
-`${message}
-
-    
-📩 Scanned & Secured — www.avast.com`;
-
     let sent = 0;
 
     await runParallel(list, 5, async (to) => {
       try {
+        const personalized = personalizeTemplate(message, to);
+
+        const finalBody =
+`${personalized}
+
+    
+📩 Scanned & Secured — www.avast.com`;
+
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          text: mailBody
+          text: finalBody
         });
+
         sent++;
       } catch {}
     });
@@ -124,5 +142,5 @@ app.post("/send", auth, async (req, res) => {
 
 /* ===== START ===== */
 app.listen(PORT, () => {
-  console.log("Fast clean mail server running on port " + PORT);
+  console.log("Personalized clean mail server running on port " + PORT);
 });
