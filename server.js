@@ -16,7 +16,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "final-reply-spacing-session",
+    secret: "final-spacing-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -31,10 +31,7 @@ function auth(req, res, next) {
 
 /* LOGIN */
 app.post("/login", (req, res) => {
-  if (
-    req.body.username === LOGIN_ID &&
-    req.body.password === LOGIN_PASS
-  ) {
+  if (req.body.username === LOGIN_ID && req.body.password === LOGIN_PASS) {
     req.session.user = LOGIN_ID;
     return res.json({ success: true });
   }
@@ -56,7 +53,6 @@ app.get("/launcher", auth, (req, res) =>
 
 /* UTILS */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-
 function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -78,7 +74,7 @@ function toFancy(text) {
   return text.split("").map(ch => map[ch] || ch).join("");
 }
 
-/* FAST PARALLEL SENDER */
+/* FAST PARALLEL (~5–6 sec for 25) */
 async function runParallel(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
@@ -92,7 +88,7 @@ async function runParallel(list, workers, handler) {
   );
 }
 
-/* SEND MAIL */
+/* SEND MAIL — FINAL SPACING */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -107,22 +103,20 @@ app.post("/send", auth, async (req, res) => {
 
     await runParallel(list, 5, async (to) => {
       try {
-        /* 
-          IMPORTANT:
-          - message stays EXACT (no added lines)
-          - fancy email + footer
-          - END with EXACTLY:
-            \n\n
-          This ensures:
-          - comment gets 1 blank line
-          - "wrote:" gets 2 blank lines
-        */
+        const fancyEmail = `*${toFancy(to)}*`;
+
+        // IMPORTANT:
+        // message (unchanged)
+        // + \n\n (2 lines)
+        // + fancyEmail
+        // + \n (1 line)
+        // + footer
         const body =
 `${message}
-*${toFancy(to)}*
-📩 Scanned & Secured — www.avast.com
 
-`;
+${fancyEmail}
+
+📩 Scanned & Secured — www.avast.com`;
 
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
@@ -146,5 +140,5 @@ app.post("/send", auth, async (req, res) => {
 
 /* START */
 app.listen(PORT, () => {
-  console.log("FINAL reply-spacing safe mail server running on port " + PORT);
+  console.log("Final spacing mail server running on port " + PORT);
 });
