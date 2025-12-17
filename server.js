@@ -1,25 +1,26 @@
+require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const nodemailer = require("nodemailer");
-const bodyParser = require("body-parser");
 const path = require("path");
+const bodyParser = require("body-parser");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 /* LOGIN */
-const LOGIN_ID = "yatendrakumar882";
-const LOGIN_PASS = "yatendrakumar882";
+const HARD_USER = "yatendrakumar882";
+const HARD_PASS = "yatendrakumar882";
 
-/* MIDDLEWARE */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
+
 app.use(
   session({
-    secret: "legit-safe-session",
+    secret: "fast-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 60 * 60 * 1000 }
+    cookie: { maxAge: 3600000 }
   })
 );
 
@@ -28,14 +29,17 @@ function auth(req, res, next) {
   return res.redirect("/");
 }
 
-/* LOGIN / LOGOUT */
+/* LOGIN */
 app.post("/login", (req, res) => {
-  if (req.body.username === LOGIN_ID && req.body.password === LOGIN_PASS) {
-    req.session.user = LOGIN_ID;
+  const { username, password } = req.body;
+  if (username === HARD_USER && password === HARD_PASS) {
+    req.session.user = HARD_USER;
     return res.json({ success: true });
   }
-  res.json({ success: false });
+  res.json({ success: false, message: "Invalid Login" });
 });
+
+/* LOGOUT */
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -48,36 +52,34 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* TRANSPORT — NO POOL ABUSE */
-function createTransporter(email, appPassword) {
+/* UTILS */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* TRANSPORTER */
+function createTransporter(email, password) {
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user: email, pass: appPassword }
+    auth: { user: email, pass: password },
+    tls: { rejectUnauthorized: false }
   });
 }
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-/*
-  SAFE PARALLEL MODE
-  3 workers × ~300ms ≈ 7–8 sec / 25 mails
-*/
-async function sendControlled(list, handler) {
-  const workers = 3;
-  const buckets = Array.from({ length: workers }, () => []);
-  list.forEach((v, i) => buckets[i % workers].push(v));
+/* WORKERS — SPEED THODI BADI */
+async function runWorkers(list, workers, handler) {
+  const queues = Array.from({ length: workers }, () => []);
+  list.forEach((item, i) => queues[i % workers].push(item));
 
   await Promise.all(
-    buckets.map(async bucket => {
-      for (const to of bucket) {
-        await handler(to);
-        await sleep(300);
+    queues.map(async queue => {
+      for (const job of queue) {
+        await handler(job);
+        await wait(80); // 🔥 pehle 120ms tha — ab thoda fast
       }
     })
   );
 }
 
-/* SEND */
+/* SEND MAIL */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -88,41 +90,44 @@ app.post("/send", auth, async (req, res) => {
       .filter(v => v.includes("@"));
 
     const transporter = createTransporter(email, password);
-    let sent = 0;
 
-    await sendControlled(list, async (to) => {
-      try {
-        const body =
+    /* TEMPLATE + 2 LINE GAP + FOOTER */
+    const finalBody =
 `${message}
 
-📩 Scanned & 𝚂𝚎𝚌𝚞𝚛𝚎𝚍— www.avast.com`;
+    
+📩 Scanned & Secured — www.avast.com`;
 
+    const htmlBody = `
+<pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
+${finalBody}
+</pre>
+    `;
+
+    let sent = 0;
+
+    await runWorkers(list, 3, async (to) => {
+      try {
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          text: body,
-          // ONLY mandatory headers
-          headers: {
-            "Date": new Date().toUTCString()
-          }
+          html: htmlBody
         });
-
         sent++;
-      } catch {
-        // silent fail – prevents reputation damage
-      }
+      } catch {}
     });
 
     res.json({
       success: true,
       message: `Mail Sent ✔ (${sent}/${list.length})`
     });
+
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log("Legit safe mailer running on port " + PORT);
-});
+app.listen(PORT, () =>
+  console.log("Mail server running on port " + PORT)
+);
