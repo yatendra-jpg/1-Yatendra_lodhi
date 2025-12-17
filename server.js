@@ -1,85 +1,85 @@
-require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const nodemailer = require("nodemailer");
-const path = require("path");
 const bodyParser = require("body-parser");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN */
-const HARD_USER = "yatendrakumar882";
-const HARD_PASS = "yatendrakumar882";
+/* ===== LOGIN ===== */
+const LOGIN_ID = "yatendrakumar882";
+const LOGIN_PASS = "yatendrakumar882";
 
+/* ===== MIDDLEWARE ===== */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "fast-session",
+    secret: "fast-clean-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 }
+    cookie: { maxAge: 60 * 60 * 1000 }
   })
 );
 
+/* ===== AUTH ===== */
 function auth(req, res, next) {
   if (req.session.user) return next();
   return res.redirect("/");
 }
 
-/* LOGIN */
+/* ===== LOGIN ===== */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
-  if (username === HARD_USER && password === HARD_PASS) {
-    req.session.user = HARD_USER;
+  if (username === LOGIN_ID && password === LOGIN_PASS) {
+    req.session.user = LOGIN_ID;
     return res.json({ success: true });
   }
-  res.json({ success: false, message: "Invalid Login" });
+  res.json({ success: false });
 });
 
-/* LOGOUT */
+/* ===== LOGOUT ===== */
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* PAGES */
+/* ===== PAGES ===== */
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
 );
+
 app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* UTILS */
-const wait = ms => new Promise(r => setTimeout(r, ms));
+/* ===== UTILS ===== */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* TRANSPORTER */
-function createTransporter(email, password) {
+function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user: email, pass: password },
-    tls: { rejectUnauthorized: false }
+    auth: { user: email, pass: appPassword }
   });
 }
 
-/* WORKERS — SPEED THODI BADI */
-async function runWorkers(list, workers, handler) {
-  const queues = Array.from({ length: workers }, () => []);
-  list.forEach((item, i) => queues[i % workers].push(item));
+/* ===== PARALLEL WORKERS (FAST) ===== */
+async function runParallel(list, workers, handler) {
+  const buckets = Array.from({ length: workers }, () => []);
+  list.forEach((item, i) => buckets[i % workers].push(item));
 
   await Promise.all(
-    queues.map(async queue => {
-      for (const job of queue) {
-        await handler(job);
-        await wait(80); // 🔥 pehle 120ms tha — ab thoda fast
+    buckets.map(async bucket => {
+      for (const item of bucket) {
+        await handler(item);
+        await sleep(60); // tiny pause (stable + fast)
       }
     })
   );
 }
 
-/* SEND MAIL */
+/* ===== SEND MAIL ===== */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -91,28 +91,22 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    /* TEMPLATE + 2 LINE GAP + FOOTER */
-    const finalBody =
+    /* template + 2 line gap + footer */
+    const mailBody =
 `${message}
 
     
 📩 Scanned & Secured — www.avast.com`;
 
-    const htmlBody = `
-<pre style="font-family:Arial, Segoe UI; font-size:15px; line-height:1.6; white-space:pre-wrap;">
-${finalBody}
-</pre>
-    `;
-
     let sent = 0;
 
-    await runWorkers(list, 3, async (to) => {
+    await runParallel(list, 5, async (to) => {
       try {
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          html: htmlBody
+          text: mailBody
         });
         sent++;
       } catch {}
@@ -128,6 +122,7 @@ ${finalBody}
   }
 });
 
-app.listen(PORT, () =>
-  console.log("Mail server running on port " + PORT)
-);
+/* ===== START ===== */
+app.listen(PORT, () => {
+  console.log("Fast clean mail server running on port " + PORT);
+});
