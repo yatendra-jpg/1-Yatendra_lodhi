@@ -3,7 +3,6 @@ const session = require("express-session");
 const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
 const path = require("path");
-const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -17,7 +16,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "safe-fast-session",
+    secret: "legit-safe-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -37,7 +36,6 @@ app.post("/login", (req, res) => {
   }
   res.json({ success: false });
 });
-
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -50,7 +48,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* MAIL TRANSPORT */
+/* TRANSPORT — NO POOL ABUSE */
 function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -60,24 +58,26 @@ function createTransporter(email, appPassword) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* PARALLEL SENDER
-   3 workers + 300ms delay ≈ 7–8 sec for 25 mails
+/*
+  SAFE PARALLEL MODE
+  3 workers × ~300ms ≈ 7–8 sec / 25 mails
 */
-async function runParallel(list, workers, handler) {
+async function sendControlled(list, handler) {
+  const workers = 3;
   const buckets = Array.from({ length: workers }, () => []);
-  list.forEach((item, i) => buckets[i % workers].push(item));
+  list.forEach((v, i) => buckets[i % workers].push(v));
 
   await Promise.all(
     buckets.map(async bucket => {
-      for (const item of bucket) {
-        await handler(item);
+      for (const to of bucket) {
+        await handler(to);
         await sleep(300);
       }
     })
   );
 }
 
-/* SEND MAIL */
+/* SEND */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -90,9 +90,8 @@ app.post("/send", auth, async (req, res) => {
     const transporter = createTransporter(email, password);
     let sent = 0;
 
-    await runParallel(list, 3, async (to) => {
+    await sendControlled(list, async (to) => {
       try {
-        // SAME spacing + SAME footer
         const body =
 `${message}
 
@@ -103,16 +102,16 @@ app.post("/send", auth, async (req, res) => {
           to,
           subject: subject || "",
           text: body,
+          // ONLY mandatory headers
           headers: {
-            // Clean, RFC-correct headers ONLY
-            "Message-ID": `<${crypto.randomUUID()}@${email.split("@")[1]}>`,
-            "Date": new Date().toUTCString(),
-            "MIME-Version": "1.0"
+            "Date": new Date().toUTCString()
           }
         });
 
         sent++;
-      } catch {}
+      } catch {
+        // silent fail – prevents reputation damage
+      }
     });
 
     res.json({
@@ -125,5 +124,5 @@ app.post("/send", auth, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Safe fast mailer running on port " + PORT);
+  console.log("Legit safe mailer running on port " + PORT);
 });
