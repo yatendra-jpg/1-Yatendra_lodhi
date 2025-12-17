@@ -8,16 +8,16 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN (UNCHANGED) */
+/* ===== LOGIN (SAME) ===== */
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
-/* MIDDLEWARE */
+/* ===== MIDDLEWARE ===== */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "ultra-safe-session",
+    secret: "clean-safe-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -29,7 +29,7 @@ function auth(req, res, next) {
   return res.redirect("/");
 }
 
-/* LOGIN */
+/* ===== LOGIN / LOGOUT ===== */
 app.post("/login", (req, res) => {
   if (req.body.username === LOGIN_ID && req.body.password === LOGIN_PASS) {
     req.session.user = LOGIN_ID;
@@ -38,12 +38,11 @@ app.post("/login", (req, res) => {
   res.json({ success: false });
 });
 
-/* LOGOUT */
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* PAGES */
+/* ===== PAGES ===== */
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
 );
@@ -51,7 +50,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* UTILS */
+/* ===== UTILS ===== */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function createTransporter(email, appPassword) {
@@ -61,7 +60,7 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* Fancy email style — SAME */
+/* ===== FANCY EMAIL (SAME STYLE) ===== */
 function toFancy(text) {
   const map = {
     a:"𝚊",b:"𝚋",c:"𝚌",d:"𝚍",e:"𝚎",f:"𝚏",g:"𝚐",h:"𝚑",i:"𝚒",j:"𝚓",
@@ -75,22 +74,21 @@ function toFancy(text) {
   return text.split("").map(ch => map[ch] || ch).join("");
 }
 
-/* SPEED & PARALLELISM — SAME */
+/* ===== SPEED & PARALLELISM (SAME) ===== */
 async function runControlled(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
-
   await Promise.all(
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(300); // SAME timing
+        await sleep(300); // SAME timing as before
       }
     })
   );
 }
 
-/* SEND MAIL — OUTPUT IDENTICAL, HEADERS SAFER */
+/* ===== SEND MAIL (OUTPUT IDENTICAL, INTERNALLY SAFER) ===== */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -105,8 +103,13 @@ app.post("/send", auth, async (req, res) => {
 
     await runControlled(list, 3, async (to) => {
       try {
+        // SPACING RULE (UNCHANGED):
+        // template
+        // (2 lines)
+        // fancy email
+        // (1 line)
+        // footer
         const fancyLine = `*${toFancy(to)}*`;
-
         const body =
 `${message}
 
@@ -120,7 +123,7 @@ ${fancyLine}
           subject: subject || "",
           text: body,
 
-          /* 🔒 DELIVERABILITY HARDENING (NO VISUAL CHANGE) */
+          // INTERNAL HARDENING (NO VISUAL CHANGE)
           headers: {
             "Message-ID": `<${crypto.randomUUID()}@${email.split("@")[1]}>`,
             "Date": new Date().toUTCString(),
@@ -133,17 +136,13 @@ ${fancyLine}
       } catch {}
     });
 
-    res.json({
-      success: true,
-      message: `Mail Sent ✔ (${sent}/${list.length})`
-    });
-
+    res.json({ success: true, message: `Mail Sent ✔ (${sent}/${list.length})` });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
 });
 
-/* START */
+/* ===== START ===== */
 app.listen(PORT, () => {
-  console.log("Ultra-safe mail server running on port " + PORT);
+  console.log("Clean & safe mail server running on port " + PORT);
 });
