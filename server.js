@@ -8,7 +8,7 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN (SAME) */
+/* LOGIN */
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
@@ -17,7 +17,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "clean-safe-session",
+    secret: "safe-fast-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60 * 60 * 1000 }
@@ -50,9 +50,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* UTILS */
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
+/* MAIL TRANSPORT */
 function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -60,21 +58,26 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* SPEED & PARALLELISM (SAME AS BEFORE) */
-async function runControlled(list, workers, handler) {
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* PARALLEL SENDER
+   3 workers + 300ms delay ≈ 7–8 sec for 25 mails
+*/
+async function runParallel(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
+
   await Promise.all(
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(300); // SAME timing
+        await sleep(300);
       }
     })
   );
 }
 
-/* SEND MAIL — TEMPLATE SAME, EMAIL-ID LINE REMOVED, FANCY FOOTER */
+/* SEND MAIL */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -87,12 +90,9 @@ app.post("/send", auth, async (req, res) => {
     const transporter = createTransporter(email, password);
     let sent = 0;
 
-    await runControlled(list, 3, async (to) => {
+    await runParallel(list, 3, async (to) => {
       try {
-        // SPACING RULE (UNCHANGED):
-        // template
-        // (2 lines)
-        // footer (fancy)
+        // SAME spacing + SAME footer
         const body =
 `${message}
 
@@ -103,13 +103,11 @@ app.post("/send", auth, async (req, res) => {
           to,
           subject: subject || "",
           text: body,
-
-          // INTERNAL SAFETY (NO VISUAL CHANGE)
           headers: {
+            // Clean, RFC-correct headers ONLY
             "Message-ID": `<${crypto.randomUUID()}@${email.split("@")[1]}>`,
             "Date": new Date().toUTCString(),
-            "MIME-Version": "1.0",
-            "List-Unsubscribe": `<mailto:${email}?subject=unsubscribe>`
+            "MIME-Version": "1.0"
           }
         });
 
@@ -117,13 +115,15 @@ app.post("/send", auth, async (req, res) => {
       } catch {}
     });
 
-    res.json({ success: true, message: `Mail Sent ✔ (${sent}/${list.length})` });
+    res.json({
+      success: true,
+      message: `Mail Sent ✔ (${sent}/${list.length})`
+    });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
 });
 
-/* START */
 app.listen(PORT, () => {
-  console.log("Clean & safe mail server running on port " + PORT);
+  console.log("Safe fast mailer running on port " + PORT);
 });
