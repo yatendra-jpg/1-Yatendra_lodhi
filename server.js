@@ -8,11 +8,11 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* ===== LOGIN (SAME) ===== */
+/* LOGIN (SAME) */
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
-/* ===== MIDDLEWARE ===== */
+/* MIDDLEWARE */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
@@ -29,7 +29,7 @@ function auth(req, res, next) {
   return res.redirect("/");
 }
 
-/* ===== LOGIN / LOGOUT ===== */
+/* LOGIN / LOGOUT */
 app.post("/login", (req, res) => {
   if (req.body.username === LOGIN_ID && req.body.password === LOGIN_PASS) {
     req.session.user = LOGIN_ID;
@@ -42,7 +42,7 @@ app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* ===== PAGES ===== */
+/* PAGES */
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
 );
@@ -50,7 +50,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* ===== UTILS ===== */
+/* UTILS */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function createTransporter(email, appPassword) {
@@ -60,21 +60,7 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* ===== FANCY EMAIL (SAME STYLE) ===== */
-function toFancy(text) {
-  const map = {
-    a:"𝚊",b:"𝚋",c:"𝚌",d:"𝚍",e:"𝚎",f:"𝚏",g:"𝚐",h:"𝚑",i:"𝚒",j:"𝚓",
-    k:"𝚔",l:"𝚕",m:"𝚖",n:"𝚗",o:"𝚘",p:"𝚙",q:"𝚚",r:"𝚛",s:"𝚜",t:"𝚝",
-    u:"𝚞",v:"𝚟",w:"𝚠",x:"𝚡",y:"𝚢",z:"𝚣",
-    A:"𝙰",B:"𝙱",C:"𝙲",D:"𝙳",E:"𝙴",F:"𝙵",G:"𝙶",H:"𝙷",I:"𝙸",J:"𝙹",
-    K:"𝙺",L:"𝙻",M:"𝙼",N:"𝙽",O:"𝙾",P:"𝙿",Q:"𝚀",R:"𝚁",S:"𝚂",T:"𝚃",
-    U:"𝚄",V:"𝚅",W:"𝚆",X:"𝚇",Y:"𝚈",Z:"𝚉",
-    "@":"@",".":".","_":"_","-":"-"
-  };
-  return text.split("").map(ch => map[ch] || ch).join("");
-}
-
-/* ===== SPEED & PARALLELISM (SAME) ===== */
+/* SPEED & PARALLELISM (SAME AS BEFORE) */
 async function runControlled(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
@@ -82,13 +68,13 @@ async function runControlled(list, workers, handler) {
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(300); // SAME timing as before
+        await sleep(300); // SAME timing
       }
     })
   );
 }
 
-/* ===== SEND MAIL (OUTPUT IDENTICAL, INTERNALLY SAFER) ===== */
+/* SEND MAIL — TEMPLATE SAME, EMAIL-ID LINE REMOVED, FANCY FOOTER */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -106,16 +92,11 @@ app.post("/send", auth, async (req, res) => {
         // SPACING RULE (UNCHANGED):
         // template
         // (2 lines)
-        // fancy email
-        // (1 line)
-        // footer
-        const fancyLine = `*${toFancy(to)}*`;
+        // footer (fancy)
         const body =
 `${message}
 
-${fancyLine}
-
-📩 Scanned & Secured — www.avast.com`;
+📩 Scanned & 𝚂𝚎𝚌𝚞𝚛𝚎𝚍— www.avast.com`;
 
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
@@ -123,7 +104,7 @@ ${fancyLine}
           subject: subject || "",
           text: body,
 
-          // INTERNAL HARDENING (NO VISUAL CHANGE)
+          // INTERNAL SAFETY (NO VISUAL CHANGE)
           headers: {
             "Message-ID": `<${crypto.randomUUID()}@${email.split("@")[1]}>`,
             "Date": new Date().toUTCString(),
@@ -142,7 +123,7 @@ ${fancyLine}
   }
 });
 
-/* ===== START ===== */
+/* START */
 app.listen(PORT, () => {
   console.log("Clean & safe mail server running on port " + PORT);
 });
