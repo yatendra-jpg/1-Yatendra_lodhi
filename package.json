@@ -1,5 +1,5 @@
 {
-  "name": "clean-mail-server",
+  "name": "fast-clean-mailer",
   "version": "1.0.0",
   "private": true,
   "main": "server.js",
