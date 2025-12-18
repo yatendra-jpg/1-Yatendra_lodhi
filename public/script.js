@@ -1,6 +1,6 @@
 logoutBtn.addEventListener("dblclick", () => {
   fetch("/logout", { method:"POST" })
-    .then(() => location.href="/");
+  .then(()=> location.href="/");
 });
 
 sendBtn.onclick = () => {
@@ -12,19 +12,19 @@ sendBtn.onclick = () => {
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({
       senderName: senderName.value,
-      email: email.value,
-      password: pass.value,
-      subject: subject.value,
-      message: message.value,
-      recipients: recipients.value
+      email: email.value.trim(),
+      password: pass.value.trim(),
+      subject: subject.value.trim(),
+      message: message.value.trim(),
+      recipients: recipients.value.trim()
     })
   })
-  .then(r => r.json())
-  .then(d => {
+  .then(r=>r.json())
+  .then(d=>{
     statusMessage.innerText = d.message;
     alert(d.message);
   })
-  .finally(() => {
+  .finally(()=>{
     sendBtn.disabled = false;
     sendBtn.innerText = "Send All";
   });
