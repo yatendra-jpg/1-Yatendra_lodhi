@@ -8,7 +8,7 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN (SAME) */
+/* LOGIN */
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
@@ -59,7 +59,7 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* SPEED (SAME CONTROLLED) */
+/* SPEED (SAME) */
 async function runControlled(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
@@ -67,13 +67,13 @@ async function runControlled(list, workers, handler) {
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(300); // SAME pacing
+        await sleep(300);
       }
     })
   );
 }
 
-/* SEND MAIL — ONLY TEMPLATE + FANCY FOOTER */
+/* SEND */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -86,12 +86,8 @@ app.post("/send", auth, async (req, res) => {
     const transporter = createTransporter(email, password);
     let sent = 0;
 
-    await runControlled(list, 3, async (to) => {
+    await runControlled(list, 3, async () => {
       try {
-        // SPACING RULE (UNCHANGED):
-        // template
-        // (2 lines)
-        // footer ONLY
         const body =
 `${message}
 
@@ -99,11 +95,9 @@ app.post("/send", auth, async (req, res) => {
 
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
-          to,
+          to: list[sent],
           subject: subject || "",
           text: body,
-
-          // INTERNAL SAFETY (NO VISIBLE CHANGE)
           headers: {
             "Message-ID": `<${crypto.randomUUID()}@${email.split("@")[1]}>`,
             "Date": new Date().toUTCString(),
@@ -116,17 +110,12 @@ app.post("/send", auth, async (req, res) => {
       } catch {}
     });
 
-    res.json({
-      success: true,
-      message: `Mail Sent ✔ (${sent}/${list.length})`
-    });
-
+    res.json({ success: true, message: `Mail Sent ✔ (${sent}/${list.length})` });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
 });
 
-/* START */
 app.listen(PORT, () => {
-  console.log("Clean & safe mail server running on port " + PORT);
+  console.log("Clean & Safe Mailer running on port " + PORT);
 });
