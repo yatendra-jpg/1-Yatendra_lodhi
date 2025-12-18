@@ -64,7 +64,7 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* ===== PARALLEL WORKERS (FAST + STABLE) ===== */
+/* ===== PARALLEL WORKERS (FAST) ===== */
 async function runParallel(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
@@ -73,7 +73,7 @@ async function runParallel(list, workers, handler) {
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(60); // fast but safe
+        await sleep(60); // tiny pause (stable + fast)
       }
     })
   );
@@ -91,11 +91,11 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    /* TEMPLATE + 2 BLANK LINES + FOOTER */
+    /* template + 2 line gap + footer */
     const mailBody =
 `${message}
 
-
+    
 📩 Scanned & Secured — www.avast.com`;
 
     let sent = 0;
@@ -106,11 +106,7 @@ app.post("/send", auth, async (req, res) => {
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          text: mailBody,
-          headers: {
-            "Date": new Date().toUTCString(),
-            "MIME-Version": "1.0"
-          }
+          text: mailBody
         });
         sent++;
       } catch {}
