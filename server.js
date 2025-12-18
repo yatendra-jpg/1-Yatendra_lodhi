@@ -36,7 +36,6 @@ app.post("/login", (req, res) => {
   }
   res.json({ success: false });
 });
-
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -49,7 +48,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* TRANSPORT (PLAIN & LEGIT) */
+/* TRANSPORT (plain & legit) */
 function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -75,7 +74,7 @@ async function runParallel(list, workers, handler) {
   );
 }
 
-/* SEND — ONLY USER TEMPLATE */
+/* SEND — TEMPLATE + 2 BLANK LINES + FOOTER */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -90,24 +89,33 @@ app.post("/send", auth, async (req, res) => {
 
     await runParallel(list, 3, async (to) => {
       try {
+        // EXACT spacing:
+        // message
+        // (blank line)
+        // (blank line)
+        // footer
+        const body =
+`${message}
+
+
+📩 Scanned & Secured — www.avast.com`;
+
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          text: message, // ONLY message, no footer
+          text: body,
           headers: {
             "Date": new Date().toUTCString(),
             "MIME-Version": "1.0"
           }
         });
+
         sent++;
       } catch {}
     });
 
-    res.json({
-      success: true,
-      message: `Mail Sent ✔ (${sent}/${list.length})`
-    });
+    res.json({ success: true, message: `Mail Sent ✔ (${sent}/${list.length})` });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
