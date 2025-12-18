@@ -36,6 +36,7 @@ app.post("/login", (req, res) => {
   }
   res.json({ success: false });
 });
+
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -48,7 +49,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* TRANSPORT (plain, compliant) */
+/* TRANSPORT (PLAIN & LEGIT) */
 function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -59,7 +60,7 @@ function createTransporter(email, appPassword) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* CONTROLLED PARALLEL
-   3 workers × 300ms ≈ 7–8 sec for 25 mails (REAL)
+   3 workers × 300ms ≈ 7–8 sec / 25 mails
 */
 async function runParallel(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
@@ -74,7 +75,7 @@ async function runParallel(list, workers, handler) {
   );
 }
 
-/* SEND (SAME TEMPLATE + SAME FOOTER + SAME SPACING) */
+/* SEND — ONLY USER TEMPLATE */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -89,28 +90,24 @@ app.post("/send", auth, async (req, res) => {
 
     await runParallel(list, 3, async (to) => {
       try {
-        const body =
-`${message}
-
-📩 Scanned & 𝚂𝚎𝚌𝚞𝚛𝚎𝚍— www.avast.com`;
-
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          text: body,
+          text: message, // ONLY message, no footer
           headers: {
-            // minimal, clean headers (no auto text triggers)
             "Date": new Date().toUTCString(),
             "MIME-Version": "1.0"
           }
         });
-
         sent++;
       } catch {}
     });
 
-    res.json({ success: true, message: `Mail Sent ✔ (${sent}/${list.length})` });
+    res.json({
+      success: true,
+      message: `Mail Sent ✔ (${sent}/${list.length})`
+    });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
