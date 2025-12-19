@@ -14,13 +14,7 @@ const LOGIN_PASS = "yatendrakumar882";
 /* ===== RATE LIMIT ===== */
 const LIMIT_PER_HOUR = 28;
 const ONE_HOUR = 60 * 60 * 1000;
-
-/*
-  senderLimits = {
-    "sender@gmail.com": { count: 0, resetAt: timestamp }
-  }
-*/
-const senderLimits = {};
+const senderLimits = {}; // { email: { count, resetAt } }
 
 /* ===== MIDDLEWARE ===== */
 app.use(bodyParser.json());
@@ -61,9 +55,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* ===== UTILS ===== */
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
+/* ===== MAIL ===== */
 function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -72,28 +64,42 @@ function createTransporter(email, appPassword) {
 }
 
 /* ===== RATE LIMIT HELPERS ===== */
-function useQuota(senderEmail) {
+function canUse(sender) {
   const now = Date.now();
-  if (!senderLimits[senderEmail]) {
-    senderLimits[senderEmail] = { count: 0, resetAt: now + ONE_HOUR };
+  if (!senderLimits[sender]) {
+    senderLimits[sender] = { count: 0, resetAt: now + ONE_HOUR };
   }
-  const info = senderLimits[senderEmail];
-  if (now >= info.resetAt) {
-    info.count = 0;
-    info.resetAt = now + ONE_HOUR;
+  const s = senderLimits[sender];
+  if (now >= s.resetAt) {
+    s.count = 0;
+    s.resetAt = now + ONE_HOUR;
   }
-  if (info.count >= LIMIT_PER_HOUR) return false;
-  info.count++;
+  if (s.count >= LIMIT_PER_HOUR) return false;
+  s.count++;
   return true;
 }
-function usedCount(senderEmail) {
-  if (!senderLimits[senderEmail]) return 0;
-  const info = senderLimits[senderEmail];
-  if (Date.now() >= info.resetAt) return 0;
-  return info.count;
+function usedCount(sender) {
+  if (!senderLimits[sender]) return 0;
+  const s = senderLimits[sender];
+  if (Date.now() >= s.resetAt) return 0;
+  return s.count;
 }
 
-/* ===== SEND MAIL (FAST SEQUENTIAL) ===== */
+/* ===== FAST WORKER (CONCURRENCY) ===== */
+// Tuned for ~3–4s for 25 mails
+async function runFast(list, workers, handler) {
+  const buckets = Array.from({ length: workers }, () => []);
+  list.forEach((v, i) => buckets[i % workers].push(v));
+  await Promise.all(
+    buckets.map(async bucket => {
+      for (const item of bucket) {
+        await handler(item);
+      }
+    })
+  );
+}
+
+/* ===== SEND ===== */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -105,7 +111,7 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    const mailBody =
+    const body =
 `${message}
 
 
@@ -113,15 +119,14 @@ app.post("/send", auth, async (req, res) => {
 
     let sent = 0;
 
-    // FAST: ~120ms delay → 25 mails ≈ 3s + overhead ≈ 4–5s
-    for (const to of list) {
-      if (!useQuota(email)) break;
+    await runFast(list, 8, async (to) => {
+      if (!canUse(email)) return;
       try {
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          text: mailBody,
+          text: body,
           headers: {
             "Date": new Date().toUTCString(),
             "MIME-Version": "1.0"
@@ -129,8 +134,7 @@ app.post("/send", auth, async (req, res) => {
         });
         sent++;
       } catch {}
-      await sleep(120);
-    }
+    });
 
     const used = usedCount(email);
 
