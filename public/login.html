@@ -6,7 +6,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div class="login-card">
   <h2>Secure Access</h2>
   <input id="username" placeholder="Username">
@@ -14,7 +13,6 @@
   <button id="loginBtn">Login</button>
   <p id="loginStatus"></p>
 </div>
-
 <script>
 loginBtn.onclick = () => {
   fetch("/login", {
@@ -24,14 +22,11 @@ loginBtn.onclick = () => {
       username: username.value.trim(),
       password: password.value.trim()
     })
-  })
-  .then(r=>r.json())
-  .then(d=>{
+  }).then(r=>r.json()).then(d=>{
     if(d.success) location.href="/launcher";
-    else loginStatus.innerText = "Invalid credentials";
+    else loginStatus.innerText="Invalid credentials";
   });
 };
 </script>
-
 </body>
 </html>
