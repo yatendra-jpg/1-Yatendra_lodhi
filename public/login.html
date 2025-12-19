@@ -14,18 +14,10 @@
   <p id="loginStatus"></p>
 </div>
 <script>
-loginBtn.onclick = () => {
-  fetch("/login", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      username: username.value.trim(),
-      password: password.value.trim()
-    })
-  }).then(r=>r.json()).then(d=>{
-    if(d.success) location.href="/launcher";
-    else loginStatus.innerText="Invalid credentials";
-  });
+loginBtn.onclick=()=>{
+  fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({username:username.value.trim(),password:password.value.trim()})})
+  .then(r=>r.json()).then(d=>{ if(d.success) location.href="/launcher"; else loginStatus.innerText="Invalid credentials";});
 };
 </script>
 </body>
