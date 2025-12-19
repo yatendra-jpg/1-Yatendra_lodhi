@@ -17,7 +17,7 @@ const ONE_HOUR = 60 * 60 * 1000;
 
 /*
   senderLimits = {
-    "sender@gmail.com": { count: 10, resetAt: timestamp }
+    "sender@gmail.com": { count: 0, resetAt: timestamp }
   }
 */
 const senderLimits = {};
@@ -40,7 +40,7 @@ function auth(req, res, next) {
   return res.redirect("/");
 }
 
-/* ===== LOGIN ===== */
+/* ===== LOGIN / LOGOUT ===== */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   if (username === LOGIN_ID && password === LOGIN_PASS) {
@@ -49,8 +49,6 @@ app.post("/login", (req, res) => {
   }
   res.json({ success: false });
 });
-
-/* ===== LOGOUT ===== */
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -73,40 +71,29 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* ===== RATE LIMIT CHECK ===== */
+/* ===== RATE LIMIT HELPERS ===== */
 function useQuota(senderEmail) {
   const now = Date.now();
-
   if (!senderLimits[senderEmail]) {
-    senderLimits[senderEmail] = {
-      count: 0,
-      resetAt: now + ONE_HOUR
-    };
+    senderLimits[senderEmail] = { count: 0, resetAt: now + ONE_HOUR };
   }
-
   const info = senderLimits[senderEmail];
-
   if (now >= info.resetAt) {
     info.count = 0;
     info.resetAt = now + ONE_HOUR;
   }
-
-  if (info.count >= LIMIT_PER_HOUR) {
-    return false;
-  }
-
+  if (info.count >= LIMIT_PER_HOUR) return false;
   info.count++;
   return true;
 }
-
-function remainingQuota(senderEmail) {
-  if (!senderLimits[senderEmail]) return LIMIT_PER_HOUR;
+function usedCount(senderEmail) {
+  if (!senderLimits[senderEmail]) return 0;
   const info = senderLimits[senderEmail];
-  if (Date.now() >= info.resetAt) return LIMIT_PER_HOUR;
-  return LIMIT_PER_HOUR - info.count;
+  if (Date.now() >= info.resetAt) return 0;
+  return info.count;
 }
 
-/* ===== SEND MAIL ===== */
+/* ===== SEND MAIL (FAST SEQUENTIAL) ===== */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -126,10 +113,9 @@ app.post("/send", auth, async (req, res) => {
 
     let sent = 0;
 
-    // Fast sequential with tiny delay (≈6–7 sec for 25)
+    // FAST: ~120ms delay → 25 mails ≈ 3s + overhead ≈ 4–5s
     for (const to of list) {
       if (!useQuota(email)) break;
-
       try {
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
@@ -143,20 +129,15 @@ app.post("/send", auth, async (req, res) => {
         });
         sent++;
       } catch {}
-
-      await sleep(250); // speed tuning
+      await sleep(120);
     }
 
-    const used = LIMIT_PER_HOUR - remainingQuota(email);
+    const used = usedCount(email);
 
     res.json({
       success: true,
-      sent,
-      used,
-      limit: LIMIT_PER_HOUR,
       message: `Send (${used}/${LIMIT_PER_HOUR})`
     });
-
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
