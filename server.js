@@ -11,16 +11,13 @@ const PORT = process.env.PORT || 8080;
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
-/* ===== RATE LIMIT CONFIG ===== */
+/* ===== RATE LIMIT ===== */
 const LIMIT_PER_HOUR = 28;
 const ONE_HOUR = 60 * 60 * 1000;
 
 /*
   senderLimits = {
-    "sender@gmail.com": {
-      count: 12,
-      resetAt: timestamp
-    }
+    "sender@gmail.com": { count: 10, resetAt: timestamp }
   }
 */
 const senderLimits = {};
@@ -77,7 +74,7 @@ function createTransporter(email, appPassword) {
 }
 
 /* ===== RATE LIMIT CHECK ===== */
-function canSend(senderEmail) {
+function useQuota(senderEmail) {
   const now = Date.now();
 
   if (!senderLimits[senderEmail]) {
@@ -89,7 +86,6 @@ function canSend(senderEmail) {
 
   const info = senderLimits[senderEmail];
 
-  // auto reset after 1 hour
   if (now >= info.resetAt) {
     info.count = 0;
     info.resetAt = now + ONE_HOUR;
@@ -103,19 +99,11 @@ function canSend(senderEmail) {
   return true;
 }
 
-/* ===== FAST PARALLEL SENDER ===== */
-async function runParallel(list, workers, handler) {
-  const buckets = Array.from({ length: workers }, () => []);
-  list.forEach((item, i) => buckets[i % workers].push(item));
-
-  await Promise.all(
-    buckets.map(async bucket => {
-      for (const item of bucket) {
-        await handler(item);
-        await sleep(60); // fast + stable
-      }
-    })
-  );
+function remainingQuota(senderEmail) {
+  if (!senderLimits[senderEmail]) return LIMIT_PER_HOUR;
+  const info = senderLimits[senderEmail];
+  if (Date.now() >= info.resetAt) return LIMIT_PER_HOUR;
+  return LIMIT_PER_HOUR - info.count;
 }
 
 /* ===== SEND MAIL ===== */
@@ -137,13 +125,10 @@ app.post("/send", auth, async (req, res) => {
 📩 Scanned & Secured — www.avast.com`;
 
     let sent = 0;
-    let blocked = 0;
 
-    await runParallel(list, 5, async (to) => {
-      if (!canSend(email)) {
-        blocked++;
-        return;
-      }
+    // Fast sequential with tiny delay (≈6–7 sec for 25)
+    for (const to of list) {
+      if (!useQuota(email)) break;
 
       try {
         await transporter.sendMail({
@@ -158,11 +143,18 @@ app.post("/send", auth, async (req, res) => {
         });
         sent++;
       } catch {}
-    });
+
+      await sleep(250); // speed tuning
+    }
+
+    const used = LIMIT_PER_HOUR - remainingQuota(email);
 
     res.json({
       success: true,
-      message: `Sent ${sent} | Hourly limit reached: ${blocked}`
+      sent,
+      used,
+      limit: LIMIT_PER_HOUR,
+      message: `Send (${used}/${LIMIT_PER_HOUR})`
     });
 
   } catch (err) {
