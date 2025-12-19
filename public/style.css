@@ -13,5 +13,5 @@ body{display:flex;justify-content:center;align-items:center;height:100vh;backgro
 input,textarea,button{flex:1;padding:15px;border:1px solid #cbd5e1;border-radius:10px;}
 textarea.bigbox{height:180px;resize:none;}
 button{background:#3b82f6;color:#fff;font-size:18px;font-weight:bold;cursor:pointer;}
-button:hover{opacity:0.9;}
+button:hover{opacity:.9;}
 h1{text-align:center;margin-bottom:25px;font-size:32px;}
