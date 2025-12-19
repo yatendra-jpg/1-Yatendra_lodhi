@@ -21,11 +21,11 @@ sendBtn.onclick = () => {
   })
   .then(r=>r.json())
   .then(d=>{
-    statusMessage.innerText = d.message;
-    alert(d.message);
+    statusMessage.innerText = d.message || "Send (0/28)";
+    alert("Mail send ✅");
   })
   .finally(()=>{
     sendBtn.disabled = false;
-    sendBtn.innerText = "Send All";
+    sendBtn.innerText = "Send";
   });
 };
