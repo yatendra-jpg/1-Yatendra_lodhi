@@ -1,8 +1,8 @@
 {
   "name": "fast-clean-mailer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
-  "description": "Safe & clean bulk mailer with hourly limits and fast delivery",
+  "description": "Safe & clean mailer with hourly limits and tuned speed",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
