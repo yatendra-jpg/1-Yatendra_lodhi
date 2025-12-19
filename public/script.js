@@ -17,8 +17,12 @@ sendBtn.onclick=()=>{
   })
   .then(r=>r.json())
   .then(d=>{
-    statusMessage.innerText = d.message || "Send (0/28)";
-    alert("Mail send ✅");
+    if(d.code === "LIMIT_FULL"){
+      alert("Mail Limit full ❌");
+    } else {
+      statusMessage.innerText = d.message || "Send (0/28)";
+      alert("Mail send ✅");
+    }
   })
   .finally(()=>{
     sendBtn.disabled=false;
