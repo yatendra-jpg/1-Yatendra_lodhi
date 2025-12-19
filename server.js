@@ -85,9 +85,11 @@ function usedCount(sender) {
   return s.count;
 }
 
-/* ===== FAST WORKER (CONCURRENCY) ===== */
-// Tuned for ~3–4s for 25 mails
-async function runFast(list, workers, handler) {
+/* ===== SPEED TUNING =====
+   Target: 25 mails ≈ 4–5 sec
+   Strategy: light concurrency (6) + minimal overhead
+*/
+async function runTuned(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((v, i) => buckets[i % workers].push(v));
   await Promise.all(
@@ -119,7 +121,7 @@ app.post("/send", auth, async (req, res) => {
 
     let sent = 0;
 
-    await runFast(list, 8, async (to) => {
+    await runTuned(list, 6, async (to) => {
       if (!canUse(email)) return;
       try {
         await transporter.sendMail({
