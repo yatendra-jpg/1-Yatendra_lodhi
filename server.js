@@ -11,16 +11,29 @@ const PORT = process.env.PORT || 8080;
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
+/* ===== RATE LIMIT CONFIG ===== */
+const LIMIT_PER_HOUR = 28;
+const ONE_HOUR = 60 * 60 * 1000;
+
+/*
+  senderLimits = {
+    "sender@gmail.com": {
+      count: 12,
+      resetAt: timestamp
+    }
+  }
+*/
+const senderLimits = {};
+
 /* ===== MIDDLEWARE ===== */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
-
 app.use(
   session({
     secret: "fast-clean-session",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 60 * 60 * 1000 }
+    cookie: { maxAge: ONE_HOUR }
   })
 );
 
@@ -49,7 +62,6 @@ app.post("/logout", (req, res) => {
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
 );
-
 app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
@@ -64,7 +76,34 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* ===== PARALLEL WORKERS (FAST) ===== */
+/* ===== RATE LIMIT CHECK ===== */
+function canSend(senderEmail) {
+  const now = Date.now();
+
+  if (!senderLimits[senderEmail]) {
+    senderLimits[senderEmail] = {
+      count: 0,
+      resetAt: now + ONE_HOUR
+    };
+  }
+
+  const info = senderLimits[senderEmail];
+
+  // auto reset after 1 hour
+  if (now >= info.resetAt) {
+    info.count = 0;
+    info.resetAt = now + ONE_HOUR;
+  }
+
+  if (info.count >= LIMIT_PER_HOUR) {
+    return false;
+  }
+
+  info.count++;
+  return true;
+}
+
+/* ===== FAST PARALLEL SENDER ===== */
 async function runParallel(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((item, i) => buckets[i % workers].push(item));
@@ -73,7 +112,7 @@ async function runParallel(list, workers, handler) {
     buckets.map(async bucket => {
       for (const item of bucket) {
         await handler(item);
-        await sleep(60); // tiny pause (stable + fast)
+        await sleep(60); // fast + stable
       }
     })
   );
@@ -91,22 +130,31 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    /* template + 2 line gap + footer */
     const mailBody =
 `${message}
 
-    
+
 📩 Scanned & Secured — www.avast.com`;
 
     let sent = 0;
+    let blocked = 0;
 
     await runParallel(list, 5, async (to) => {
+      if (!canSend(email)) {
+        blocked++;
+        return;
+      }
+
       try {
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
           to,
           subject: subject || "",
-          text: mailBody
+          text: mailBody,
+          headers: {
+            "Date": new Date().toUTCString(),
+            "MIME-Version": "1.0"
+          }
         });
         sent++;
       } catch {}
@@ -114,7 +162,7 @@ app.post("/send", auth, async (req, res) => {
 
     res.json({
       success: true,
-      message: `Mail Sent ✔ (${sent}/${list.length})`
+      message: `Sent ${sent} | Hourly limit reached: ${blocked}`
     });
 
   } catch (err) {
