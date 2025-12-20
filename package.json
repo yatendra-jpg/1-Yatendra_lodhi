@@ -1,5 +1,5 @@
 {
-  "name": "safe-fast-mailer",
+  "name": "safe-fast-mail-sender",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
