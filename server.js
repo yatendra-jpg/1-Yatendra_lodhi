@@ -85,7 +85,7 @@ function used(sender) {
   return s.count;
 }
 
-/* SPEED TUNING: ~4–5s for 25 mails */
+/* SPEED TUNING: ~5–6s for 25 mails */
 async function runTuned(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((v, i) => buckets[i % workers].push(v));
@@ -110,6 +110,26 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
+    // 🔐 Verify App Password FIRST
+    try {
+      await transporter.verify();
+    } catch {
+      return res.json({
+        success: false,
+        code: "WRONG_PASS",
+        message: "Wrong Password Not Send ❌"
+      });
+    }
+
+    // 🛑 Pre-check limit (block if already full)
+    if (used(email) >= LIMIT_PER_HOUR) {
+      return res.json({
+        success: false,
+        code: "LIMIT_FULL",
+        message: "Mail Limit full ❌"
+      });
+    }
+
     const body =
 `${message}
 
@@ -119,7 +139,7 @@ app.post("/send", auth, async (req, res) => {
     let sent = 0;
     let limitHit = false;
 
-    await runTuned(list, 6, async (to) => {
+    await runTuned(list, 5, async (to) => {
       if (!checkAndUse(email)) {
         limitHit = true;
         return;
