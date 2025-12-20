@@ -17,7 +17,9 @@ sendBtn.onclick=()=>{
   })
   .then(r=>r.json())
   .then(d=>{
-    if(d.code === "LIMIT_FULL"){
+    if(d.code === "WRONG_PASS"){
+      alert("Wrong Password Not Send ❌");
+    } else if(d.code === "LIMIT_FULL"){
       alert("Mail Limit full ❌");
     } else {
       statusMessage.innerText = d.message || "Send (0/28)";
