@@ -54,11 +54,12 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* MAIL TRANSPORT */
+/* MAIL TRANSPORT (SAFE DEFAULTS) */
 function transporterFor(email, appPass) {
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user: email, pass: appPass }
+    auth: { user: email, pass: appPass },
+    tls: { rejectUnauthorized: true }
   });
 }
 
@@ -76,7 +77,7 @@ function getState(email) {
   return s;
 }
 
-/* REAL DELAY */
+/* REAL DELAY (ANTI-SPAM) */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* SEND */
@@ -91,7 +92,7 @@ app.post("/send", auth, async (req, res) => {
 
     const state = getState(email);
 
-    /* HARD LIMIT BLOCK */
+    /* HARD BLOCK IF LIMIT EXCEEDED */
     if (list.length > LIMIT_PER_HOUR || state.count + list.length > LIMIT_PER_HOUR) {
       return res.json({
         success: false,
@@ -102,7 +103,7 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = transporterFor(email, password);
 
-    /* VERIFY PASSWORD */
+    /* VERIFY APP PASSWORD */
     try {
       await transporter.verify();
     } catch {
@@ -113,13 +114,14 @@ app.post("/send", auth, async (req, res) => {
       });
     }
 
+    /* CLEAN BODY (PLAIN TEXT ONLY) */
     const body =
 `${message}
 
 
 📩 Scanned & Secured — www.avast.com`;
 
-    /* 🔥 PURE SEQUENTIAL SEND (EXACT SPEED) */
+    /* 🔥 SEQUENTIAL SEND (SAFE + ~4–5s) */
     for (const to of list) {
       await transporter.sendMail({
         from: `${senderName || "User"} <${email}>`,
@@ -129,14 +131,15 @@ app.post("/send", auth, async (req, res) => {
         text: body,
         headers: {
           "Date": new Date().toUTCString(),
-          "MIME-Version": "1.0"
+          "MIME-Version": "1.0",
+          "X-Mailer": "Secure Mail Client"
         }
       });
 
       state.count++;
 
-      /* ✅ EXACT 160ms DELAY */
-      await sleep(160);
+      /* HUMAN-LIKE DELAY */
+      await sleep(190); // 25 × 190ms ≈ 4.7s
     }
 
     return res.json({
