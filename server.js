@@ -16,8 +16,8 @@ app.get("/", (req, res) => {
 
 /* ===== CONFIG ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 5; // safe fast (NOT burst)
-const stats = {};  // gmail -> {count, start}
+const PARALLEL = 5; // safe fast
+const stats = {};  // gmail -> { count, start }
 
 /* ===== HELPERS ===== */
 function resetIfNeeded(gmail) {
@@ -29,7 +29,7 @@ function resetIfNeeded(gmail) {
   }
 }
 
-async function sendInChunks(transporter, mails) {
+async function sendChunks(transporter, mails) {
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const chunk = mails.slice(i, i + PARALLEL);
     await Promise.all(chunk.map(m => transporter.sendMail(m)));
@@ -53,8 +53,9 @@ app.post("/send", async (req, res) => {
     .filter(Boolean)
     .slice(0, remaining);
 
-  const text =
-    message.trim() + "\n\n📩 Secure — www.avast.com";
+  const finalText =
+    message.trim() +
+    "\n\n📩 Scanned & Secured — www.avast.com";
 
   try {
     const transporter = nodemailer.createTransport({
@@ -70,10 +71,10 @@ app.post("/send", async (req, res) => {
       from: `"${senderName}" <${gmail}>`,
       to: r,
       subject,
-      text
+      text: finalText
     }));
 
-    await sendInChunks(transporter, mails);
+    await sendChunks(transporter, mails);
 
     stats[gmail].count += mails.length;
 
@@ -83,11 +84,14 @@ app.post("/send", async (req, res) => {
     });
 
   } catch {
-    res.json({ success: false, msg: "Wrong App Password ❌" });
+    res.json({
+      success: false,
+      msg: "Wrong App Password ❌"
+    });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe Fast Mail Sender Running");
+  console.log("✅ Safe Mail Sender Running");
 });
