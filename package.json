@@ -1,8 +1,8 @@
 {
-  "name": "safe-clean-mailer",
-  "version": "1.0.6",
+  "name": "safe-mail-console",
+  "version": "1.0.0",
   "private": true,
-  "description": "Safe mailer with strict hourly limit and controlled speed",
+  "description": "Very safe plain-text mail sender with strict hourly limits",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
