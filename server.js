@@ -11,10 +11,10 @@ const PORT = process.env.PORT || 8080;
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
-/* LIMITS */
+/* LIMIT */
 const LIMIT_PER_HOUR = 28;
 const ONE_HOUR = 60 * 60 * 1000;
-const senderLimits = {}; // { email: { count, resetAt } }
+const senderLimits = {};
 
 /* MIDDLEWARE */
 app.use(bodyParser.json());
@@ -34,7 +34,7 @@ function auth(req, res, next) {
   return res.redirect("/");
 }
 
-/* LOGIN / LOGOUT */
+/* LOGIN */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   if (username === LOGIN_ID && password === LOGIN_PASS) {
@@ -43,6 +43,8 @@ app.post("/login", (req, res) => {
   }
   res.json({ success: false });
 });
+
+/* LOGOUT */
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -63,7 +65,7 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* LIMIT HELPERS */
+/* LIMIT STATE */
 function getState(sender) {
   const now = Date.now();
   if (!senderLimits[sender]) {
@@ -77,20 +79,8 @@ function getState(sender) {
   return s;
 }
 
-/* SAFE SPEED: ~6–7s for 25 mails */
+/* REAL DELAY */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function runSafe(list, workers, handler) {
-  const buckets = Array.from({ length: workers }, () => []);
-  list.forEach((v, i) => buckets[i % workers].push(v));
-  await Promise.all(
-    buckets.map(async bucket => {
-      for (const item of bucket) {
-        await handler(item);
-        await sleep(80); // gentle pacing
-      }
-    })
-  );
-}
 
 /* SEND */
 app.post("/send", auth, async (req, res) => {
@@ -102,8 +92,9 @@ app.post("/send", auth, async (req, res) => {
       .map(v => v.trim())
       .filter(v => v.includes("@"));
 
-    // 🔒 HARD PRE-CHECK: if total > 28 → block ALL
     const state = getState(email);
+
+    /* HARD LIMIT CHECK */
     if (list.length > LIMIT_PER_HOUR || state.count + list.length > LIMIT_PER_HOUR) {
       return res.json({
         success: false,
@@ -114,7 +105,7 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = createTransporter(email, password);
 
-    // 🔐 Verify App Password FIRST
+    /* PASSWORD VERIFY */
     try {
       await transporter.verify();
     } catch {
@@ -131,8 +122,8 @@ app.post("/send", auth, async (req, res) => {
 
 📩 Scanned & Secured — www.avast.com`;
 
-    // send safely
-    await runSafe(list, 5, async (to) => {
+    /* 🔥 REAL SEQUENTIAL SENDING */
+    for (const to of list) {
       await transporter.sendMail({
         from: `${senderName || "User"} <${email}>`,
         replyTo: email,
@@ -144,13 +135,18 @@ app.post("/send", auth, async (req, res) => {
           "MIME-Version": "1.0"
         }
       });
-      state.count++; // increment only after success attempt
-    });
+
+      state.count++;
+
+      /* ⏱️ REAL DELAY (THIS IS THE KEY) */
+      await sleep(250); // 250ms per mail ≈ 6–7 sec for 25
+    }
 
     return res.json({
       success: true,
       message: `Send (${state.count}/${LIMIT_PER_HOUR})`
     });
+
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
