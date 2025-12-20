@@ -7,34 +7,34 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* LOGIN */
+/* ===== LOGIN ===== */
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
-/* LIMITS */
+/* ===== LIMITS ===== */
 const LIMIT_PER_HOUR = 28;
 const ONE_HOUR = 60 * 60 * 1000;
 const senderLimits = {}; // { email: { count, resetAt } }
 
-/* MIDDLEWARE */
+/* ===== MIDDLEWARE ===== */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "fast-clean-session",
+    secret: "safe-clean-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: ONE_HOUR }
   })
 );
 
-/* AUTH */
+/* ===== AUTH ===== */
 function auth(req, res, next) {
   if (req.session.user) return next();
   return res.redirect("/");
 }
 
-/* LOGIN / LOGOUT */
+/* ===== LOGIN / LOGOUT ===== */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   if (username === LOGIN_ID && password === LOGIN_PASS) {
@@ -47,7 +47,7 @@ app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-/* PAGES */
+/* ===== PAGES ===== */
 app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public/login.html"))
 );
@@ -55,7 +55,7 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* MAIL */
+/* ===== MAIL TRANSPORT ===== */
 function createTransporter(email, appPassword) {
   return nodemailer.createTransport({
     service: "gmail",
@@ -63,7 +63,7 @@ function createTransporter(email, appPassword) {
   });
 }
 
-/* LIMIT HELPERS */
+/* ===== LIMIT HELPERS ===== */
 function checkAndUse(sender) {
   const now = Date.now();
   if (!senderLimits[sender]) {
@@ -85,8 +85,10 @@ function used(sender) {
   return s.count;
 }
 
-/* SPEED TUNING: ~5–6s for 25 mails */
-async function runTuned(list, workers, handler) {
+/* ===== SPEED (SAFE) =====
+   Target ~5–6s for 25 mails with low risk
+*/
+async function runSafe(list, workers, handler) {
   const buckets = Array.from({ length: workers }, () => []);
   list.forEach((v, i) => buckets[i % workers].push(v));
   await Promise.all(
@@ -98,7 +100,7 @@ async function runTuned(list, workers, handler) {
   );
 }
 
-/* SEND */
+/* ===== SEND ===== */
 app.post("/send", auth, async (req, res) => {
   try {
     const { senderName, email, password, recipients, subject, message } = req.body;
@@ -121,7 +123,7 @@ app.post("/send", auth, async (req, res) => {
       });
     }
 
-    // 🛑 Pre-check limit (block if already full)
+    // 🛑 Block if already at limit
     if (used(email) >= LIMIT_PER_HOUR) {
       return res.json({
         success: false,
@@ -130,6 +132,7 @@ app.post("/send", auth, async (req, res) => {
       });
     }
 
+    // 📄 Plain text body + exact spacing
     const body =
 `${message}
 
@@ -139,7 +142,8 @@ app.post("/send", auth, async (req, res) => {
     let sent = 0;
     let limitHit = false;
 
-    await runTuned(list, 5, async (to) => {
+    // Moderate concurrency (5) = safer
+    await runSafe(list, 5, async (to) => {
       if (!checkAndUse(email)) {
         limitHit = true;
         return;
@@ -147,6 +151,7 @@ app.post("/send", auth, async (req, res) => {
       try {
         await transporter.sendMail({
           from: `${senderName || "User"} <${email}>`,
+          replyTo: email,
           to,
           subject: subject || "",
           text: body,
@@ -176,7 +181,7 @@ app.post("/send", auth, async (req, res) => {
   }
 });
 
-/* START */
+/* ===== START ===== */
 app.listen(PORT, () => {
-  console.log("Fast clean mail server running on port " + PORT);
+  console.log("Safe clean mail server running on port " + PORT);
 });
