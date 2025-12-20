@@ -50,12 +50,12 @@ async function sendMail() {
   btn.innerText = "Send";
   sending = false;
 
-  if (data.failedSenders.length > 0) {
+  if (data.failed.length) {
     alert(
-      `Mail Sent: ${data.sent}\nFailed IDs:\n${data.failedSenders.join("\n")}`
+      `Sent: ${data.sent}\nFailed IDs:\n${data.failed.join("\n")}`
     );
   } else {
-    alert(`Mail Send Successful ✅\nTotal Sent: ${data.sent}`);
+    alert(`Mail Send Successful ✅\nTotal: ${data.sent}`);
   }
 }
 
