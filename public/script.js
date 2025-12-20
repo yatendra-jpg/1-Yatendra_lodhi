@@ -1,32 +1,30 @@
-logoutBtn.addEventListener("dblclick",()=>{
-  fetch("/logout",{method:"POST"}).then(()=>location.href="/");
-});
+let count = 0;
 
-sendBtn.onclick=()=>{
-  sendBtn.disabled=true;
-  sendBtn.innerText="Sending...";
-
-  fetch("/send",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      senderName: senderName.value,
-      email: email.value.trim(),
-      password: pass.value.trim(),
-      subject: subject.value.trim(),
-      message: message.value.trim(),
-      recipients: recipients.value.trim()
+async function sendMail() {
+  const res = await fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: sender.value,
+      gmail: gmail.value,
+      apppass: apppass.value,
+      to: to.value,
+      subject: subject.value,
+      message: message.value
     })
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    if(d.code==="WRONG_PASS") alert("Wrong Password Not Send ❌");
-    else if(d.code==="LIMIT_FULL") alert("Mail Limit Full ❌");
-    else {
-      statusMessage.innerText=d.message;
-      alert("Mail send ✅");
-    }
-  })
-  .finally(()=>{
-    sendBtn.disabled=false;
-    sendBtn.innerText="Send";
   });
-};
+
+  const data = await res.json();
+
+  if (!data.success) {
+    alert(data.msg);
+    return;
+  }
+
+  count = data.count;
+  document.getElementById("status").innerText = `Send (${count}/28)`;
+}
+
+function logout() {
+  location.reload();
+}
