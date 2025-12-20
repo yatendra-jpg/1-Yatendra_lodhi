@@ -1,36 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Secure Mail Dashboard</title>
-<link rel="stylesheet" href="style.css">
+  <title>Secure Mail Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="container">
-  <h1>📨 Secure Mail Dashboard</h1>
 
-  <div class="row">
-    <input id="senderName" placeholder="Sender Name">
-    <input id="email" placeholder="Your Gmail">
-  </div>
+<div class="box">
+  <h2>📨 Secure Mail Dashboard</h2>
 
-  <div class="row">
-    <input id="pass" type="password" placeholder="App Password">
+  <div class="grid">
+    <input id="sender" placeholder="Sender Name">
+    <input id="gmail" placeholder="Your Gmail">
+
+    <input id="apppass" placeholder="App Password">
     <input id="subject" placeholder="Email Subject">
+
+    <textarea id="message" placeholder="Message Body"></textarea>
+    <textarea id="to" placeholder="Recipients"></textarea>
   </div>
 
-  <div class="row">
-    <textarea id="message" class="bigbox" placeholder="Message Body"></textarea>
-    <textarea id="recipients" class="bigbox" placeholder="Recipients"></textarea>
+  <div class="actions">
+    <button onclick="sendMail()">Send</button>
+    <button onclick="logout()">Logout</button>
   </div>
 
-  <div class="row">
-    <button id="sendBtn">Send</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
-
-  <p id="statusMessage">Send (0/28)</p>
+  <div id="status">Send (0/28)</div>
 </div>
+
 <script src="script.js"></script>
 </body>
 </html>
