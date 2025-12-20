@@ -1,5 +1,5 @@
 {
-  "name": "secure-mail-system",
+  "name": "bulk-mailer",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
