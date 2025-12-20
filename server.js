@@ -7,12 +7,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json());
-app.use(express.static("public"));
 
-/* 🔒 HARD LIMIT SETTINGS */
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+/* 🔑 ROOT FIX */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "launcher.html"));
+});
+
+/* 🔒 HARD LIMIT CONFIG */
 const HOURLY_LIMIT = 28;
-const DELAY_MS = 4200; // ~4–5 sec
+const DELAY_MS = 4200;
+
 let sentCount = 0;
 let lastSent = 0;
 let hourStart = Date.now();
@@ -36,10 +43,6 @@ app.post("/send", async (req, res) => {
 
   const { gmail, apppass, to, subject, message, sender } = req.body;
 
-  if (!gmail || !apppass) {
-    return res.json({ success: false, msg: "Invalid Credentials ❌" });
-  }
-
   const now = Date.now();
   if (now - lastSent < DELAY_MS) {
     return res.json({ success: false, msg: "Please wait ⏳" });
@@ -50,10 +53,7 @@ app.post("/send", async (req, res) => {
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
-      auth: {
-        user: gmail,
-        pass: apppass
-      }
+      auth: { user: gmail, pass: apppass }
     });
 
     await transporter.verify(); // ❌ wrong app password stops here
@@ -62,25 +62,20 @@ app.post("/send", async (req, res) => {
       from: `"${sender}" <${gmail}>`,
       to,
       subject,
-      text: message // 📄 PLAIN TEXT ONLY
+      text: message // 📄 plain text only
     });
 
     sentCount++;
     lastSent = Date.now();
 
-    res.json({
-      success: true,
-      count: sentCount
-    });
+    res.json({ success: true, count: sentCount });
 
-  } catch (err) {
-    res.json({
-      success: false,
-      msg: "Wrong App Password ❌"
-    });
+  } catch {
+    res.json({ success: false, msg: "Wrong App Password ❌" });
   }
 });
 
-app.listen(3000, () => {
-  console.log("✅ Secure Mail Server Running");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("✅ Server running on port", PORT);
 });
