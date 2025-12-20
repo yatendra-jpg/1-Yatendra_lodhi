@@ -11,10 +11,6 @@ body {
   border-radius: 14px;
 }
 
-h2 {
-  text-align: center;
-}
-
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -25,12 +21,9 @@ input, textarea {
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #ccc;
-  font-size: 14px;
 }
 
-textarea {
-  height: 140px;
-}
+textarea { height: 140px; }
 
 .actions {
   display: grid;
@@ -46,7 +39,6 @@ button {
   background: #3b82f6;
   color: white;
   font-size: 16px;
-  cursor: pointer;
 }
 
 #status {
