@@ -10,17 +10,12 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
+/* ---------- CONFIG ---------- */
+const HOURLY_LIMIT = 28;
+const MAX_PARALLEL = 5; // 🔐 anti-spam safe
+const stats = {}; // gmail -> { count, start }
 
-/* 🔒 CONFIG */
-const LIMIT = 28;                 // per gmail / hour
-const DELAY_MS = 4200;            // REAL ~4–5 sec
-const stats = {};                 // gmail → {count, start}
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
+/* ---------- HELPERS ---------- */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -30,29 +25,46 @@ function resetIfNeeded(gmail) {
   }
 }
 
+async function sendBatch(transporter, mails) {
+  const chunks = [];
+  for (let i = 0; i < mails.length; i += MAX_PARALLEL) {
+    chunks.push(mails.slice(i, i + MAX_PARALLEL));
+  }
+
+  for (const chunk of chunks) {
+    await Promise.all(
+      chunk.map(m => transporter.sendMail(m))
+    );
+  }
+}
+
+/* ---------- ROUTES ---------- */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
 app.post("/send", async (req, res) => {
   const { senders, to, subject, message } = req.body;
 
   const recipients = to
     .split(/\r?\n/)
-    .map(e => e.trim())
+    .map(r => r.trim())
     .filter(Boolean);
 
-  const finalText = message + "\n\n📩 Secure — www.avast.com";
+  const mailText = message + "\n\n📩 Secure — www.avast.com";
 
-  let sent = 0;
-  let failedSenders = [];
+  let totalSent = 0;
+  let failed = [];
 
-  for (const sender of senders) {
-    const { name, gmail, apppass } = sender;
-
+  for (const s of senders) {
+    const { name, gmail, apppass } = s;
     resetIfNeeded(gmail);
 
-    let available = LIMIT - stats[gmail].count;
+    const available = HOURLY_LIMIT - stats[gmail].count;
     if (available <= 0) continue;
 
-    const batch = recipients.splice(0, available);
-    if (batch.length === 0) break;
+    const batchRecipients = recipients.splice(0, available);
+    if (batchRecipients.length === 0) break;
 
     try {
       const transporter = nodemailer.createTransport({
@@ -62,36 +74,34 @@ app.post("/send", async (req, res) => {
         auth: { user: gmail, pass: apppass }
       });
 
-      await transporter.verify();
+      await transporter.verify(); // 🔐 password check
 
-      for (const email of batch) {
-        await transporter.sendMail({
-          from: `"${name}" <${gmail}>`,
-          to: email,
-          subject,
-          text: finalText
-        });
+      const mails = batchRecipients.map(r => ({
+        from: `"${name}" <${gmail}>`,
+        to: r,
+        subject,
+        text: mailText
+      }));
 
-        stats[gmail].count++;
-        sent++;
+      await sendBatch(transporter, mails);
 
-        // ⏱️ REAL DELAY (4–5 sec)
-        await sleep(DELAY_MS);
-      }
+      stats[gmail].count += mails.length;
+      totalSent += mails.length;
 
-    } catch {
-      failedSenders.push(gmail);
+    } catch (err) {
+      failed.push(gmail);
     }
   }
 
   res.json({
     success: true,
-    sent,
-    failedSenders
+    sent: totalSent,
+    failed
   });
 });
 
+/* ---------- START ---------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Real Speed Bulk Mail Server Running");
+  console.log("✅ Safe Fast Mail Server Running");
 });
