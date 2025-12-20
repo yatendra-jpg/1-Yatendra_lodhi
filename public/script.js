@@ -1,22 +1,20 @@
-let clickCount = 0;
+let clicks = 0;
 let timer = null;
 let sending = false;
 
 const btn = document.getElementById("sendBtn");
 
 btn.addEventListener("click", () => {
-  clickCount++;
+  clicks++;
 
   timer = setTimeout(() => {
-    if (clickCount === 1 && !sending) {
-      sendMail();
-    }
-    clickCount = 0;
+    if (clicks === 1 && !sending) sendMail();
+    clicks = 0;
   }, 300);
 
-  if (clickCount === 2) {
+  if (clicks === 2) {
     clearTimeout(timer);
-    clickCount = 0;
+    clicks = 0;
     if (!sending) logout();
   }
 });
@@ -26,13 +24,20 @@ async function sendMail() {
   btn.disabled = true;
   btn.innerText = "Sending…";
 
+  const senders = document.getElementById("senders").value
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(l => {
+      const [name, gmail, apppass] = l.split("|");
+      return { name, gmail, apppass };
+    });
+
   const res = await fetch("/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      sender: sender.value,
-      gmail: gmail.value,
-      apppass: apppass.value,
+      senders,
       to: to.value,
       subject: subject.value,
       message: message.value
@@ -45,20 +50,13 @@ async function sendMail() {
   btn.innerText = "Send";
   sending = false;
 
-  if (!data.success) {
-    alert(data.msg);
-    updateProgress(data.count || 0);
-    return;
+  if (data.failedSenders.length > 0) {
+    alert(
+      `Mail Sent: ${data.sent}\nFailed IDs:\n${data.failedSenders.join("\n")}`
+    );
+  } else {
+    alert(`Mail Send Successful ✅\nTotal Sent: ${data.sent}`);
   }
-
-  updateProgress(data.count);
-  alert("Mail Send Successful ✅");
-}
-
-function updateProgress(count) {
-  const percent = (count / 28) * 100;
-  document.getElementById("progressBar").style.width = percent + "%";
-  document.getElementById("progressText").innerText = `${count} / 28`;
 }
 
 function logout() {
