@@ -1,70 +1,64 @@
 let clickCount = 0;
-let clickTimer = null;
-let isSending = false;
+let timer = null;
+let sending = false;
 
-const sendBtn = document.getElementById("sendBtn");
+const btn = document.getElementById("sendBtn");
 
-sendBtn.addEventListener("click", () => {
+btn.addEventListener("click", () => {
   clickCount++;
 
-  // wait 300ms to detect double click
-  clickTimer = setTimeout(() => {
-    if (clickCount === 1) {
-      // single click → send mail
-      if (!isSending) {
-        sendMail();
-      }
+  timer = setTimeout(() => {
+    if (clickCount === 1 && !sending) {
+      sendMail();
     }
     clickCount = 0;
   }, 300);
 
-  // double click → logout
   if (clickCount === 2) {
-    clearTimeout(clickTimer);
+    clearTimeout(timer);
     clickCount = 0;
-    if (!isSending) logout();
+    if (!sending) logout();
   }
 });
 
 async function sendMail() {
-  isSending = true;
-  sendBtn.disabled = true;
-  sendBtn.innerText = "Sending…";
+  sending = true;
+  btn.disabled = true;
+  btn.innerText = "Sending…";
 
-  try {
-    const res = await fetch("/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sender: sender.value,
-        gmail: gmail.value,
-        apppass: apppass.value,
-        to: to.value,
-        subject: subject.value,
-        message: message.value
-      })
-    });
+  const res = await fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: sender.value,
+      gmail: gmail.value,
+      apppass: apppass.value,
+      to: to.value,
+      subject: subject.value,
+      message: message.value
+    })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    sendBtn.disabled = false;
-    sendBtn.innerText = "Send";
-    isSending = false;
+  btn.disabled = false;
+  btn.innerText = "Send";
+  sending = false;
 
-    if (!data.success) {
-      alert(data.msg);
-      return;
-    }
-
-    // ✅ popup ONLY after all mails sent
-    alert("Mail Send Successful ✅");
-
-  } catch (e) {
-    sendBtn.disabled = false;
-    sendBtn.innerText = "Send";
-    isSending = false;
-    alert("Something went wrong ❌");
+  if (!data.success) {
+    alert(data.msg);
+    updateProgress(data.count || 0);
+    return;
   }
+
+  updateProgress(data.count);
+  alert("Mail Send Successful ✅");
+}
+
+function updateProgress(count) {
+  const percent = (count / 28) * 100;
+  document.getElementById("progressBar").style.width = percent + "%";
+  document.getElementById("progressText").innerText = `${count} / 28`;
 }
 
 function logout() {
