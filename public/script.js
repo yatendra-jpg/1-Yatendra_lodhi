@@ -1,28 +1,22 @@
-let clicks = 0;
-let timer = null;
 let sending = false;
 
-const btn = document.getElementById("sendBtn");
+const sendBtn = document.getElementById("sendBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
-btn.addEventListener("click", () => {
-  clicks++;
+/* SINGLE CLICK = SEND */
+sendBtn.addEventListener("click", () => {
+  if (!sending) sendMail();
+});
 
-  timer = setTimeout(() => {
-    if (clicks === 1 && !sending) sendMail();
-    clicks = 0;
-  }, 300);
-
-  if (clicks === 2) {
-    clearTimeout(timer);
-    clicks = 0;
-    if (!sending) logout();
-  }
+/* REAL DOUBLE CLICK = LOGOUT */
+logoutBtn.addEventListener("dblclick", () => {
+  if (!sending) logout();
 });
 
 async function sendMail() {
   sending = true;
-  btn.disabled = true;
-  btn.innerText = "Sending…";
+  sendBtn.disabled = true;
+  sendBtn.innerText = "Sending…";
 
   const res = await fetch("/send", {
     method: "POST",
@@ -39,8 +33,8 @@ async function sendMail() {
 
   const data = await res.json();
 
-  btn.disabled = false;
-  btn.innerText = "Send All";
+  sendBtn.disabled = false;
+  sendBtn.innerText = "Send All";
   sending = false;
 
   if (!data.success) {
