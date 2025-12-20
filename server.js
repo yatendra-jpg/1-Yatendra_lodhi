@@ -10,12 +10,16 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ---------- CONFIG ---------- */
-const HOURLY_LIMIT = 28;
-const MAX_PARALLEL = 5; // 🔐 anti-spam safe
-const stats = {}; // gmail -> { count, start }
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
 
-/* ---------- HELPERS ---------- */
+/* ===== CONFIG ===== */
+const HOURLY_LIMIT = 28;
+const PARALLEL = 5; // safe fast (NOT burst)
+const stats = {};  // gmail -> {count, start}
+
+/* ===== HELPERS ===== */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -25,83 +29,65 @@ function resetIfNeeded(gmail) {
   }
 }
 
-async function sendBatch(transporter, mails) {
-  const chunks = [];
-  for (let i = 0; i < mails.length; i += MAX_PARALLEL) {
-    chunks.push(mails.slice(i, i + MAX_PARALLEL));
-  }
-
-  for (const chunk of chunks) {
-    await Promise.all(
-      chunk.map(m => transporter.sendMail(m))
-    );
+async function sendInChunks(transporter, mails) {
+  for (let i = 0; i < mails.length; i += PARALLEL) {
+    const chunk = mails.slice(i, i + PARALLEL);
+    await Promise.all(chunk.map(m => transporter.sendMail(m)));
   }
 }
 
-/* ---------- ROUTES ---------- */
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
+/* ===== SEND ===== */
 app.post("/send", async (req, res) => {
-  const { senders, to, subject, message } = req.body;
+  const { senderName, gmail, apppass, to, subject, message } = req.body;
 
-  const recipients = to
-    .split(/\r?\n/)
-    .map(r => r.trim())
-    .filter(Boolean);
+  resetIfNeeded(gmail);
 
-  const mailText = message + "\n\n📩 Secure — www.avast.com";
-
-  let totalSent = 0;
-  let failed = [];
-
-  for (const s of senders) {
-    const { name, gmail, apppass } = s;
-    resetIfNeeded(gmail);
-
-    const available = HOURLY_LIMIT - stats[gmail].count;
-    if (available <= 0) continue;
-
-    const batchRecipients = recipients.splice(0, available);
-    if (batchRecipients.length === 0) break;
-
-    try {
-      const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
-        auth: { user: gmail, pass: apppass }
-      });
-
-      await transporter.verify(); // 🔐 password check
-
-      const mails = batchRecipients.map(r => ({
-        from: `"${name}" <${gmail}>`,
-        to: r,
-        subject,
-        text: mailText
-      }));
-
-      await sendBatch(transporter, mails);
-
-      stats[gmail].count += mails.length;
-      totalSent += mails.length;
-
-    } catch (err) {
-      failed.push(gmail);
-    }
+  const remaining = HOURLY_LIMIT - stats[gmail].count;
+  if (remaining <= 0) {
+    return res.json({ success: false, msg: "Mail Limit Full ❌" });
   }
 
-  res.json({
-    success: true,
-    sent: totalSent,
-    failed
-  });
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean)
+    .slice(0, remaining);
+
+  const text =
+    message.trim() + "\n\n📩 Secure — www.avast.com";
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: { user: gmail, pass: apppass }
+    });
+
+    await transporter.verify();
+
+    const mails = recipients.map(r => ({
+      from: `"${senderName}" <${gmail}>`,
+      to: r,
+      subject,
+      text
+    }));
+
+    await sendInChunks(transporter, mails);
+
+    stats[gmail].count += mails.length;
+
+    res.json({
+      success: true,
+      sent: mails.length
+    });
+
+  } catch {
+    res.json({ success: false, msg: "Wrong App Password ❌" });
+  }
 });
 
-/* ---------- START ---------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe Fast Mail Server Running");
+  console.log("✅ Safe Fast Mail Sender Running");
 });
