@@ -1,79 +1,50 @@
-body {
-  background: #eef3fb;
-  font-family: Arial, sans-serif;
+let sending = false;
+
+const sendBtn = document.getElementById("sendBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+/* SINGLE CLICK = SEND */
+sendBtn.addEventListener("click", () => {
+  if (!sending) sendMail();
+});
+
+/* REAL DOUBLE CLICK = LOGOUT */
+logoutBtn.addEventListener("dblclick", () => {
+  if (!sending) logout();
+});
+
+async function sendMail() {
+  sending = true;
+  sendBtn.disabled = true;
+  sendBtn.innerText = "Sending…";
+
+  const res = await fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      senderName: senderName.value,
+      gmail: gmail.value,
+      apppass: apppass.value,
+      subject: subject.value,
+      message: message.value,
+      to: to.value
+    })
+  });
+
+  const data = await res.json();
+
+  sendBtn.disabled = false;
+  sendBtn.innerText = "Send All";
+  sending = false;
+
+  if (!data.success) {
+    alert(data.msg);
+    return;
+  }
+
+  alert(`Mail Send Successful ✅\nSent: ${data.sent}`);
 }
 
-/* LOGIN */
-.login-box {
-  width: 360px;
-  margin: 120px auto;
-  background: #fff;
-  padding: 30px;
-  border-radius: 16px;
-  text-align: center;
-}
-
-.login-box input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.login-box button {
-  width: 100%;
-  padding: 14px;
-  border-radius: 12px;
-  border: none;
-  background: #3b82f6;
-  color: white;
-  font-size: 16px;
-}
-
-/* DASHBOARD */
-.box {
-  width: 920px;
-  margin: 40px auto;
-  background: #fff;
-  padding: 30px;
-  border-radius: 16px;
-}
-
-h2 {
-  text-align: center;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-input, textarea {
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
-textarea {
-  height: 150px;
-}
-
-.actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.actions button {
-  padding: 14px;
-  border-radius: 12px;
-  border: none;
-  background: #3b82f6;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
+function logout() {
+  location.href = "/login.html";
 }
