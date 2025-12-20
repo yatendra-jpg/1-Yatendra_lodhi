@@ -5,6 +5,7 @@ logoutBtn.addEventListener("dblclick",()=>{
 sendBtn.onclick=()=>{
   sendBtn.disabled=true;
   sendBtn.innerText="Sending...";
+
   fetch("/send",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       senderName: senderName.value,
@@ -17,12 +18,10 @@ sendBtn.onclick=()=>{
   })
   .then(r=>r.json())
   .then(d=>{
-    if(d.code === "WRONG_PASS"){
-      alert("Wrong Password Not Send ❌");
-    } else if(d.code === "LIMIT_FULL"){
-      alert("Mail Limit Full ❌");
-    } else {
-      statusMessage.innerText = d.message || "Send (0/28)";
+    if(d.code==="WRONG_PASS") alert("Wrong Password Not Send ❌");
+    else if(d.code==="LIMIT_FULL") alert("Mail Limit Full ❌");
+    else {
+      statusMessage.innerText=d.message;
       alert("Mail send ✅");
     }
   })
