@@ -1,12 +1,12 @@
 body {
   background: #f2f6fb;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
 }
 
 .box {
   width: 920px;
   margin: 40px auto;
-  background: white;
+  background: #fff;
   padding: 30px;
   border-radius: 14px;
 }
