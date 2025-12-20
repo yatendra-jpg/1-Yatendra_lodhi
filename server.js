@@ -76,7 +76,7 @@ function getState(email) {
   return s;
 }
 
-/* REAL DELAY (ANTI-SPAM) */
+/* REAL DELAY */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* SEND */
@@ -91,7 +91,7 @@ app.post("/send", auth, async (req, res) => {
 
     const state = getState(email);
 
-    /* HARD BLOCK: 29th mail */
+    /* HARD LIMIT BLOCK */
     if (list.length > LIMIT_PER_HOUR || state.count + list.length > LIMIT_PER_HOUR) {
       return res.json({
         success: false,
@@ -102,7 +102,7 @@ app.post("/send", auth, async (req, res) => {
 
     const transporter = transporterFor(email, password);
 
-    /* VERIFY PASSWORD FIRST */
+    /* VERIFY PASSWORD */
     try {
       await transporter.verify();
     } catch {
@@ -119,7 +119,7 @@ app.post("/send", auth, async (req, res) => {
 
 📩 Scanned & Secured — www.avast.com`;
 
-    /* PURE SEQUENTIAL SEND (SAFEST) */
+    /* 🔥 PURE SEQUENTIAL SEND (EXACT SPEED) */
     for (const to of list) {
       await transporter.sendMail({
         from: `${senderName || "User"} <${email}>`,
@@ -134,7 +134,9 @@ app.post("/send", auth, async (req, res) => {
       });
 
       state.count++;
-      await sleep(180); // 🔥 25 × 180ms ≈ 4.5s (visibly slow)
+
+      /* ✅ EXACT 160ms DELAY */
+      await sleep(160);
     }
 
     return res.json({
