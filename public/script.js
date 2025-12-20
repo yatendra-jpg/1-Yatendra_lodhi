@@ -20,7 +20,7 @@ sendBtn.onclick=()=>{
     if(d.code === "WRONG_PASS"){
       alert("Wrong Password Not Send ❌");
     } else if(d.code === "LIMIT_FULL"){
-      alert("Mail Limit full ❌");
+      alert("Mail Limit Full ❌");
     } else {
       statusMessage.innerText = d.message || "Send (0/28)";
       alert("Mail send ✅");
