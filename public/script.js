@@ -24,39 +24,31 @@ async function sendMail() {
   btn.disabled = true;
   btn.innerText = "Sending…";
 
-  const senders = document.getElementById("senders").value
-    .split(/\r?\n/)
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(l => {
-      const [name, gmail, apppass] = l.split("|");
-      return { name, gmail, apppass };
-    });
-
   const res = await fetch("/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      senders,
-      to: to.value,
+      senderName: senderName.value,
+      gmail: gmail.value,
+      apppass: apppass.value,
       subject: subject.value,
-      message: message.value
+      message: message.value,
+      to: to.value
     })
   });
 
   const data = await res.json();
 
   btn.disabled = false;
-  btn.innerText = "Send";
+  btn.innerText = "Send All";
   sending = false;
 
-  if (data.failed.length) {
-    alert(
-      `Sent: ${data.sent}\nFailed IDs:\n${data.failed.join("\n")}`
-    );
-  } else {
-    alert(`Mail Send Successful ✅\nTotal: ${data.sent}`);
+  if (!data.success) {
+    alert(data.msg);
+    return;
   }
+
+  alert(`Mail Send Successful ✅\nSent: ${data.sent}`);
 }
 
 function logout() {
