@@ -2,13 +2,14 @@ let sending = false;
 
 const sendBtn = document.getElementById("sendBtn");
 const logoutBtn = document.getElementById("logoutBtn");
+const limitText = document.getElementById("limitText");
 
-/* SINGLE CLICK = SEND */
+/* SEND */
 sendBtn.addEventListener("click", () => {
   if (!sending) sendMail();
 });
 
-/* REAL DOUBLE CLICK = LOGOUT */
+/* REAL DOUBLE CLICK LOGOUT */
 logoutBtn.addEventListener("dblclick", () => {
   if (!sending) logout();
 });
@@ -38,10 +39,12 @@ async function sendMail() {
   sending = false;
 
   if (!data.success) {
+    limitText.innerText = `${data.count}/28`;
     alert(data.msg);
     return;
   }
 
+  limitText.innerText = `${data.count}/28`;
   alert(`Mail Send Successful ✅\nSent: ${data.sent}`);
 }
 
