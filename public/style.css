@@ -4,29 +4,39 @@ body {
 }
 
 .box {
-  width: 900px;
+  width: 920px;
   margin: 40px auto;
   background: white;
   padding: 30px;
   border-radius: 14px;
 }
 
-textarea, input {
-  width: 100%;
-  margin-bottom: 12px;
+h2 {
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+input, textarea {
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #ccc;
+  font-size: 14px;
 }
 
 textarea {
-  height: 120px;
+  height: 140px;
 }
 
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
+  margin-top: 20px;
 }
 
 button {
@@ -36,4 +46,5 @@ button {
   background: #3b82f6;
   color: white;
   font-size: 16px;
+  cursor: pointer;
 }
