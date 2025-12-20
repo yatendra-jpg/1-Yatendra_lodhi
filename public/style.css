@@ -1,14 +1,43 @@
 body {
-  background: #f2f6fb;
+  background: #eef3fb;
   font-family: Arial, sans-serif;
 }
 
+/* LOGIN */
+.login-box {
+  width: 360px;
+  margin: 120px auto;
+  background: #fff;
+  padding: 30px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+.login-box button {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  font-size: 16px;
+}
+
+/* DASHBOARD */
 .box {
   width: 920px;
   margin: 40px auto;
   background: #fff;
   padding: 30px;
-  border-radius: 14px;
+  border-radius: 16px;
 }
 
 h2 {
@@ -18,7 +47,7 @@ h2 {
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  gap: 16px;
 }
 
 input, textarea {
@@ -29,17 +58,17 @@ input, textarea {
 }
 
 textarea {
-  height: 140px;
+  height: 150px;
 }
 
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  gap: 16px;
   margin-top: 20px;
 }
 
-button {
+.actions button {
   padding: 14px;
   border-radius: 12px;
   border: none;
