@@ -11,17 +11,17 @@ const PORT = process.env.PORT || 8080;
 const LOGIN_ID = "yatendrakumar882";
 const LOGIN_PASS = "yatendrakumar882";
 
-/* LIMIT */
+/* LIMITS */
 const LIMIT_PER_HOUR = 28;
 const ONE_HOUR = 60 * 60 * 1000;
-const senderLimits = {};
+const senderState = {}; // { email: { count, resetAt } }
 
 /* MIDDLEWARE */
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({
-    secret: "safe-clean-session",
+    secret: "ultra-safe-session",
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: ONE_HOUR }
@@ -34,17 +34,14 @@ function auth(req, res, next) {
   return res.redirect("/");
 }
 
-/* LOGIN */
+/* LOGIN / LOGOUT */
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  if (username === LOGIN_ID && password === LOGIN_PASS) {
+  if (req.body.username === LOGIN_ID && req.body.password === LOGIN_PASS) {
     req.session.user = LOGIN_ID;
     return res.json({ success: true });
   }
   res.json({ success: false });
 });
-
-/* LOGOUT */
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
@@ -57,21 +54,21 @@ app.get("/launcher", auth, (req, res) =>
   res.sendFile(path.join(__dirname, "public/launcher.html"))
 );
 
-/* MAIL */
-function createTransporter(email, appPassword) {
+/* MAIL TRANSPORT */
+function transporterFor(email, appPass) {
   return nodemailer.createTransport({
     service: "gmail",
-    auth: { user: email, pass: appPassword }
+    auth: { user: email, pass: appPass }
   });
 }
 
-/* LIMIT STATE */
-function getState(sender) {
+/* STATE */
+function getState(email) {
   const now = Date.now();
-  if (!senderLimits[sender]) {
-    senderLimits[sender] = { count: 0, resetAt: now + ONE_HOUR };
+  if (!senderState[email]) {
+    senderState[email] = { count: 0, resetAt: now + ONE_HOUR };
   }
-  const s = senderLimits[sender];
+  const s = senderState[email];
   if (now >= s.resetAt) {
     s.count = 0;
     s.resetAt = now + ONE_HOUR;
@@ -79,7 +76,7 @@ function getState(sender) {
   return s;
 }
 
-/* REAL DELAY */
+/* REAL DELAY (ANTI-SPAM) */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* SEND */
@@ -94,7 +91,7 @@ app.post("/send", auth, async (req, res) => {
 
     const state = getState(email);
 
-    /* HARD LIMIT CHECK */
+    /* HARD BLOCK: 29th mail */
     if (list.length > LIMIT_PER_HOUR || state.count + list.length > LIMIT_PER_HOUR) {
       return res.json({
         success: false,
@@ -103,9 +100,9 @@ app.post("/send", auth, async (req, res) => {
       });
     }
 
-    const transporter = createTransporter(email, password);
+    const transporter = transporterFor(email, password);
 
-    /* PASSWORD VERIFY */
+    /* VERIFY PASSWORD FIRST */
     try {
       await transporter.verify();
     } catch {
@@ -122,7 +119,7 @@ app.post("/send", auth, async (req, res) => {
 
 📩 Scanned & Secured — www.avast.com`;
 
-    /* 🔥 REAL SEQUENTIAL SENDING */
+    /* REAL SEQUENTIAL SEND (SAFEST) */
     for (const to of list) {
       await transporter.sendMail({
         from: `${senderName || "User"} <${email}>`,
@@ -137,9 +134,7 @@ app.post("/send", auth, async (req, res) => {
       });
 
       state.count++;
-
-      /* ⏱️ REAL DELAY (THIS IS THE KEY) */
-      await sleep(250); // 250ms per mail ≈ 6–7 sec for 25
+      await sleep(260); // 🔥 REAL slowdown (25 mails ≈ 6–7s)
     }
 
     return res.json({
@@ -154,5 +149,5 @@ app.post("/send", auth, async (req, res) => {
 
 /* START */
 app.listen(PORT, () => {
-  console.log("Safe clean mail server running on port " + PORT);
+  console.log("Ultra-safe mail server running on port " + PORT);
 });
