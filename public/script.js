@@ -1,27 +1,8 @@
-let count = 0;
-let clickCount = 0;
-let clickTimer = null;
-
-const sendBtn = document.getElementById("sendBtn");
-
-sendBtn.addEventListener("click", () => {
-  clickCount++;
-
-  if (clickCount === 1) {
-    clickTimer = setTimeout(() => {
-      clickCount = 0;
-    }, 400);
-
-    sendMail();
-  }
-
-  if (clickCount === 2) {
-    clearTimeout(clickTimer);
-    logout();
-  }
-});
-
 async function sendMail() {
+  const btn = document.getElementById("sendBtn");
+  btn.disabled = true;
+  btn.innerText = "Sending…";
+
   const res = await fetch("/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -37,13 +18,15 @@ async function sendMail() {
 
   const data = await res.json();
 
+  btn.disabled = false;
+  btn.innerText = "Send";
+
   if (!data.success) {
     alert(data.msg);
     return;
   }
 
-  count = data.count;
-  document.getElementById("status").innerText = `Send (${count}/28)`;
+  alert("Mail Send Successful ✅");
 }
 
 function logout() {
