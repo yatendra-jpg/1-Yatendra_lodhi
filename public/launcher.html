@@ -1,36 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Secure Mail Dashboard</title>
+  <title>Bulk Mail Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="box">
-  <h2>📨 Secure Mail Dashboard</h2>
+  <h2>📨 Bulk Mail Dashboard</h2>
 
-  <div class="grid">
-    <input id="sender" placeholder="Sender Name">
-    <input id="gmail" placeholder="Your Gmail">
+  <textarea id="senders" placeholder="Senders (Format: name|gmail|apppassword)"></textarea>
 
-    <input id="apppass" placeholder="App Password">
-    <input id="subject" placeholder="Email Subject">
+  <textarea id="to" placeholder="Recipients (1 per line)"></textarea>
 
-    <textarea id="message" placeholder="Message Body"></textarea>
-    <textarea id="to" placeholder="Recipients"></textarea>
-  </div>
+  <input id="subject" placeholder="Subject">
+
+  <textarea id="message" placeholder="Message Body"></textarea>
 
   <div class="actions">
     <button id="sendBtn">Send</button>
     <button onclick="logout()">Logout</button>
   </div>
-
-  <!-- 📊 PROGRESS BAR -->
-  <div class="progress-wrap">
-    <div class="progress-bar" id="progressBar"></div>
-  </div>
-  <div class="progress-text" id="progressText">0 / 28</div>
-
 </div>
 
 <script src="script.js"></script>
