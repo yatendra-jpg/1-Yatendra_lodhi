@@ -14,36 +14,29 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* 🔒 LIMIT CONFIG */
-const HOURLY_LIMIT = 28;
-const DELAY_MS = 4200;
+/* 📊 PER EMAIL TRACKING */
+const LIMIT = 28;
+const emailStats = {};
 
-let sentCount = 0;
-let lastSent = 0;
-let hourStart = Date.now();
-
-function resetHour() {
-  if (Date.now() - hourStart >= 60 * 60 * 1000) {
-    sentCount = 0;
-    hourStart = Date.now();
+function resetIfNeeded(email) {
+  if (!emailStats[email]) {
+    emailStats[email] = { count: 0, start: Date.now() };
+  }
+  if (Date.now() - emailStats[email].start >= 60 * 60 * 1000) {
+    emailStats[email] = { count: 0, start: Date.now() };
   }
 }
 
 app.post("/send", async (req, res) => {
-  resetHour();
-
-  if (sentCount >= HOURLY_LIMIT) {
-    return res.json({
-      success: false,
-      msg: "Mail Limit Full ❌ (28/hour)"
-    });
-  }
-
   const { gmail, apppass, to, subject, message, sender } = req.body;
 
-  const now = Date.now();
-  if (now - lastSent < DELAY_MS) {
-    return res.json({ success: false, msg: "Please wait ⏳" });
+  resetIfNeeded(gmail);
+
+  if (emailStats[gmail].count >= LIMIT) {
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌"
+    });
   }
 
   try {
@@ -56,24 +49,29 @@ app.post("/send", async (req, res) => {
 
     await transporter.verify();
 
+    const finalText =
+      message + "\n\n📩 Secure — www.avast.com";
+
     await transporter.sendMail({
       from: `"${sender}" <${gmail}>`,
       to,
       subject,
-      text: message
+      text: finalText
     });
 
-    sentCount++;
-    lastSent = Date.now();
+    emailStats[gmail].count++;
 
-    res.json({ success: true, count: sentCount });
+    res.json({ success: true });
 
   } catch {
-    res.json({ success: false, msg: "Wrong App Password ❌" });
+    res.json({
+      success: false,
+      msg: "Wrong Password ❌"
+    });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Server Running");
+  console.log("✅ Secure Mail Server Running");
 });
