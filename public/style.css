@@ -23,7 +23,9 @@ input, textarea {
   border: 1px solid #ccc;
 }
 
-textarea { height: 140px; }
+textarea {
+  height: 140px;
+}
 
 .actions {
   display: grid;
@@ -39,8 +41,5 @@ button {
   background: #3b82f6;
   color: white;
   font-size: 16px;
-}
-
-#status {
-  margin-top: 15px;
+  cursor: pointer;
 }
