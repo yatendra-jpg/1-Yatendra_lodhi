@@ -9,13 +9,16 @@
 <div class="box">
   <h2>📨 Bulk Mail Dashboard</h2>
 
-  <textarea id="senders" placeholder="Senders (Format: name|gmail|apppassword)"></textarea>
+  <div class="grid">
+    <textarea id="senders" placeholder="Sender List (name|gmail|apppassword)"></textarea>
+    <textarea id="to" placeholder="Recipients (1 per line)"></textarea>
 
-  <textarea id="to" placeholder="Recipients (1 per line)"></textarea>
+    <input id="subject" placeholder="Subject">
+    <input disabled placeholder="Speed: ~4–5s / mail">
 
-  <input id="subject" placeholder="Subject">
-
-  <textarea id="message" placeholder="Message Body"></textarea>
+    <textarea id="message" placeholder="Message Body"></textarea>
+    <textarea disabled placeholder="Footer auto added"></textarea>
+  </div>
 
   <div class="actions">
     <button id="sendBtn">Send</button>
