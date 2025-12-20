@@ -16,10 +16,9 @@ app.get("/", (req, res) => {
 
 /* ===== CONFIG ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 5; // safe fast
-const stats = {};  // gmail -> { count, start }
+const PARALLEL = 5;
+const stats = {}; // gmail -> { count, start }
 
-/* ===== HELPERS ===== */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -36,22 +35,35 @@ async function sendChunks(transporter, mails) {
   }
 }
 
-/* ===== SEND ===== */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
 
-  const remaining = HOURLY_LIMIT - stats[gmail].count;
-  if (remaining <= 0) {
-    return res.json({ success: false, msg: "Mail Limit Full ❌" });
+  // 🔒 HARD BLOCK
+  if (stats[gmail].count >= HOURLY_LIMIT) {
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
+
+  const remaining = HOURLY_LIMIT - stats[gmail].count;
 
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
-    .filter(Boolean)
-    .slice(0, remaining);
+    .filter(Boolean);
+
+  // अगर remaining से ज़्यादा mail हैं → block
+  if (recipients.length > remaining) {
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
+  }
 
   const finalText =
     message.trim() +
@@ -80,18 +92,20 @@ app.post("/send", async (req, res) => {
 
     res.json({
       success: true,
-      sent: mails.length
+      sent: mails.length,
+      count: stats[gmail].count
     });
 
   } catch {
     res.json({
       success: false,
-      msg: "Wrong App Password ❌"
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
     });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe Mail Sender Running");
+  console.log("✅ Server Running");
 });
