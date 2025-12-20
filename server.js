@@ -7,16 +7,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* 🔑 ROOT FIX */
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "launcher.html"));
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* 🔒 HARD LIMIT CONFIG */
+/* 🔒 LIMIT CONFIG */
 const HOURLY_LIMIT = 28;
 const DELAY_MS = 4200;
 
@@ -35,7 +33,7 @@ app.post("/send", async (req, res) => {
   resetHour();
 
   if (sentCount >= HOURLY_LIMIT) {
-    return res.status(429).json({
+    return res.json({
       success: false,
       msg: "Mail Limit Full ❌ (28/hour)"
     });
@@ -56,13 +54,13 @@ app.post("/send", async (req, res) => {
       auth: { user: gmail, pass: apppass }
     });
 
-    await transporter.verify(); // ❌ wrong app password stops here
+    await transporter.verify();
 
     await transporter.sendMail({
       from: `"${sender}" <${gmail}>`,
       to,
       subject,
-      text: message // 📄 plain text only
+      text: message
     });
 
     sentCount++;
@@ -77,5 +75,5 @@ app.post("/send", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Server running on port", PORT);
+  console.log("✅ Server Running");
 });
