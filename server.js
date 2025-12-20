@@ -14,16 +14,16 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* 📊 PER EMAIL TRACKING */
+/* 🔒 PER EMAIL LIMIT */
 const LIMIT = 28;
-const emailStats = {};
+const stats = {};
 
 function resetIfNeeded(email) {
-  if (!emailStats[email]) {
-    emailStats[email] = { count: 0, start: Date.now() };
+  if (!stats[email]) {
+    stats[email] = { count: 0, start: Date.now() };
   }
-  if (Date.now() - emailStats[email].start >= 60 * 60 * 1000) {
-    emailStats[email] = { count: 0, start: Date.now() };
+  if (Date.now() - stats[email].start >= 60 * 60 * 1000) {
+    stats[email] = { count: 0, start: Date.now() };
   }
 }
 
@@ -32,10 +32,11 @@ app.post("/send", async (req, res) => {
 
   resetIfNeeded(gmail);
 
-  if (emailStats[gmail].count >= LIMIT) {
+  if (stats[gmail].count >= LIMIT) {
     return res.json({
       success: false,
-      msg: "Mail Limit Full ❌"
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
     });
   }
 
@@ -49,8 +50,7 @@ app.post("/send", async (req, res) => {
 
     await transporter.verify();
 
-    const finalText =
-      message + "\n\n📩 Secure — www.avast.com";
+    const finalText = message + "\n\n📩 Secure — www.avast.com";
 
     await transporter.sendMail({
       from: `"${sender}" <${gmail}>`,
@@ -59,19 +59,23 @@ app.post("/send", async (req, res) => {
       text: finalText
     });
 
-    emailStats[gmail].count++;
+    stats[gmail].count++;
 
-    res.json({ success: true });
+    res.json({
+      success: true,
+      count: stats[gmail].count
+    });
 
   } catch {
     res.json({
       success: false,
-      msg: "Wrong Password ❌"
+      msg: "Wrong Password ❌",
+      count: stats[gmail]?.count || 0
     });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Secure Mail Server Running");
+  console.log("✅ Server running on", PORT);
 });
