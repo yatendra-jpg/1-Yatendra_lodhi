@@ -16,66 +16,75 @@ app.get("/", (req, res) => {
 
 /* 🔒 PER EMAIL LIMIT */
 const LIMIT = 28;
-const stats = {};
+const stats = {}; 
+// stats[gmail] = { count, start }
 
-function resetIfNeeded(email) {
-  if (!stats[email]) {
-    stats[email] = { count: 0, start: Date.now() };
+function resetIfNeeded(gmail) {
+  if (!stats[gmail]) {
+    stats[gmail] = { count: 0, start: Date.now() };
   }
-  if (Date.now() - stats[email].start >= 60 * 60 * 1000) {
-    stats[email] = { count: 0, start: Date.now() };
+  if (Date.now() - stats[gmail].start >= 60 * 60 * 1000) {
+    stats[gmail] = { count: 0, start: Date.now() };
   }
 }
 
 app.post("/send", async (req, res) => {
-  const { gmail, apppass, to, subject, message, sender } = req.body;
+  const { senders, to, subject, message } = req.body;
 
-  resetIfNeeded(gmail);
+  const recipients = to
+    .split(/\r?\n/)
+    .map(e => e.trim())
+    .filter(Boolean);
 
-  if (stats[gmail].count >= LIMIT) {
-    return res.json({
-      success: false,
-      msg: "Mail Limit Full ❌",
-      count: stats[gmail].count
-    });
+  const finalText = message + "\n\n📩 Secure — www.avast.com";
+
+  let sent = 0;
+  let failedSenders = [];
+
+  for (const sender of senders) {
+    const { gmail, apppass, name } = sender;
+    resetIfNeeded(gmail);
+
+    let available = LIMIT - stats[gmail].count;
+    if (available <= 0) continue;
+
+    const batch = recipients.splice(0, available);
+    if (batch.length === 0) break;
+
+    try {
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: { user: gmail, pass: apppass }
+      });
+
+      await transporter.verify();
+
+      for (const r of batch) {
+        await transporter.sendMail({
+          from: `"${name}" <${gmail}>`,
+          to: r,
+          subject,
+          text: finalText
+        });
+        stats[gmail].count++;
+        sent++;
+      }
+
+    } catch {
+      failedSenders.push(gmail);
+    }
   }
 
-  try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: { user: gmail, pass: apppass }
-    });
-
-    await transporter.verify();
-
-    const finalText = message + "\n\n📩 Secure — www.avast.com";
-
-    await transporter.sendMail({
-      from: `"${sender}" <${gmail}>`,
-      to,
-      subject,
-      text: finalText
-    });
-
-    stats[gmail].count++;
-
-    res.json({
-      success: true,
-      count: stats[gmail].count
-    });
-
-  } catch {
-    res.json({
-      success: false,
-      msg: "Wrong Password ❌",
-      count: stats[gmail]?.count || 0
-    });
-  }
+  res.json({
+    success: true,
+    sent,
+    failedSenders
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Server running on", PORT);
+  console.log("✅ Bulk Mail Server Running");
 });
