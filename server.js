@@ -14,10 +14,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* 🔒 PER EMAIL LIMIT */
-const LIMIT = 28;
-const stats = {}; 
-// stats[gmail] = { count, start }
+/* 🔒 CONFIG */
+const LIMIT = 28;                 // per gmail / hour
+const DELAY_MS = 4200;            // REAL ~4–5 sec
+const stats = {};                 // gmail → {count, start}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
@@ -42,7 +44,8 @@ app.post("/send", async (req, res) => {
   let failedSenders = [];
 
   for (const sender of senders) {
-    const { gmail, apppass, name } = sender;
+    const { name, gmail, apppass } = sender;
+
     resetIfNeeded(gmail);
 
     let available = LIMIT - stats[gmail].count;
@@ -61,15 +64,19 @@ app.post("/send", async (req, res) => {
 
       await transporter.verify();
 
-      for (const r of batch) {
+      for (const email of batch) {
         await transporter.sendMail({
           from: `"${name}" <${gmail}>`,
-          to: r,
+          to: email,
           subject,
           text: finalText
         });
+
         stats[gmail].count++;
         sent++;
+
+        // ⏱️ REAL DELAY (4–5 sec)
+        await sleep(DELAY_MS);
       }
 
     } catch {
@@ -86,5 +93,5 @@ app.post("/send", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Bulk Mail Server Running");
+  console.log("✅ Real Speed Bulk Mail Server Running");
 });
