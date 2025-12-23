@@ -10,17 +10,16 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ===== OPEN LOGIN ===== */
+/* OPEN LOGIN */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== CONFIG ===== */
+/* CONFIG */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 5; // safe fast
 const stats = {};  // gmail -> { count, start }
 
-/* ===== HELPERS ===== */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -37,13 +36,12 @@ async function sendChunks(transporter, mails) {
   }
 }
 
-/* ===== SEND API ===== */
+/* SEND API */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
 
-  // HARD BLOCK
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -59,7 +57,7 @@ app.post("/send", async (req, res) => {
 
   const remaining = HOURLY_LIMIT - stats[gmail].count;
 
-  // If exceed limit → block all
+  // HARD BLOCK if exceeds limit
   if (recipients.length > remaining) {
     return res.json({
       success: false,
@@ -70,17 +68,14 @@ app.post("/send", async (req, res) => {
 
   const finalText =
     message.trim() +
-    "\n\n📩 Scanned & Secured — www.avast.com";
+    "\n\n📩 Secured — www.bitdefender.com";
 
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
-      auth: {
-        user: gmail,
-        pass: apppass
-      }
+      auth: { user: gmail, pass: apppass }
     });
 
     await transporter.verify();
@@ -111,7 +106,6 @@ app.post("/send", async (req, res) => {
   }
 });
 
-/* ===== START ===== */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ Server Running on port", PORT);
