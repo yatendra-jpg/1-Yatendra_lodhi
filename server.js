@@ -65,7 +65,7 @@ app.post("/send", async (req, res) => {
 
   const finalText =
     message.trim() +
-    "\n\n📩 Scanned & Secured — www.avast.com / www.bitdefender.com";
+    "\n\n📩 Scanned * Secured — www.bitdefender.com";
 
   try {
     const transporter = nodemailer.createTransport({
