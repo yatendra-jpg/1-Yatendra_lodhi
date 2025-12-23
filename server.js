@@ -19,7 +19,6 @@ const HOURLY_LIMIT = 28;
 const PARALLEL = 5; // controlled → spam risk low
 const stats = {};  // gmail -> { count, start }
 
-/* HELPERS */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -36,7 +35,6 @@ async function sendChunks(transporter, mails) {
   }
 }
 
-/* SEND API */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
@@ -67,7 +65,7 @@ app.post("/send", async (req, res) => {
 
   const finalText =
     message.trim() +
-    "\n\n📩 Secured — www.bitdefender.com";
+    "\n\n📩 Scanned & Secured — www.avast.com / www.bitdefender.com";
 
   try {
     const transporter = nodemailer.createTransport({
