@@ -4,12 +4,12 @@ const sendBtn = document.getElementById("sendBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const limitText = document.getElementById("limitText");
 
-/* SEND */
+/* SINGLE CLICK = SEND */
 sendBtn.addEventListener("click", () => {
   if (!sending) sendMail();
 });
 
-/* REAL DOUBLE CLICK LOGOUT */
+/* REAL DOUBLE CLICK = LOGOUT */
 logoutBtn.addEventListener("dblclick", () => {
   if (!sending) logout();
 });
