@@ -10,16 +10,16 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* OPEN LOGIN */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 /* CONFIG */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 5; // safe fast
+const PARALLEL = 5; // controlled → spam risk low
 const stats = {};  // gmail -> { count, start }
 
+/* HELPERS */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -57,7 +57,6 @@ app.post("/send", async (req, res) => {
 
   const remaining = HOURLY_LIMIT - stats[gmail].count;
 
-  // HARD BLOCK if exceeds limit
   if (recipients.length > remaining) {
     return res.json({
       success: false,
@@ -108,5 +107,5 @@ app.post("/send", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Server Running on port", PORT);
+  console.log("✅ Server running on port", PORT);
 });
