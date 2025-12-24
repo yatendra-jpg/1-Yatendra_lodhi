@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
 
 /* ---------- CONFIG ---------- */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 5;          // safe parallel
+const PARALLEL = 5;          // FAST + SAFE
 const stats = {};            // gmail -> { count, start }
 
 /* ---------- RESET AFTER 1 HOUR ---------- */
@@ -31,7 +31,7 @@ function resetIfNeeded(gmail) {
   }
 }
 
-/* ---------- SAFE BULK SENDER ---------- */
+/* ---------- FAST BULK SENDER ---------- */
 async function sendBulk(transporter, mails) {
   let sent = 0;
 
@@ -46,6 +46,7 @@ async function sendBulk(transporter, mails) {
       if (r.status === "fulfilled") sent++;
     });
   }
+
   return sent;
 }
 
@@ -79,28 +80,28 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* FINAL MESSAGE (PLAIN TEXT ONLY) */
+  /* FINAL MESSAGE (FOOTER UPDATED) */
   const finalText =
     message.trim() +
-    "\n\n📩 Scanned & Secured — www.bitdefender.com";
+    "\n\n📩 Scanned & Secured — www.avast.com";
 
-  /* ---------- SMTP TRANSPORT (POOLING ENABLED) ---------- */
+  /* ---------- SMTP TRANSPORT (POOLING ON = FAST) ---------- */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
 
-    pool: true,          // 🔥 IMPORTANT FIX
-    maxConnections: 1,   // single stable connection
-    maxMessages: 50,     // enough for 28 mails
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 50,
 
     auth: {
       user: gmail,
-      pass: apppass      // never logged / never returned
+      pass: apppass   // never logged / never shown
     }
   });
 
-  /* ---------- VERIFY PASSWORD (ONLY HERE) ---------- */
+  /* PASSWORD VERIFY (ONLY HERE) */
   try {
     await transporter.verify();
   } catch {
@@ -111,7 +112,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* ---------- BUILD MAILS ---------- */
+  /* BUILD MAILS */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -119,7 +120,7 @@ app.post("/send", async (req, res) => {
     text: finalText
   }));
 
-  /* ---------- SEND BULK SAFELY ---------- */
+  /* SEND FAST */
   const sentCount = await sendBulk(transporter, mails);
 
   stats[gmail].count += sentCount;
@@ -134,5 +135,5 @@ app.post("/send", async (req, res) => {
 /* ---------- START SERVER ---------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe Mail Server running on port", PORT);
+  console.log("✅ Safe FAST Mail Server running on port", PORT);
 });
