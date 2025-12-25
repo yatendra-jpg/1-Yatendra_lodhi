@@ -1,17 +1,21 @@
+/**
+ * Client-side mail sender logic
+ * Handles button states, progress counter, and
+ * real double-click logout without interrupting sending.
+ */
+
 let sending = false;
 
 const sendBtn = document.getElementById("sendBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const limitText = document.getElementById("limitText");
 
-/* SEND */
 sendBtn.addEventListener("click", () => {
   if (!sending) sendMail();
 });
 
-/* REAL DOUBLE CLICK LOGOUT */
 logoutBtn.addEventListener("dblclick", () => {
-  if (!sending) logout();
+  if (!sending) location.href = "/login.html";
 });
 
 async function sendMail() {
@@ -38,16 +42,6 @@ async function sendMail() {
   sendBtn.innerText = "Send All";
   sending = false;
 
-  if (!data.success) {
-    limitText.innerText = `${data.count}/28`;
-    alert(data.msg);
-    return;
-  }
-
   limitText.innerText = `${data.count}/28`;
-  alert(`Mail Send Successful ✅\nSent: ${data.sent}`);
-}
-
-function logout() {
-  location.href = "/login.html";
+  alert(data.success ? "Mail Send Successful ✅" : data.msg);
 }
