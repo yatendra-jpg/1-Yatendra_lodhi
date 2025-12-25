@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 
+/* ---------- BASIC SETUP ---------- */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -11,35 +12,16 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* -------- SINGLE SESSION -------- */
-let activeSessionToken = null;
-
-/* -------- ROUTES -------- */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* login → issue new token, invalidate old */
-app.post("/login", (req, res) => {
-  const { uid, upass } = req.body;
-  if (uid === "@#vashashekhpurgarhwa" && upass === "@#vashashekhpurgarhwa") {
-    activeSessionToken = crypto.randomBytes(16).toString("hex");
-    return res.json({ success: true, token: activeSessionToken });
-  }
-  res.json({ success: false });
-});
-
-/* session check */
-app.post("/check-session", (req, res) => {
-  const { token } = req.body;
-  res.json({ valid: token === activeSessionToken });
-});
-
-/* -------- MAIL CONFIG -------- */
+/* ---------- CONFIG ---------- */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 6;          // थोड़ा fast, still safe
-const stats = {};            // gmail -> { count, start }
+const PARALLEL = 4;              // 🔽 slightly softer than 5 (spam ↓)
+const stats = {};                // gmail -> { count, start }
 
+/* ---------- RESET AFTER 1 HOUR ---------- */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -50,69 +32,125 @@ function resetIfNeeded(gmail) {
   }
 }
 
+/* ---------- MICRO JITTER (ANTI-SPAM) ---------- */
+function microDelay() {
+  // 20–80ms → human-like, speed impact ≈ none
+  const ms = 20 + Math.floor(Math.random() * 60);
+  return new Promise(r => setTimeout(r, ms));
+}
+
+/* ---------- SAFE BULK SENDER ---------- */
 async function sendBulk(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const chunk = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
-      chunk.map(m => transporter.sendMail(m))
+      chunk.map(async mail => {
+        await microDelay();            // 🔥 anti-spam jitter
+        return transporter.sendMail(mail);
+      })
     );
-    results.forEach(r => r.status === "fulfilled" && sent++);
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
   }
   return sent;
 }
 
-/* -------- SEND API -------- */
+/* ---------- SEND API ---------- */
 app.post("/send", async (req, res) => {
-  const { token, senderName, gmail, apppass, to, subject, message } = req.body;
-
-  if (token !== activeSessionToken) {
-    return res.json({ success: false, msg: "SESSION_EXPIRED" });
-  }
+  const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
+
+  /* HARD LIMIT */
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
-  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
   const remaining = HOURLY_LIMIT - stats[gmail].count;
   if (recipients.length > remaining) {
-    return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
+  /* FINAL TEXT (PLAIN) */
   const finalText =
-    message.trim() + "\n\n📩 Scanned & Secured — www.avast.com";
+    message.trim() +
+    "\n\n📩 Scanned & Secured — www.avast.com";
 
+  /* ---------- SMTP TRANSPORT (POOLING) ---------- */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
+
     pool: true,
-    maxConnections: 1,
-    maxMessages: 50,
-    auth: { user: gmail, pass: apppass }
+    maxConnections: 1,      // stable single connection
+    maxMessages: 40,        // enough for 28
+
+    auth: {
+      user: gmail,
+      pass: apppass         // never logged / never returned
+    }
   });
 
+  /* VERIFY PASSWORD (ONLY HERE) */
   try {
     await transporter.verify();
   } catch {
-    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
+    });
   }
 
+  /* BUILD MAILS (SAFE HEADERS) */
+  const cleanName = String(senderName || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
   const mails = recipients.map(r => ({
-    from: `"${senderName}" <${gmail}>`,
+    from: `"${cleanName}" <${gmail}>`,
     to: r,
     subject,
-    text: finalText
+    text: finalText,
+
+    headers: {
+      "X-Mailer": "Secure Mail Agent",
+      "Message-ID": `<${crypto.randomUUID()}@${gmail.split("@")[1]}>`
+    }
   }));
 
-  const sent = await sendBulk(transporter, mails);
-  stats[gmail].count += sent;
+  /* SEND */
+  const sentCount = await sendBulk(transporter, mails);
+  stats[gmail].count += sentCount;
 
-  res.json({ success: true, sent, count: stats[gmail].count });
+  return res.json({
+    success: true,
+    sent: sentCount,
+    count: stats[gmail].count
+  });
 });
 
-app.listen(process.env.PORT || 3000, () =>
-  console.log("✅ Secure Mail Console running")
-);
+/* ---------- START SERVER ---------- */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("✅ Safe Mail Server running on port", PORT);
+});
