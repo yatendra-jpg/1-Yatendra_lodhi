@@ -5,26 +5,32 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <div class="login-box">
   <h2>Secure Access</h2>
+
   <input id="uid" placeholder="Username">
   <input id="upass" type="password" placeholder="Password">
+
   <button onclick="login()">Login</button>
 </div>
 
 <script>
-async function login(){
-  const res = await fetch("/login",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ uid: uid.value, upass: upass.value })
-  });
-  const data = await res.json();
-  if(data.success){
-    localStorage.setItem("sessionToken", data.token);
-    location.href="/launcher.html";
-  } else alert("Invalid Login ❌");
+const VALID = "@#vashashekhpurgarhwa";
+
+function login() {
+  if (uid.value === VALID && upass.value === VALID) {
+
+    // generate new session token
+    const token = Date.now().toString();
+    localStorage.setItem("session_token", token);
+
+    location.href = "/launcher.html";
+  } else {
+    alert("Invalid Login ❌");
+  }
 }
 </script>
+
 </body>
 </html>
