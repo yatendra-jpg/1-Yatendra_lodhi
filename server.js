@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
 
+/* ---------------- BASIC SETUP ---------------- */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -10,17 +11,17 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ROUTES */
-app.get("/", (req, res) =>
-  res.sendFile(path.join(__dirname, "public", "login.html"))
-);
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
 
-/* CONFIG */
-const HOURLY_LIMIT = 28;     // same as first time
-const PARALLEL = 5;         // ⭐ key for speed & safety
-const stats = {};           // gmail -> { count, start }
+/* ---------------- CONFIG ---------------- */
+const HOURLY_LIMIT = 28;        // per Gmail / hour (safe)
+const PARALLEL = 4;             // controlled parallel (spam low + fast)
+const CHUNK_DELAY = 350;        // ms delay between chunks
+const stats = {};               // gmail -> { count, start }
 
-/* RESET AFTER 1 HOUR */
+/* ---------------- HELPERS ---------------- */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -31,57 +32,92 @@ function resetIfNeeded(gmail) {
   }
 }
 
-/* FAST BULK (NO FAKE DELAY) */
-async function sendFast(transporter, mails) {
+function sleep(ms) {
+  return new Promise(res => setTimeout(res, ms));
+}
+
+/* ---------------- SAFE PARALLEL SENDER ---------------- */
+async function sendParallel(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const chunk = mails.slice(i, i + PARALLEL);
-    const res = await Promise.allSettled(
+
+    const results = await Promise.allSettled(
       chunk.map(m => transporter.sendMail(m))
     );
-    res.forEach(r => r.status === "fulfilled" && sent++);
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
+    // small real delay → spam/block rate low
+    if (i + PARALLEL < mails.length) {
+      await sleep(CHUNK_DELAY);
+    }
   }
+
   return sent;
 }
 
-/* SEND API */
+/* ---------------- SEND API ---------------- */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
 
+  /* HARD LIMIT */
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
-  const recipients = to.split(/,|\r?\n/).map(s => s.trim()).filter(Boolean);
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
   const remaining = HOURLY_LIMIT - stats[gmail].count;
 
   if (recipients.length > remaining) {
-    return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
+  /* FINAL TEXT (PLAIN TEXT ONLY) */
   const finalText =
-    message.trim() + "\n\n📩 Scanned & Secured — www.avast.com";
+    message.trim() +
+    "\n\n📩 Scanned & Secured — www.avast.com";
 
-  /* SMTP with POOLING (FAST + STABLE) */
+  /* ---------------- TRANSPORT (NO POOLING) ---------------- */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    pool: true,
-    maxConnections: 1,   // stable single connection
-    maxMessages: 100,
-    auth: { user: gmail, pass: apppass }
+    auth: {
+      user: gmail,
+      pass: apppass
+    }
   });
 
-  /* VERIFY ONLY ONCE */
+  /* VERIFY PASSWORD (ONLY PLACE FOR PASSWORD ERROR) */
   try {
     await transporter.verify();
   } catch {
-    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
+    });
   }
 
+  /* BUILD MAIL LIST */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -89,12 +125,20 @@ app.post("/send", async (req, res) => {
     text: finalText
   }));
 
-  const sent = await sendFast(transporter, mails);
-  stats[gmail].count += sent;
+  /* SEND PARALLEL (SAFE + FAST) */
+  const sentCount = await sendParallel(transporter, mails);
 
-  return res.json({ success: true, sent, count: stats[gmail].count });
+  stats[gmail].count += sentCount;
+
+  return res.json({
+    success: true,
+    sent: sentCount,
+    count: stats[gmail].count
+  });
 });
 
-/* START */
+/* ---------------- START SERVER ---------------- */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("✅ Server running on", PORT));
+app.listen(PORT, () => {
+  console.log("✅ Safe Mail Server running on port", PORT);
+});
