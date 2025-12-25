@@ -1,11 +1,3 @@
-/**
- * Secure Mail Server
- * ------------------
- * This server handles safe bulk email sending with strict hourly limits,
- * controlled parallel delivery, SMTP pooling, and plain-text messages only.
- * Designed to reduce spam signals and avoid account blocking issues.
- */
-
 import express from "express";
 import nodemailer from "nodemailer";
 import path from "path";
@@ -22,12 +14,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* SAFE CONFIGURATION */
-const HOURLY_LIMIT = 28;     // max mails per Gmail per hour
-const PARALLEL = 6;          // slightly faster, still safe
-const stats = {};            // gmail -> { count, start }
+/* ===== SAFE CONFIG ===== */
+const HOURLY_LIMIT = 28;
+const PARALLEL = 8; // 🔥 slightly faster but safe
+const stats = {};  // gmail -> { count, start }
 
-/* RESET COUNTER AFTER 1 HOUR */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -38,15 +29,16 @@ function resetIfNeeded(gmail) {
   }
 }
 
-/* SEND MAILS IN SAFE CHUNKS */
 async function sendBulk(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
-    const chunk = mails.slice(i, i + PARALLEL);
+    const batch = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
-      chunk.map(m => transporter.sendMail(m))
+      batch.map(m => transporter.sendMail(m))
     );
+
     results.forEach(r => {
       if (r.status === "fulfilled") sent++;
     });
@@ -54,7 +46,6 @@ async function sendBulk(transporter, mails) {
   return sent;
 }
 
-/* MAIN SEND API */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
@@ -90,10 +81,15 @@ app.post("/send", async (req, res) => {
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
+
     pool: true,
     maxConnections: 1,
     maxMessages: 50,
-    auth: { user: gmail, pass: apppass }
+
+    auth: {
+      user: gmail,
+      pass: apppass
+    }
   });
 
   try {
@@ -125,5 +121,5 @@ app.post("/send", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe Mail Server running on port", PORT);
+  console.log("✅ Mail Server running on port", PORT);
 });
