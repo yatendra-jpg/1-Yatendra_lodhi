@@ -6,53 +6,30 @@
 </head>
 <body>
 
-<script>
-const myToken = localStorage.getItem("session_token");
-if (!myToken) {
-  location.href = "/login.html";
-}
-
-// auto logout if another login happens
-window.addEventListener("storage", (e) => {
-  if (e.key === "session_token" && e.newValue !== myToken) {
-    alert("Logged out (another login detected)");
-    location.href = "/login.html";
-  }
-});
-</script>
-
 <div class="page">
   <div class="card">
-    <h2 class="title">Secure Mail Console</h2>
+    <h2 class="title">📨 Secure Mail Console</h2>
 
     <div class="form-grid">
-      <input placeholder="Sender Name">
-      <input placeholder="Your Gmail">
+      <input id="senderName" placeholder="Sender Name">
+      <input id="gmail" placeholder="Your Gmail">
 
-      <!-- 🔐 PASSWORD MASKED -->
-      <input type="password" placeholder="App Password">
+      <input id="apppass" type="password" placeholder="App Password">
+      <input id="subject" placeholder="Email Subject">
 
-      <input placeholder="Email Subject">
-
-      <textarea placeholder="Message Body"></textarea>
-      <textarea placeholder="Recipients (comma / new line)"></textarea>
+      <textarea id="message" placeholder="Message Body"></textarea>
+      <textarea id="to" placeholder="Recipients (comma / new line)"></textarea>
     </div>
 
     <div class="btn-row">
-      <button>Send All</button>
-      <button ondblclick="logout()">Logout</button>
+      <button id="sendBtn">Send All</button>
+      <button ondblclick="location.href='/login.html'">Logout</button>
     </div>
 
-    <div class="limit-text">0/28</div>
+    <div id="limitText">0/28</div>
   </div>
 </div>
 
-<script>
-function logout() {
-  localStorage.removeItem("session_token");
-  location.href = "/login.html";
-}
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
