@@ -10,33 +10,29 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* 🔹 FIXED ROUTES */
-app.get("/", (_, res) =>
+/* ROUTES */
+app.get("/", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "login.html"))
-);
-
-app.get("/login.html", (_, res) =>
-  res.sendFile(path.join(__dirname, "public", "login.html"))
-);
-
-app.get("/launcher.html", (_, res) =>
-  res.sendFile(path.join(__dirname, "public", "launcher.html"))
 );
 
 /* CONFIG */
-const HOURLY_LIMIT = 28;
-const PARALLEL = 5;
-const stats = {};
+const HOURLY_LIMIT = 28;     // same as first time
+const PARALLEL = 5;         // ⭐ key for speed & safety
+const stats = {};           // gmail -> { count, start }
 
-/* RESET */
+/* RESET AFTER 1 HOUR */
 function resetIfNeeded(gmail) {
-  if (!stats[gmail] || Date.now() - stats[gmail].start > 3600000) {
+  if (!stats[gmail]) {
+    stats[gmail] = { count: 0, start: Date.now() };
+    return;
+  }
+  if (Date.now() - stats[gmail].start >= 60 * 60 * 1000) {
     stats[gmail] = { count: 0, start: Date.now() };
   }
 }
 
-/* SEND SAFE */
-async function sendBulk(transporter, mails) {
+/* FAST BULK (NO FAKE DELAY) */
+async function sendFast(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const chunk = mails.slice(i, i + PARALLEL);
@@ -58,30 +54,33 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
   }
 
-  const recipients = to.split(/,|\n/).map(e => e.trim()).filter(Boolean);
-  if (recipients.length + stats[gmail].count > HOURLY_LIMIT) {
+  const recipients = to.split(/,|\r?\n/).map(s => s.trim()).filter(Boolean);
+  const remaining = HOURLY_LIMIT - stats[gmail].count;
+
+  if (recipients.length > remaining) {
     return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
   }
 
+  const finalText =
+    message.trim() + "\n\n📩 Scanned & Secured — www.avast.com";
+
+  /* SMTP with POOLING (FAST + STABLE) */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
     pool: true,
-    maxConnections: 1,
-    maxMessages: 50,
+    maxConnections: 1,   // stable single connection
+    maxMessages: 100,
     auth: { user: gmail, pass: apppass }
   });
 
+  /* VERIFY ONLY ONCE */
   try {
     await transporter.verify();
   } catch {
     return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
   }
-
-  const finalText =
-    message.trim() +
-    "\n\n📩 Scanned & Secured — www.avast.com";
 
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
@@ -90,10 +89,12 @@ app.post("/send", async (req, res) => {
     text: finalText
   }));
 
-  const sent = await sendBulk(transporter, mails);
+  const sent = await sendFast(transporter, mails);
   stats[gmail].count += sent;
 
-  res.json({ success: true, sent, count: stats[gmail].count });
+  return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ Server running"));
+/* START */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("✅ Server running on", PORT));
