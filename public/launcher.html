@@ -1,9 +1,3 @@
-<!--
-Mail Sender Dashboard
-This interface allows controlled bulk email sending with
-hourly limits, progress counter, and safe sending logic.
--->
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -19,8 +13,10 @@ hourly limits, progress counter, and safe sending logic.
     <div class="form-grid">
       <input id="senderName" placeholder="Sender Name">
       <input id="gmail" placeholder="Your Gmail">
-      <input id="apppass" placeholder="App Password">
+
+      <input id="apppass" type="password" placeholder="App Password">
       <input id="subject" placeholder="Email Subject">
+
       <textarea id="message" placeholder="Message Body"></textarea>
       <textarea id="to" placeholder="Recipients (comma / new line)"></textarea>
     </div>
