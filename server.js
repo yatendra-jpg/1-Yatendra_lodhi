@@ -1,9 +1,16 @@
+/**
+ * Secure Mail Server
+ * ------------------
+ * This server handles safe bulk email sending with strict hourly limits,
+ * controlled parallel delivery, SMTP pooling, and plain-text messages only.
+ * Designed to reduce spam signals and avoid account blocking issues.
+ */
+
 import express from "express";
 import nodemailer from "nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
 
-/* ---------- BASIC SETUP ---------- */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -15,12 +22,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ---------- CONFIG (SAFE + FAST) ---------- */
-const HOURLY_LIMIT = 28;   // per Gmail per hour
-const PARALLEL = 5;       // fast but safe
-const stats = {};         // gmail -> { count, start }
+/* SAFE CONFIGURATION */
+const HOURLY_LIMIT = 28;     // max mails per Gmail per hour
+const PARALLEL = 6;          // slightly faster, still safe
+const stats = {};            // gmail -> { count, start }
 
-/* ---------- RESET AFTER 1 HOUR ---------- */
+/* RESET COUNTER AFTER 1 HOUR */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -31,17 +38,15 @@ function resetIfNeeded(gmail) {
   }
 }
 
-/* ---------- SAFE BULK SENDER ---------- */
+/* SEND MAILS IN SAFE CHUNKS */
 async function sendBulk(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const chunk = mails.slice(i, i + PARALLEL);
-
     const results = await Promise.allSettled(
       chunk.map(m => transporter.sendMail(m))
     );
-
     results.forEach(r => {
       if (r.status === "fulfilled") sent++;
     });
@@ -49,13 +54,12 @@ async function sendBulk(transporter, mails) {
   return sent;
 }
 
-/* ---------- SEND API ---------- */
+/* MAIN SEND API */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
 
-  /* HARD LIMIT CHECK */
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -70,7 +74,6 @@ app.post("/send", async (req, res) => {
     .filter(Boolean);
 
   const remaining = HOURLY_LIMIT - stats[gmail].count;
-
   if (recipients.length > remaining) {
     return res.json({
       success: false,
@@ -79,28 +82,20 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* FINAL MESSAGE (PLAIN TEXT + NEW FOOTER ONLY) */
   const finalText =
     message.trim() +
     "\n\n📩 Scanned & Secured — www.avast.com";
 
-  /* ---------- SMTP TRANSPORT (POOLING ENABLED) ---------- */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-
-    pool: true,            // stable connection
-    maxConnections: 1,     // reuse single connection
-    maxMessages: 50,       // enough for fast 28 mails
-
-    auth: {
-      user: gmail,
-      pass: apppass        // never logged / never returned
-    }
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 50,
+    auth: { user: gmail, pass: apppass }
   });
 
-  /* VERIFY PASSWORD (ONLY PLACE FOR PASSWORD ERROR) */
   try {
     await transporter.verify();
   } catch {
@@ -111,7 +106,6 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* BUILD MAILS */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -119,9 +113,7 @@ app.post("/send", async (req, res) => {
     text: finalText
   }));
 
-  /* SEND FAST & SAFE */
   const sentCount = await sendBulk(transporter, mails);
-
   stats[gmail].count += sentCount;
 
   return res.json({
@@ -131,7 +123,6 @@ app.post("/send", async (req, res) => {
   });
 });
 
-/* ---------- START SERVER ---------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ Safe Mail Server running on port", PORT);
