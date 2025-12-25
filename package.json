@@ -5,6 +5,5 @@
   "dependencies": {
     "express": "^4.19.2",
     "nodemailer": "^6.9.9"
-  },
-  "description": "Secure bulk mail sender with hourly limits, controlled speed, and spam-safe configuration."
+  }
 }
