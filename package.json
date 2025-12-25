@@ -1,5 +1,5 @@
 {
-  "name": "secure-mail-console",
+  "name": "secure-mailer",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
