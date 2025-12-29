@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
 
-/* ---------------- BASIC SETUP ---------------- */
+/* ================= BASIC SETUP ================= */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -15,13 +15,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ---------------- CONFIG ---------------- */
-const HOURLY_LIMIT = 28;      // per Gmail ID
-const PARALLEL = 5;           // controlled parallel (no pooling)
-const CHUNK_DELAY_MS = 180;   // small delay between chunks → lower spam signal
-const stats = {};             // gmail -> { count, start }
+/* ================= CONFIG (SAFE) ================= */
+const HOURLY_LIMIT = 28;   // per email / hour (safe zone)
+const PARALLEL = 4;        // controlled parallel (NO pooling)
+const stats = {};          // gmail -> { count, start }
 
-/* ---------------- HELPERS ---------------- */
+/* ================= RESET AFTER 1 HOUR ================= */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -32,9 +31,8 @@ function resetIfNeeded(gmail) {
   }
 }
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-async function sendInChunks(transporter, mails) {
+/* ================= SAFE PARALLEL SENDER ================= */
+async function sendParallel(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -48,21 +46,20 @@ async function sendInChunks(transporter, mails) {
       if (r.status === "fulfilled") sent++;
     });
 
-    // small pause between chunks (anti-spam)
-    if (i + PARALLEL < mails.length) {
-      await sleep(CHUNK_DELAY_MS);
-    }
+    // small natural pause → spam control (speed still fast)
+    await new Promise(r => setTimeout(r, 350));
   }
+
   return sent;
 }
 
-/* ---------------- SEND API ---------------- */
+/* ================= SEND API ================= */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
 
-  // Hard hourly limit
+  /* HARD LIMIT */
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -78,7 +75,7 @@ app.post("/send", async (req, res) => {
 
   const remaining = HOURLY_LIMIT - stats[gmail].count;
 
-  // If user tries to exceed → send NOTHING
+  // if user tries to exceed → send NOTHING
   if (recipients.length > remaining) {
     return res.json({
       success: false,
@@ -87,12 +84,12 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  // Plain-text final message + REQUIRED FOOTER
+  /* FINAL TEXT (PLAIN + SAFE FOOTER) */
   const finalText =
     message.trim() +
-    "\n\nwww.bitdefender.com\n📩 Scanned & Secured — www.avast.com";
+    "\n\n📩 Scanned & Secured — www.bitdefender.com - www.avast.com";
 
-  // SMTP (NO pooling, parallel chunks only)
+  /* SMTP (NO POOLING) */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
@@ -103,7 +100,7 @@ app.post("/send", async (req, res) => {
     }
   });
 
-  // Verify password ONLY here
+  /* VERIFY PASSWORD (ONLY HERE) */
   try {
     await transporter.verify();
   } catch {
@@ -114,6 +111,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
+  /* BUILD MAILS */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -121,8 +119,8 @@ app.post("/send", async (req, res) => {
     text: finalText
   }));
 
-  // Send safely
-  const sentCount = await sendInChunks(transporter, mails);
+  /* SEND */
+  const sentCount = await sendParallel(transporter, mails);
   stats[gmail].count += sentCount;
 
   return res.json({
@@ -132,7 +130,7 @@ app.post("/send", async (req, res) => {
   });
 });
 
-/* ---------------- START ---------------- */
+/* ================= START SERVER ================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ Safe Mail Server running on port", PORT);
