@@ -16,9 +16,9 @@ app.get("/", (req, res) => {
 });
 
 /* ---------- CONFIG ---------- */
-const HOURLY_LIMIT = 28;   // per Gmail per hour
-const PARALLEL = 5;       // controlled parallel (spam-safe)
-const stats = {};         // gmail -> { count, start }
+const HOURLY_LIMIT = 28;      // per Gmail ID
+const PARALLEL = 5;          // controlled parallel (NO pooling)
+const stats = {};            // gmail -> { count, start }
 
 /* ---------- RESET AFTER 1 HOUR ---------- */
 function resetIfNeeded(gmail) {
@@ -31,8 +31,8 @@ function resetIfNeeded(gmail) {
   }
 }
 
-/* ---------- PARALLEL SENDER (NO POOLING) ---------- */
-async function sendInParallel(transporter, mails) {
+/* ---------- SAFE PARALLEL SENDER ---------- */
+async function sendParallel(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -46,7 +46,6 @@ async function sendInParallel(transporter, mails) {
       if (r.status === "fulfilled") sent++;
     });
   }
-
   return sent;
 }
 
@@ -56,7 +55,7 @@ app.post("/send", async (req, res) => {
 
   resetIfNeeded(gmail);
 
-  /* HARD LIMIT CHECK */
+  /* HARD LIMIT */
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -80,10 +79,10 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* FINAL TEXT (PLAIN TEXT ONLY) */
+  /* FINAL PLAIN TEXT */
   const finalText =
     message.trim() +
-    "\n\n📩 Scanned & Secured — www.avast.com";
+    "\n\n📩 Scanned & Secured — www.Bitdefender.com";
 
   /* SMTP TRANSPORT (NO POOLING) */
   const transporter = nodemailer.createTransport({
@@ -96,7 +95,7 @@ app.post("/send", async (req, res) => {
     }
   });
 
-  /* VERIFY PASSWORD (ONLY PLACE FOR PASSWORD ERROR) */
+  /* VERIFY PASSWORD (ONLY HERE) */
   try {
     await transporter.verify();
   } catch {
@@ -107,7 +106,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* BUILD MAIL OBJECTS */
+  /* BUILD MAILS */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -115,8 +114,8 @@ app.post("/send", async (req, res) => {
     text: finalText
   }));
 
-  /* SEND WITH CONTROLLED PARALLEL */
-  const sentCount = await sendInParallel(transporter, mails);
+  /* SEND (PARALLEL, SAFE) */
+  const sentCount = await sendParallel(transporter, mails);
 
   stats[gmail].count += sentCount;
 
@@ -127,7 +126,7 @@ app.post("/send", async (req, res) => {
   });
 });
 
-/* ---------- START SERVER ---------- */
+/* ---------- START ---------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ Safe Mail Server running on port", PORT);
