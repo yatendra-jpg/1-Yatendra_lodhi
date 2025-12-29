@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
 
+/* ---------- BASIC SETUP ---------- */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -14,12 +15,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ================= CONFIG ================= */
+/* ---------- CONFIG ---------- */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 5;          // fast but safe
-const stats = {};            // gmail -> { count, start }
+const PARALLEL = 5;        // fast but safe
+const stats = {};          // gmail → { count, start }
 
-/* ================= HELPERS ================= */
+/* ---------- RESET AFTER 1 HOUR ---------- */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -30,39 +31,40 @@ function resetIfNeeded(gmail) {
   }
 }
 
-/* SAFE FREE-WORD CONTROL (MAX 2 TIMES) */
-function limitFreeWord(text) {
-  let count = 0;
-  return text.replace(/\bfree\b/gi, match => {
-    count++;
-    return count <= 2 ? match : "";
-  });
+/* ---------- SPAM SAFE TEXT CLEANER ---------- */
+function cleanSpamWords(text) {
+  return text
+    .replace(/\bfree\b/gi, "complimentary")
+    .replace(/\bFREE\b/g, "Special")
+    .replace(/\bFree\b/g, "Complimentary");
 }
 
-/* PARALLEL SENDER (NO POOLING) */
-async function sendInParallel(transporter, mails) {
+/* ---------- PARALLEL SENDER ---------- */
+async function sendParallel(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
-    const batch = mails.slice(i, i + PARALLEL);
+    const chunk = mails.slice(i, i + PARALLEL);
 
     const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
+      chunk.map(m => transporter.sendMail(m))
     );
 
     results.forEach(r => {
       if (r.status === "fulfilled") sent++;
     });
   }
+
   return sent;
 }
 
-/* ================= SEND API ================= */
+/* ---------- SEND API ---------- */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
 
+  /* LIMIT CHECK */
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -86,13 +88,14 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* SAFE MESSAGE BUILD */
-  const cleanMessage = limitFreeWord(message.trim());
+  /* CLEAN MESSAGE (ANTI-SPAM) */
+  const safeMessage = cleanSpamWords(message.trim());
 
   const finalText =
-    cleanMessage +
-    "\n\n📩 Scanned & Secured — www.bitdefender.com - www.avast.com";
+    safeMessage +
+    "\n\n📩 Scanned & Secured —  www.avast.com";
 
+  /* SMTP (NO POOLING) */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
@@ -117,11 +120,12 @@ app.post("/send", async (req, res) => {
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
-    subject,
+    subject: cleanSpamWords(subject),
     text: finalText
   }));
 
-  const sentCount = await sendInParallel(transporter, mails);
+  const sentCount = await sendParallel(transporter, mails);
+
   stats[gmail].count += sentCount;
 
   return res.json({
@@ -131,7 +135,7 @@ app.post("/send", async (req, res) => {
   });
 });
 
-/* ================= START ================= */
+/* ---------- START SERVER ---------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ Safe Mail Server running on port", PORT);
