@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "express": "^4.19.2",
-    "nodemailer": "^6.9.9"
+    "nodemailer": "^6.9.9",
+    "uuid": "^9.0.1"
   }
 }
