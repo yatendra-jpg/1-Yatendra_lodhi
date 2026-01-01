@@ -1,10 +1,9 @@
 {
-  "name": "safe-mail-sender",
+  "name": "secure-mail-console",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
     "express": "^4.19.2",
-    "nodemailer": "^6.9.9",
-    "uuid": "^9.0.1"
+    "nodemailer": "^6.9.9"
   }
 }
