@@ -1,21 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Secure Access</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Secure Login</title>
 </head>
 <body>
-  <div class="login-box">
-    <h2>Secure Access</h2>
-    <input id="uid" placeholder="Username">
-    <input id="upass" type="password" placeholder="Password">
-    <button onclick="login()">Login</button>
-  </div>
+  <input id="uid" placeholder="ID">
+  <input id="upass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+
 <script>
-function login(){
-  if(uid.value==="@#vashashekhpurgarhwa" && upass.value==="@#vashashekhpurgarhwa"){
-    location.href="/launcher.html";
-  } else alert("Invalid Login ❌");
+async function login() {
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      id: uid.value,
+      pass: upass.value
+    })
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    localStorage.setItem("sessionId", data.sessionId);
+    location.href = "/launcher.html";
+  } else {
+    alert("Invalid Login ❌");
+  }
 }
 </script>
 </body>
