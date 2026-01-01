@@ -10,38 +10,49 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ✅ ROOT FIX */
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* CONFIG */
+/* ================= CONFIG ================= */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 5;
-const stats = {};
+const PARALLEL = 3; // spam-safe
+const stats = {};   // gmail -> { count, start }
 
+/* ================= HELPERS ================= */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
     return;
   }
-  if (Date.now() - stats[gmail].start > 3600000) {
+  if (Date.now() - stats[gmail].start >= 60 * 60 * 1000) {
     stats[gmail] = { count: 0, start: Date.now() };
   }
 }
 
-async function sendParallel(transporter, mails) {
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const chunk = mails.slice(i, i + PARALLEL);
-    const res = await Promise.allSettled(
+
+    const results = await Promise.allSettled(
       chunk.map(m => transporter.sendMail(m))
     );
-    res.forEach(r => r.status === "fulfilled" && sent++);
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
+    // 🔑 micro delay (spam control)
+    await sleep(150 + Math.random() * 100);
   }
   return sent;
 }
 
+/* ================= SEND API ================= */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
@@ -51,12 +62,18 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
   }
 
-  const list = to.split(/,|\n/).map(x => x.trim()).filter(Boolean);
-  if (list.length + stats[gmail].count > HOURLY_LIMIT) {
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
+  const remaining = HOURLY_LIMIT - stats[gmail].count;
+  if (recipients.length > remaining) {
     return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
   }
 
-  const text =
+  /* ✉️ Final message (plain text only) */
+  const finalText =
     message.trim() +
     "\n\n📩 Scanned & Secured — www.bitdefender.com - www.avast.com";
 
@@ -67,25 +84,32 @@ app.post("/send", async (req, res) => {
     auth: { user: gmail, pass: apppass }
   });
 
+  // 🔐 password check ONLY here
   try {
     await transporter.verify();
   } catch {
     return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
   }
 
-  const mails = list.map(r => ({
+  const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
     subject,
-    text
+    text: finalText
   }));
 
-  const sent = await sendParallel(transporter, mails);
-  stats[gmail].count += sent;
+  const sentCount = await sendSafely(transporter, mails);
+  stats[gmail].count += sentCount;
 
-  res.json({ success: true, sent, count: stats[gmail].count });
+  res.json({
+    success: true,
+    sent: sentCount,
+    count: stats[gmail].count
+  });
 });
 
-app.listen(process.env.PORT || 3000, () =>
-  console.log("✅ Server running")
-);
+/* ================= START ================= */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("✅ Safe Mail Server running on", PORT);
+});
