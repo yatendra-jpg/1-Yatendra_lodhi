@@ -1,35 +1,32 @@
-const sendBtn = document.getElementById("sendBtn");
-const counter = document.getElementById("count");
+const btn = document.getElementById("sendBtn");
+const countBox = document.getElementById("count");
 
-sendBtn.onclick = async () => {
-  sendBtn.disabled = true;
-  sendBtn.innerText = "Sending...";
+btn.onclick = async () => {
+  btn.disabled = true;
+  btn.innerText = "Sending...";
 
-  const payload = {
-    senderName: senderName.value,
-    gmail: gmail.value,
-    apppass: apppass.value,
-    subject: subject.value,
-    message: message.value,
-    to: to.value
-  };
-
-  const res = await fetch("/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+  const res = await fetch("/send",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      senderName:senderName.value,
+      gmail:gmail.value,
+      apppass:apppass.value,
+      subject:subject.value,
+      message:message.value,
+      to:to.value
+    })
   });
 
   const data = await res.json();
+  btn.disabled = false;
+  btn.innerText = "Send All";
+  countBox.innerText = `${data.count || 0}/28`;
 
-  sendBtn.disabled = false;
-  sendBtn.innerText = "Send All";
-
-  counter.innerText = `${data.count || 0}/28`;
   alert(data.success ? "Mail Send Successful ✅" : data.msg);
 };
 
-function logout() {
+function logout(){
   localStorage.removeItem("auth");
-  location.href = "/";
+  location.href="/";
 }
