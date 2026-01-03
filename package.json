@@ -2,7 +2,6 @@
   "name": "secure-mail-console",
   "version": "1.0.0",
   "type": "module",
-  "description": "Safe & inbox-friendly mail sender",
   "dependencies": {
     "express": "^4.19.2",
     "nodemailer": "^6.9.9"
