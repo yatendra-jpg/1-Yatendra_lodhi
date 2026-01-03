@@ -19,7 +19,7 @@ app.get("/", (_, res) => {
 
 /* ================= SAFE CONFIG ================= */
 const MAX_PER_HOUR = 28;        // hard safe limit
-const PARALLEL = 3;             // controlled speed
+const PARALLEL = 3;             // same speed, no burst
 const DELAY_MIN = 120;          // ms
 const DELAY_MAX = 220;          // ms
 
@@ -39,6 +39,7 @@ function resetIfNeeded(gmail) {
   }
 }
 
+/* Light content normalization (legal, inbox-friendly) */
 function normalizeContent(text) {
   return text
     .replace(/\bfree\b/gi, "complimentary")
@@ -46,15 +47,10 @@ function normalizeContent(text) {
     .replace(/\bclick\b/gi, "review");
 }
 
-/* ================= LEGAL FOOTER ================= */
-const LEGAL_FOOTER = `
-—
-📩 Security Notice
-This email was sent using a secure mail system.
-If this message was not intended for you, please ignore it.
-`;
+/* ================= FOOTER ================= */
+const FOOTER = "📩 Scanned & Secured —  www.avast.com";
 
-/* ================= SEND ================= */
+/* ================= SEND MAIL ================= */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, subject, message, to } = req.body;
 
@@ -88,7 +84,7 @@ app.post("/send", async (req, res) => {
   const finalText =
     normalizeContent(message.trim()) +
     "\n\n" +
-    LEGAL_FOOTER;
+    FOOTER;
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
