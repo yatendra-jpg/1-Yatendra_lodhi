@@ -1,11 +1,8 @@
 {
   "name": "secure-mail-console",
   "version": "1.0.0",
-  "description": "Secure Mail Console with safety controls, rate limits and clean UI",
   "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
+  "description": "Safe & inbox-friendly mail sender",
   "dependencies": {
     "express": "^4.19.2",
     "nodemailer": "^6.9.9"
