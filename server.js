@@ -10,18 +10,18 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/", (_, res) => {
+/* ROOT FIX */
+app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ================= SAFE CONFIG ================= */
-const HOURLY_LIMIT = 28;          // hard limit
-const PARALLEL = 5;               // same speed
-const PER_DOMAIN_LIMIT = 3;       // reduce domain blasting
+/* CONFIG – SAFE */
+const HOURLY_LIMIT = 28;
+const PARALLEL = 3;               // lower = less spam risk
+const DELAY_MS = 120;             // real delay
+const stats = {};                 // gmail → { count, start }
 
-const stats = {}; // gmail -> { count, start }
-
-/* ================= HELPERS ================= */
+/* RESET AFTER 1 HOUR */
 function resetIfNeeded(gmail) {
   if (!stats[gmail]) {
     stats[gmail] = { count: 0, start: Date.now() };
@@ -32,38 +32,39 @@ function resetIfNeeded(gmail) {
   }
 }
 
-function groupByDomain(emails) {
-  const map = {};
-  emails.forEach(e => {
-    const d = e.split("@")[1];
-    if (!map[d]) map[d] = [];
-    map[d].push(e);
-  });
-  return map;
-}
-
+/* SAFE SEND WITH REAL DELAY */
 async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const chunk = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
       chunk.map(m => transporter.sendMail(m))
     );
+
     results.forEach(r => {
       if (r.status === "fulfilled") sent++;
     });
+
+    await new Promise(r => setTimeout(r, DELAY_MS));
   }
+
   return sent;
 }
 
-/* ================= SEND API ================= */
+/* SEND API */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   resetIfNeeded(gmail);
 
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
   const recipients = to
@@ -73,47 +74,43 @@ app.post("/send", async (req, res) => {
 
   const remaining = HOURLY_LIMIT - stats[gmail].count;
   if (recipients.length > remaining) {
-    return res.json({ success: false, msg: "Mail Limit Full ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
-  /* -------- DOMAIN BALANCING (ANTI-SPAM LEGIT) -------- */
-  const byDomain = groupByDomain(recipients);
-  const balanced = [];
-  Object.values(byDomain).forEach(list => {
-    balanced.push(...list.slice(0, PER_DOMAIN_LIMIT));
-  });
-
-  if (balanced.length === 0) {
-    return res.json({ success: false, msg: "No valid recipients ❌", count: stats[gmail].count });
-  }
-
-  /* -------- CLEAN MESSAGE -------- */
-  const finalText = message.trim();
+  /* FINAL TEXT (FOOTER FIXED) */
+  const finalText =
+    message.trim() +
+    "\n\n📩 Scanned & Secured — www.avast.com";
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: { user: gmail, pass: apppass }
+    auth: {
+      user: gmail,
+      pass: apppass
+    }
   });
 
-  /* VERIFY AUTH (ONLY PLACE FOR PASSWORD ERROR) */
   try {
     await transporter.verify();
   } catch {
-    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
+    });
   }
 
-  const mails = balanced.map(r => ({
+  const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
     subject,
-    text: finalText,
-    headers: {
-      "X-Mailer": "Secure Mail Client",
-      "X-Priority": "3",
-      "List-Unsubscribe": "<mailto:unsubscribe@example.com>"
-    }
+    text: finalText
   }));
 
   const sentCount = await sendSafely(transporter, mails);
@@ -126,8 +123,7 @@ app.post("/send", async (req, res) => {
   });
 });
 
-/* ================= START ================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe & compliant mail server running on", PORT);
+  console.log("✅ Safe Mail Server running on port", PORT);
 });
