@@ -1,34 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
   <title>Secure Login</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div class="login-box">
   <h2>Secure Login</h2>
-
   <input id="uid" placeholder="Username">
   <input id="upass" type="password" placeholder="Password">
-
   <button onclick="login()">Login</button>
 </div>
 
 <script>
-function login() {
-  const id  = uid.value.trim();
-  const pw  = upass.value.trim();
-
-  if (id === "@lodhi.onrender.com$" && pw === "lodhi.onrender.com") {
-    localStorage.setItem("auth", "true");
-    location.href = "/launcher.html";
+function login(){
+  if(uid.value==="@lodhi.onrender.com$" && upass.value==="lodhi.onrender.com"){
+    localStorage.setItem("auth","1");
+    location.href="/launcher.html";
   } else {
     alert("Invalid Login ❌");
   }
 }
 </script>
-
 </body>
 </html>
