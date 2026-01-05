@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* SAME SPEED + LIMIT CONFIG */
+/* SAME SPEED & LIMIT */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;
 const DELAY_MS = 120;
@@ -23,7 +23,7 @@ const DELAY_MS = 120;
 /* IN-MEMORY STATS */
 let stats = {};
 
-/* 🔁 HARD RESET EVERY 1 HOUR (FULL CLEAR) */
+/* 🔁 AUTO RESET EVERY 1 HOUR (FULL CLEAR) */
 setInterval(() => {
   stats = {};
   console.log("🧹 Hourly reset → mail history cleared");
@@ -32,18 +32,12 @@ setInterval(() => {
 /* SAFE SEND (SAME SPEED) */
 async function sendSafely(transporter, mails) {
   let sent = 0;
-
   for (let i = 0; i < mails.length; i += PARALLEL) {
-    const chunk = mails.slice(i, i + PARALLEL);
-
+    const batch = mails.slice(i, i + PARALLEL);
     const results = await Promise.allSettled(
-      chunk.map(m => transporter.sendMail(m))
+      batch.map(m => transporter.sendMail(m))
     );
-
-    results.forEach(r => {
-      if (r.status === "fulfilled") sent++;
-    });
-
+    results.forEach(r => { if (r.status === "fulfilled") sent++; });
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
   return sent;
@@ -57,10 +51,7 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
   }
 
-  if (!stats[gmail]) {
-    stats[gmail] = { count: 0 };
-  }
-
+  if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -83,23 +74,19 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* 🧼 CLEAN MESSAGE (SPAM-SAFE) */
-  const cleanMessage = message
-    .replace(/\s{3,}/g, "\n\n")
-    .trim();
+  /* CLEAN MESSAGE */
+  const cleanMessage = message.replace(/\s{3,}/g, "\n\n").trim();
 
+  /* ✅ FINAL FOOTER (AS REQUESTED) */
   const finalText =
     cleanMessage +
-    "\n\n—\nScanned & secured";
+    "\n\nScanned & Secured — www.avast.com";
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: gmail,
-      pass: apppass
-    }
+    auth: { user: gmail, pass: apppass }
   });
 
   try {
@@ -112,7 +99,6 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* 📩 NATURAL MAIL OBJECT (NO SPAM HEADERS) */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -132,6 +118,6 @@ app.post("/send", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("✅ Safe Mail Server running on port", PORT);
-});
+app.listen(PORT, () =>
+  console.log("✅ Safe Mail Server running on port", PORT)
+);
