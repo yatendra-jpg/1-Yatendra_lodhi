@@ -20,29 +20,32 @@ const HOURLY_LIMIT = 28;
 const PARALLEL = 3;
 const DELAY_MS = 120;
 
-/* STATS */
-const stats = {};
-
-/* 🔁 AUTO RESET EVERY 1 HOUR (GLOBAL) */
-setInterval(() => {
-  for (const gmail in stats) {
-    stats[gmail] = {
-      count: 0,
-      start: Date.now()
-    };
+/*
+  stats structure:
+  {
+    "gmail@example.com": {
+      count: number,
+      start: timestamp
+    }
   }
-  console.log("🔁 Hourly limits auto-reset");
+*/
+let stats = {};
+
+/* 🔁 HARD RESET EVERY 1 HOUR (FULL HISTORY CLEAR) */
+setInterval(() => {
+  stats = {}; // 🔥 FULL CLEAR (history removed)
+  console.log("🧹 Hour completed → Mail history fully cleared");
 }, 60 * 60 * 1000); // 1 hour
 
-/* SAFE SEND */
+/* SAFE SEND FUNCTION */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
-    const chunk = mails.slice(i, i + PARALLEL);
+    const batch = mails.slice(i, i + PARALLEL);
 
     const results = await Promise.allSettled(
-      chunk.map(m => transporter.sendMail(m))
+      batch.map(m => transporter.sendMail(m))
     );
 
     results.forEach(r => {
@@ -51,6 +54,7 @@ async function sendSafely(transporter, mails) {
 
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
+
   return sent;
 }
 
@@ -59,13 +63,22 @@ app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   if (!gmail || !apppass || !to || !subject || !message) {
-    return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
+    return res.json({
+      success: false,
+      msg: "Missing Fields ❌",
+      count: 0
+    });
   }
 
+  /* INIT USER STATS */
   if (!stats[gmail]) {
-    stats[gmail] = { count: 0, start: Date.now() };
+    stats[gmail] = {
+      count: 0,
+      start: Date.now()
+    };
   }
 
+  /* LIMIT CHECK */
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -88,6 +101,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
+  /* SAFE MESSAGE */
   const finalText =
     message.trim() +
     "\n\n📩 Scanned & Secured — www.avast.com";
