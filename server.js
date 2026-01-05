@@ -15,23 +15,24 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* LIMIT CONFIG (SAME) */
+/* SAME CONFIG */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;
 const DELAY_MS = 120;
 
+/* STATS */
 const stats = {};
 
-/* RESET AFTER 1 HOUR */
-function resetIfNeeded(gmail) {
-  if (!stats[gmail]) {
-    stats[gmail] = { count: 0, start: Date.now() };
-    return;
+/* 🔁 AUTO RESET EVERY 1 HOUR (GLOBAL) */
+setInterval(() => {
+  for (const gmail in stats) {
+    stats[gmail] = {
+      count: 0,
+      start: Date.now()
+    };
   }
-  if (Date.now() - stats[gmail].start >= 60 * 60 * 1000) {
-    stats[gmail] = { count: 0, start: Date.now() };
-  }
-}
+  console.log("🔁 Hourly limits auto-reset");
+}, 60 * 60 * 1000); // 1 hour
 
 /* SAFE SEND */
 async function sendSafely(transporter, mails) {
@@ -50,7 +51,6 @@ async function sendSafely(transporter, mails) {
 
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
-
   return sent;
 }
 
@@ -62,12 +62,14 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
   }
 
-  resetIfNeeded(gmail);
+  if (!stats[gmail]) {
+    stats[gmail] = { count: 0, start: Date.now() };
+  }
 
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
-      msg: "Mail Limit Full ❌",
+      msg: "Hourly Limit Reached ❌",
       count: stats[gmail].count
     });
   }
@@ -86,7 +88,6 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* FINAL SAFE TEXT */
   const finalText =
     message.trim() +
     "\n\n📩 Scanned & Secured — www.avast.com";
