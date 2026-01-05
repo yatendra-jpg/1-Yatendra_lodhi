@@ -15,37 +15,29 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* SAME CONFIG */
+/* SAME SPEED + LIMIT CONFIG */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;
 const DELAY_MS = 120;
 
-/*
-  stats structure:
-  {
-    "gmail@example.com": {
-      count: number,
-      start: timestamp
-    }
-  }
-*/
+/* IN-MEMORY STATS */
 let stats = {};
 
-/* 🔁 HARD RESET EVERY 1 HOUR (FULL HISTORY CLEAR) */
+/* 🔁 HARD RESET EVERY 1 HOUR (FULL CLEAR) */
 setInterval(() => {
-  stats = {}; // 🔥 FULL CLEAR (history removed)
-  console.log("🧹 Hour completed → Mail history fully cleared");
-}, 60 * 60 * 1000); // 1 hour
+  stats = {};
+  console.log("🧹 Hourly reset → mail history cleared");
+}, 60 * 60 * 1000);
 
-/* SAFE SEND FUNCTION */
+/* SAFE SEND (SAME SPEED) */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
-    const batch = mails.slice(i, i + PARALLEL);
+    const chunk = mails.slice(i, i + PARALLEL);
 
     const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
+      chunk.map(m => transporter.sendMail(m))
     );
 
     results.forEach(r => {
@@ -54,7 +46,6 @@ async function sendSafely(transporter, mails) {
 
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
-
   return sent;
 }
 
@@ -63,22 +54,13 @@ app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   if (!gmail || !apppass || !to || !subject || !message) {
-    return res.json({
-      success: false,
-      msg: "Missing Fields ❌",
-      count: 0
-    });
+    return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
   }
 
-  /* INIT USER STATS */
   if (!stats[gmail]) {
-    stats[gmail] = {
-      count: 0,
-      start: Date.now()
-    };
+    stats[gmail] = { count: 0 };
   }
 
-  /* LIMIT CHECK */
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -101,10 +83,14 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* SAFE MESSAGE */
+  /* 🧼 CLEAN MESSAGE (SPAM-SAFE) */
+  const cleanMessage = message
+    .replace(/\s{3,}/g, "\n\n")
+    .trim();
+
   const finalText =
-    message.trim() +
-    "\n\n📩 Scanned & Secured — www.avast.com";
+    cleanMessage +
+    "\n\n—\nScanned & secured";
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -126,15 +112,13 @@ app.post("/send", async (req, res) => {
     });
   }
 
+  /* 📩 NATURAL MAIL OBJECT (NO SPAM HEADERS) */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
-    subject,
+    subject: subject.trim(),
     text: finalText,
-    headers: {
-      "X-Mailer": "Secure Mail Console",
-      "X-Priority": "3"
-    }
+    replyTo: gmail
   }));
 
   const sentCount = await sendSafely(transporter, mails);
