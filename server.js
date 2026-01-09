@@ -29,6 +29,45 @@ setInterval(() => {
   console.log("🧹 Hourly reset → mail history cleared");
 }, 60 * 60 * 1000);
 
+/* ================= HELPERS ================= */
+
+/* Normalize subject to avoid spammy patterns (NO keyword removal) */
+function normalizeSubject(subject) {
+  return subject
+    .replace(/\s{2,}/g, " ")
+    .replace(/([!?])\1{1,}/g, "$1")
+    .trim();
+}
+
+/* Normalize body: keep keywords but place them in natural context */
+function normalizeBody(text) {
+  let t = text
+    .replace(/\r\n/g, "\n")
+    .replace(/\s{3,}/g, "\n\n")
+    .trim();
+
+  // Soft context framing (does NOT remove words)
+  // This reduces keyword-only lines which can look spammy
+  const soften = [
+    { k: /\breport\b/gi, r: "the attached report details" },
+    { k: /\bproposal\b/gi, r: "the following proposal outlines" },
+    { k: /\bprice list\b/gi, r: "the current price list includes" },
+    { k: /\bquote\b/gi, r: "a quote has been prepared for" },
+    { k: /\bscreenshot\b/gi, r: "a reference screenshot shows" },
+    { k: /\berror\b/gi, r: "an error message indicates" },
+    { k: /\brank\b/gi, r: "the current rank reflects" },
+    { k: /\bfirst page\b/gi, r: "visibility on the first page suggests" }
+  ];
+
+  soften.forEach(({ k, r }) => {
+    // Replace ONLY if the keyword is used as a standalone/heading-like token
+    // Keep normal sentences untouched
+    t = t.replace(new RegExp(`(^|\\n)\\s*${k.source.replace(/\\b/g,"")}\\s*(?=\\n|$)`, "gi"), `$1${r}`);
+  });
+
+  return t;
+}
+
 /* ================= SAFE SEND FUNCTION ================= */
 async function sendSafely(transporter, mails) {
   let sent = 0;
@@ -46,7 +85,6 @@ async function sendSafely(transporter, mails) {
 
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
-
   return sent;
 }
 
@@ -56,11 +94,7 @@ app.post("/send", async (req, res) => {
 
   /* BASIC VALIDATION */
   if (!gmail || !apppass || !to || !subject || !message) {
-    return res.json({
-      success: false,
-      msg: "Missing Fields ❌",
-      count: 0
-    });
+    return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
   }
 
   /* INIT USER */
@@ -90,23 +124,21 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* CLEAN MESSAGE (INBOX FRIENDLY) */
-  const cleanMessage = message.replace(/\s{3,}/g, "\n\n").trim();
+  /* NORMALIZE CONTENT (KEYWORDS KEPT, CONTEXT ADDED) */
+  const safeSubject = normalizeSubject(subject);
+  const safeBody = normalizeBody(message);
 
   /* FINAL TEXT WITH SAFE FOOTER */
   const finalText =
-    cleanMessage +
+    safeBody +
     "\n\nScanned & Secured — www.avast.com";
 
-  /* SMTP TRANSPORT (GMAIL) */
+  /* SMTP TRANSPORT */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: gmail,
-      pass: apppass
-    }
+    auth: { user: gmail, pass: apppass }
   });
 
   /* VERIFY AUTH */
@@ -120,11 +152,11 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* MAIL OBJECTS (NO SPAMMY HEADERS) */
+  /* MAIL OBJECTS (CLEAN HEADERS, TEXT ONLY) */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
-    subject: subject.trim(),
+    subject: safeSubject,
     text: finalText,
     replyTo: gmail
   }));
