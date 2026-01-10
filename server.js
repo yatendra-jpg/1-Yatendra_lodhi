@@ -23,38 +23,38 @@ const DELAY_MS = 120;  // SAME
 /* IN-MEMORY STATS */
 let stats = {};
 
-/* 🔁 AUTO RESET EVERY 1 HOUR */
+/* 🔁 HARD RESET EVERY 1 HOUR (FULL CLEAR) */
 setInterval(() => {
   stats = {};
   console.log("🧹 Hourly reset → stats cleared");
 }, 60 * 60 * 1000);
 
-/* ===== CONTENT SAFETY (ULTRA CONSERVATIVE) ===== */
+/* ===== ULTRA-SAFE CONTENT HELPERS ===== */
 
-/* Subject: normalize spacing & punctuation only */
-function safeSubject(s) {
+/* Subject: only spacing & punctuation normalization */
+function normalizeSubject(s) {
   return s
     .replace(/\s{2,}/g, " ")
     .replace(/([!?])\1+/g, "$1")
-    .trim();
+    .replace(/^\s+|\s+$/g, "");
 }
 
 /* Body: normalize + soften keyword-only lines (report/price) */
-function safeBody(text) {
+function normalizeBody(text) {
   let t = text
     .replace(/\r\n/g, "\n")
     .replace(/\s{3,}/g, "\n\n")
     .trim();
 
-  // If a line contains only the keyword, soften it into a sentence.
-  const soften = [
+  // If a line is ONLY a keyword, convert to a natural sentence.
+  const softenLines = [
     ["report", "the report details are shared below"],
     ["price", "the pricing details are included below"]
   ];
 
-  soften.forEach(([w, sentence]) => {
-    const r = new RegExp(`(^|\\n)\\s*${w}\\s*(?=\\n|$)`, "gi");
-    t = t.replace(r, `$1${sentence}`);
+  softenLines.forEach(([word, sentence]) => {
+    const re = new RegExp(`(^|\\n)\\s*${word}\\s*(?=\\n|$)`, "gi");
+    t = t.replace(re, `$1${sentence}`);
   });
 
   return t;
@@ -63,18 +63,12 @@ function safeBody(text) {
 /* ===== SAFE SEND (SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
-
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
-
     const results = await Promise.allSettled(
       batch.map(m => transporter.sendMail(m))
     );
-
-    results.forEach(r => {
-      if (r.status === "fulfilled") sent++;
-    });
-
+    results.forEach(r => { if (r.status === "fulfilled") sent++; });
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
   return sent;
@@ -111,9 +105,9 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  const finalSubject = safeSubject(subject);
+  const finalSubject = normalizeSubject(subject);
   const finalText =
-    safeBody(message) +
+    normalizeBody(message) +
     "\n\nScanned & secured";
 
   const transporter = nodemailer.createTransport({
