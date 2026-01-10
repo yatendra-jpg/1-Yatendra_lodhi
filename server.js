@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== CONFIG (DO NOT CHANGE SPEED) ===== */
+/* ===== CONFIG (SAME SPEED — DO NOT CHANGE) ===== */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;     // SAME
 const DELAY_MS = 120;  // SAME
@@ -23,15 +23,15 @@ const DELAY_MS = 120;  // SAME
 /* IN-MEMORY STATS */
 let stats = {};
 
-/* 🔁 HARD RESET EVERY 1 HOUR */
+/* 🔁 AUTO RESET EVERY 1 HOUR */
 setInterval(() => {
   stats = {};
   console.log("🧹 Hourly reset → stats cleared");
 }, 60 * 60 * 1000);
 
-/* ===== CONTENT SAFETY ===== */
+/* ===== CONTENT SAFETY (ULTRA CONSERVATIVE) ===== */
 
-/* Subject normalization (no keyword removal) */
+/* Subject: normalize spacing & punctuation only */
 function safeSubject(s) {
   return s
     .replace(/\s{2,}/g, " ")
@@ -39,22 +39,22 @@ function safeSubject(s) {
     .trim();
 }
 
-/* Body normalization + keyword context (report/price) */
+/* Body: normalize + soften keyword-only lines (report/price) */
 function safeBody(text) {
   let t = text
     .replace(/\r\n/g, "\n")
     .replace(/\s{3,}/g, "\n\n")
     .trim();
 
-  // Avoid keyword-only lines (looks spammy)
+  // If a line contains only the keyword, soften it into a sentence.
   const soften = [
-    ["report", "the report details"],
-    ["price", "the pricing details"]
+    ["report", "the report details are shared below"],
+    ["price", "the pricing details are included below"]
   ];
 
-  soften.forEach(([w, p]) => {
+  soften.forEach(([w, sentence]) => {
     const r = new RegExp(`(^|\\n)\\s*${w}\\s*(?=\\n|$)`, "gi");
-    t = t.replace(r, `$1${p}`);
+    t = t.replace(r, `$1${sentence}`);
   });
 
   return t;
@@ -63,12 +63,18 @@ function safeBody(text) {
 /* ===== SAFE SEND (SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
       batch.map(m => transporter.sendMail(m))
     );
-    results.forEach(r => { if (r.status === "fulfilled") sent++; });
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
   return sent;
@@ -132,11 +138,7 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: finalSubject,
     text: finalText,
-    replyTo: gmail,
-    // Natural per-message id (helps deliverability consistency)
-    messageId: `<${Date.now()}.${Math.random()
-      .toString(36)
-      .slice(2)}@gmail.com>`
+    replyTo: gmail
   }));
 
   const sentCount = await sendSafely(transporter, mails);
@@ -149,6 +151,7 @@ app.post("/send", async (req, res) => {
   });
 });
 
+/* ===== START SERVER ===== */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ Safe Mail Server running on port", PORT);
