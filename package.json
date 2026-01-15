@@ -1,8 +1,8 @@
 {
   "name": "safe-mail-sender",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
+  "type": "module",
   "engines": {
     "node": ">=18"
   },
