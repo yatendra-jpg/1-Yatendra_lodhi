@@ -18,12 +18,12 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ===== SPEED (UNCHANGED) ===== */
-const HOURLY_LIMIT = 28;   // per Gmail ID
-const PARALLEL = 3;       // SAME SPEED
-const DELAY_MS = 120;     // SAME SPEED
+/* ===== SPEED CONFIG (DO NOT CHANGE) ===== */
+const HOURLY_LIMIT = 28;      // per Gmail ID
+const PARALLEL = 3;          // SAME SPEED
+const DELAY_MS = 120;        // SAME SPEED
 
-/* Gmail-wise counters */
+/* Gmail-wise usage */
 let stats = {};
 
 /* 🔁 Auto reset every 1 hour */
@@ -32,23 +32,26 @@ setInterval(() => {
   console.log("🧹 Hourly reset → Gmail limits cleared");
 }, 60 * 60 * 1000);
 
-/* ===== ULTRA-SAFE CONTENT ===== */
-function safeSubject(s) {
-  return s
+/* ===== CONTENT SAFETY LAYER (INBOX FOCUSED) ===== */
+
+/* Subject: human-like, no spam triggers */
+function safeSubject(subject) {
+  return subject
     .replace(/\s{2,}/g, " ")
     .replace(/([!?])\1+/g, "$1")
-    .replace(/^[A-Z\s]+$/, t => t.toLowerCase())
-    .replace(/free|urgent|act now|guarantee/gi, "")
+    .replace(/^[A-Z\s]+$/, s => s.toLowerCase())
+    .replace(/free|urgent|act now|guarantee|winner/gi, "")
     .trim();
 }
 
+/* Body: plain text, natural paragraphs */
 function safeBody(text) {
   let t = text
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // soften keyword-only lines (spam signal)
+  // Avoid keyword-only lines (spam signal)
   const soften = [
     ["report", "the report details are shared below"],
     ["price", "the pricing details are included below"],
@@ -57,25 +60,32 @@ function safeBody(text) {
     ["screenshot", "a screenshot has been included for reference"]
   ];
 
-  soften.forEach(([w, snt]) => {
-    const re = new RegExp(`(^|\\n)\\s*${w}\\s*(?=\\n|$)`, "gi");
-    t = t.replace(re, `$1${snt}`);
+  soften.forEach(([word, line]) => {
+    const re = new RegExp(`(^|\\n)\\s*${word}\\s*(?=\\n|$)`, "gi");
+    t = t.replace(re, `$1${line}`);
   });
 
   return t;
 }
 
-/* ===== SAFE RATE CONTROL (SAME SPEED) ===== */
+/* ===== SAFE SEND (RATE CONTROLLED, SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
       batch.map(m => transporter.sendMail(m))
     );
-    results.forEach(r => { if (r.status === "fulfilled") sent++; });
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
+
   return sent;
 }
 
@@ -87,7 +97,9 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
   }
 
+  /* Limit ONLY per Gmail ID */
   if (!stats[gmail]) stats[gmail] = { count: 0 };
+
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
@@ -113,11 +125,15 @@ app.post("/send", async (req, res) => {
   const finalSubject = safeSubject(subject);
   const finalText = safeBody(message) + "\n\nScanned & secured";
 
+  /* CLEAN SMTP (NO EXTRA HEADERS) */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: { user: gmail, pass: apppass }
+    auth: {
+      user: gmail,
+      pass: apppass
+    }
   });
 
   try {
@@ -141,10 +157,14 @@ app.post("/send", async (req, res) => {
   const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
 
-  return res.json({ success: true, sent, count: stats[gmail].count });
+  return res.json({
+    success: true,
+    sent,
+    count: stats[gmail].count
+  });
 });
 
-/* START */
+/* START SERVER */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ SAFE Mail Server running on port", PORT);
