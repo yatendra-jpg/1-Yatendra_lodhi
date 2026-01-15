@@ -18,12 +18,11 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ===== SPEED (UNCHANGED) ===== */
+/* ===== SPEED CONFIG (UNCHANGED) ===== */
 const HOURLY_LIMIT = 28;   // per Gmail ID
 const PARALLEL = 3;       // SAME SPEED
 const DELAY_MS = 120;     // SAME SPEED
 
-/* Gmail-wise counters */
 let stats = {};
 
 /* 🔁 Auto reset every 1 hour */
@@ -48,7 +47,6 @@ function safeBody(text) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // Soften keyword-only lines (spam signal)
   const soften = [
     ["report", "the report details are shared below"],
     ["price", "the pricing details are included below"],
