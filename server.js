@@ -19,9 +19,9 @@ app.get("/", (req, res) => {
 });
 
 /* ===== SPEED CONFIG (UNCHANGED) ===== */
-const HOURLY_LIMIT = 28;   // per Gmail ID
-const PARALLEL = 3;       // SAME SPEED
-const DELAY_MS = 120;     // SAME SPEED
+const HOURLY_LIMIT = 28;
+const PARALLEL = 3;      // SAME SPEED
+const DELAY_MS = 120;   // SAME SPEED
 
 let stats = {};
 
@@ -31,7 +31,7 @@ setInterval(() => {
   console.log("🧹 Hourly reset → Gmail limits cleared");
 }, 60 * 60 * 1000);
 
-/* ===== ULTRA-SAFE CONTENT ===== */
+/* ===== ULTRA SAFE CONTENT ===== */
 function safeSubject(s) {
   return s
     .replace(/\s{2,}/g, " ")
@@ -63,7 +63,7 @@ function safeBody(text) {
   return t;
 }
 
-/* ===== SAFE SEND (RATE CONTROLLED) ===== */
+/* ===== SAFE SEND (SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
