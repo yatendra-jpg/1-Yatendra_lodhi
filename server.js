@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ===== SPEED (UNCHANGED) ===== */
+/* ===== SPEED CONFIG (UNCHANGED) ===== */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;     // SAME SPEED
 const DELAY_MS = 120;  // SAME SPEED
@@ -25,7 +25,7 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT ===== */
+/* ===== SUBJECT (HUMAN-LIKE) ===== */
 function safeSubject(s) {
   return s
     .replace(/\s{2,}/g, " ")
@@ -34,9 +34,12 @@ function safeSubject(s) {
     .trim();
 }
 
-/* ===== BODY (SOFTEN WORDS) ===== */
+/* ===== BODY (ULTRA SAFE + FINAL FOOTER) ===== */
 function safeBody(text) {
-  let t = text.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  let t = text
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
   const soften = [
     ["error", "an error noticed during a quick review"],
@@ -47,20 +50,20 @@ function safeBody(text) {
     ["price list", "the pricing details are included below for reference"]
   ];
 
-  soften.forEach(([w, snt]) => {
-    const re = new RegExp(`(^|\\n)\\s*${w}\\s*(?=\\n|$)`, "gi");
-    t = t.replace(re, `$1${snt}`);
+  soften.forEach(([word, sentence]) => {
+    const re = new RegExp(`(^|\\n)\\s*${word}\\s*(?=\\n|$)`, "gi");
+    t = t.replace(re, `$1${sentence}`);
   });
 
-  // NEW SAFE FOOTER (with underscore line)
+  // ✅ FINAL FOOTER (EXACT)
   const footer =
-    "\n\n________________\n" +
-    "Message scanned and verified for clarity.";
+    "\n\nVerified for clarity secured\n" +
+    "_____________________________";
 
   return t + footer;
 }
 
-/* ===== SAFE SEND ===== */
+/* ===== SAFE SEND (RATE CONTROLLED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -78,17 +81,32 @@ async function sendSafely(transporter, mails) {
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
-  if (!gmail || !apppass || !to || !subject || !message)
+  if (!gmail || !apppass || !to || !subject || !message) {
     return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
+  }
 
   if (!stats[gmail]) stats[gmail] = { count: 0 };
-  if (stats[gmail].count >= HOURLY_LIMIT)
-    return res.json({ success: false, msg: "Hourly limit reached ❌", count: stats[gmail].count });
+  if (stats[gmail].count >= HOURLY_LIMIT) {
+    return res.json({
+      success: false,
+      msg: "Hourly limit reached ❌",
+      count: stats[gmail].count
+    });
+  }
 
-  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
   const remaining = HOURLY_LIMIT - stats[gmail].count;
-  if (recipients.length > remaining)
-    return res.json({ success: false, msg: "Limit full ❌", count: stats[gmail].count });
+  if (recipients.length > remaining) {
+    return res.json({
+      success: false,
+      msg: "Limit full ❌",
+      count: stats[gmail].count
+    });
+  }
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -97,9 +115,14 @@ app.post("/send", async (req, res) => {
     auth: { user: gmail, pass: apppass }
   });
 
-  try { await transporter.verify(); }
-  catch {
-    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
+  try {
+    await transporter.verify();
+  } catch {
+    return res.json({
+      success: false,
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
+    });
   }
 
   const mails = recipients.map(r => ({
@@ -112,7 +135,10 @@ app.post("/send", async (req, res) => {
 
   const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
+
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ Safe Mail Server running on port 3000"));
+app.listen(3000, () => {
+  console.log("✅ SAFE Mail Server running on port 3000");
+});
