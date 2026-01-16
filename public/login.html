@@ -14,10 +14,7 @@
 
 <script>
 function login() {
-  if (
-    uid.value === "@####yatendra@#lodhi" &&
-    upass.value === "@####yatendra@#lodhi"
-  ) {
+  if (uid.value && upass.value) {
     location.href = "/launcher.html";
   } else {
     alert("Invalid Login ❌");
