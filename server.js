@@ -42,10 +42,8 @@ function safeBody(message) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // FINAL FOOTER (EXACT ORDER)
-  const footer =
-    "\n\nVerified for clarity secured\n" +
-    "___________________________";
+  // FINAL FOOTER (EXACT)
+  const footer = "\n\nVerified for clarity secured  — www.avast.com";
 
   return text + footer;
 }
@@ -53,12 +51,18 @@ function safeBody(message) {
 /* ===== SAFE SEND (RATE CONTROLLED — SPEED SAME) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
       batch.map(m => transporter.sendMail(m))
     );
-    results.forEach(r => r.status === "fulfilled" && sent++);
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
   return sent;
@@ -99,7 +103,10 @@ app.post("/send", async (req, res) => {
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: { user: gmail, pass: apppass }
+    auth: {
+      user: gmail,
+      pass: apppass
+    }
   });
 
   try {
@@ -123,7 +130,11 @@ app.post("/send", async (req, res) => {
   const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
 
-  return res.json({ success: true, sent, count: stats[gmail].count });
+  return res.json({
+    success: true,
+    sent,
+    count: stats[gmail].count
+  });
 });
 
 app.listen(3000, () => {
