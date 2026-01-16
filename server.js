@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ROOT (Render-safe) */
+/* ROOT */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"), err => {
     if (err) res.status(404).send("login.html not found");
@@ -25,7 +25,7 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: HUMAN-LIKE ===== */
+/* ===== SUBJECT ===== */
 function safeSubject(s) {
   return s
     .replace(/\s{2,}/g, " ")
@@ -34,31 +34,33 @@ function safeSubject(s) {
     .trim();
 }
 
-/* ===== BODY: SOFTEN SPECIFIC WORDS (NO KEYWORD-ONLY LINES) ===== */
+/* ===== BODY (SOFTEN WORDS) ===== */
 function safeBody(text) {
-  let t = text
-    .replace(/\r\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  let t = text.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 
   const soften = [
-    ["error", "an error we noticed during a quick review"],
+    ["error", "an error noticed during a quick review"],
     ["glitch", "a small glitch observed during normal use"],
-    ["screenshot", "a screenshot prepared to show the details clearly"],
+    ["screenshot", "a screenshot prepared to explain it clearly"],
     ["rank", "current ranking visibility based on recent checks"],
     ["report", "the report details are shared below for context"],
     ["price list", "the pricing details are included below for reference"]
   ];
 
-  soften.forEach(([word, sentence]) => {
-    const re = new RegExp(`(^|\\n)\\s*${word}\\s*(?=\\n|$)`, "gi");
-    t = t.replace(re, `$1${sentence}`);
+  soften.forEach(([w, snt]) => {
+    const re = new RegExp(`(^|\\n)\\s*${w}\\s*(?=\\n|$)`, "gi");
+    t = t.replace(re, `$1${snt}`);
   });
 
-  return t;
+  // NEW SAFE FOOTER (with underscore line)
+  const footer =
+    "\n\n________________\n" +
+    "Message scanned and verified for clarity.";
+
+  return t + footer;
 }
 
-/* ===== SAFE SEND (RATE CONTROLLED) ===== */
+/* ===== SAFE SEND ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -75,6 +77,7 @@ async function sendSafely(transporter, mails) {
 /* ===== SEND API ===== */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
+
   if (!gmail || !apppass || !to || !subject || !message)
     return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
 
@@ -86,9 +89,6 @@ app.post("/send", async (req, res) => {
   const remaining = HOURLY_LIMIT - stats[gmail].count;
   if (recipients.length > remaining)
     return res.json({ success: false, msg: "Limit full ❌", count: stats[gmail].count });
-
-  const finalSubject = safeSubject(subject);
-  const finalText = safeBody(message) + "\n\nScanned & secured";
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -105,8 +105,8 @@ app.post("/send", async (req, res) => {
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
-    subject: finalSubject,
-    text: finalText,
+    subject: safeSubject(subject),
+    text: safeBody(message),
     replyTo: gmail
   }));
 
@@ -115,4 +115,4 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ SAFE Mail Server running on port 3000"));
+app.listen(3000, () => console.log("✅ Safe Mail Server running on port 3000"));
