@@ -13,8 +13,11 @@
   </div>
 <script>
 function login(){
-  if(uid.value && upass.value){ location.href="/launcher.html"; }
-  else alert("Invalid Login ❌");
+  if(uid.value && upass.value){
+    location.href="/launcher.html";
+  } else {
+    alert("Invalid Login ❌");
+  }
 }
 </script>
 </body>
