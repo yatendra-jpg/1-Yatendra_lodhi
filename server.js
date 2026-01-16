@@ -17,24 +17,25 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ===== SPEED CONFIG (UNCHANGED) ===== */
+/* ===== SPEED (UNCHANGED) ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;     // SAME SPEED
-const DELAY_MS = 120;  // SAME SPEED
+const PARALLEL = 3;      // SAME SPEED
+const DELAY_MS = 120;   // SAME SPEED
 
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT (HUMAN-LIKE) ===== */
+/* ===== SUBJECT: HUMAN, NEUTRAL ===== */
 function safeSubject(s) {
   return s
     .replace(/\s{2,}/g, " ")
     .replace(/([!?])\1+/g, "$1")
     .replace(/^[A-Z\s]+$/, t => t.toLowerCase())
+    .replace(/\b(free|urgent|act now|guarantee|winner|limited)\b/gi, "")
     .trim();
 }
 
-/* ===== BODY (ULTRA SAFE + FINAL FOOTER) ===== */
+/* ===== BODY: SOFTEN SPECIFIC WORDS (NO KEYWORD-ONLY LINES) ===== */
 function safeBody(text) {
   let t = text
     .replace(/\r\n/g, "\n")
@@ -42,12 +43,17 @@ function safeBody(text) {
     .trim();
 
   const soften = [
-    ["error", "an error noticed during a quick review"],
+    // Your requested words → sentence-level soften (ethical)
+    ["error", "an error noticed during a brief review"],
     ["glitch", "a small glitch observed during normal use"],
-    ["screenshot", "a screenshot prepared to explain it clearly"],
+    ["screenshot", "a screenshot prepared to clarify the details"],
     ["rank", "current ranking visibility based on recent checks"],
     ["report", "the report details are shared below for context"],
-    ["price list", "the pricing details are included below for reference"]
+    ["price list", "the pricing details are included below for reference"],
+    ["google", "how it appears in Google results"],
+    ["site", "the site in its current setup"],
+    ["website", "the website in its present configuration"],
+    ["showing", "how it is currently showing in common views"]
   ];
 
   soften.forEach(([word, sentence]) => {
@@ -55,7 +61,7 @@ function safeBody(text) {
     t = t.replace(re, `$1${sentence}`);
   });
 
-  // ✅ FINAL FOOTER (EXACT)
+  // Final SAFE footer (EXACT as requested)
   const footer =
     "\n\nVerified for clarity secured\n" +
     "_____________________________";
@@ -63,7 +69,7 @@ function safeBody(text) {
   return t + footer;
 }
 
-/* ===== SAFE SEND (RATE CONTROLLED) ===== */
+/* ===== SAFE SEND (RATE CONTROLLED, SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -115,9 +121,8 @@ app.post("/send", async (req, res) => {
     auth: { user: gmail, pass: apppass }
   });
 
-  try {
-    await transporter.verify();
-  } catch {
+  try { await transporter.verify(); }
+  catch {
     return res.json({
       success: false,
       msg: "Wrong App Password ❌",
@@ -140,5 +145,5 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("✅ SAFE Mail Server running on port 3000");
+  console.log("✅ EXTRA-SAFE Mail Server running on port 3000");
 });
