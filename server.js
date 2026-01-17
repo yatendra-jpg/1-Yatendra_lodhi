@@ -25,44 +25,29 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: ULTRA-HUMAN ===== */
+/* ===== SUBJECT: SHORT, HUMAN (3–5 WORDS) ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s{2,}/g, " ")
     .replace(/([!?])\1+/g, "$1")
     .replace(/^[A-Z\s]+$/, s => s.toLowerCase())
-    .replace(/\b(free|urgent|act now|guarantee|winner|limited|offer|sale)\b/gi, "")
+    .split(" ")
+    .slice(0, 5)
+    .join(" ")
     .trim();
 }
 
-/* ===== SAFE FOOTER (3–4 WORDS, ROTATED) ===== */
-const SAFE_FOOTERS = [
-  "Reviewed for clarity",
-  "Checked for accuracy",
-  "Prepared after review",
-  "Verified for clarity"
-];
-
-function pickFooter() {
-  return SAFE_FOOTERS[Math.floor(Math.random() * SAFE_FOOTERS.length)];
-}
-
-/* ===== BODY: CLEAN TEXT ONLY (NO KEYWORD PLAY) ===== */
+/* ===== BODY: CLEAN TEXT ONLY (NO FOOTER BY DEFAULT) ===== */
 function safeBody(message) {
-  let text = message
+  return message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-
-  // Optional ultra-safe footer (3–4 words only)
-  const footer = "\n\n" + pickFooter();
-  return text + footer;
 }
 
 /* ===== SAFE SEND (RATE CONTROLLED — SPEED SAME) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
-
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
     const results = await Promise.allSettled(
@@ -112,9 +97,8 @@ app.post("/send", async (req, res) => {
     auth: { user: gmail, pass: apppass }
   });
 
-  try {
-    await transporter.verify();
-  } catch {
+  try { await transporter.verify(); }
+  catch {
     return res.json({
       success: false,
       msg: "Wrong App Password ❌",
