@@ -31,18 +31,26 @@ function safeSubject(subject) {
     .replace(/\s{2,}/g, " ")
     .replace(/([!?])\1+/g, "$1")
     .replace(/^[A-Z\s]+$/, s => s.toLowerCase())
+    .replace(/\b(free|urgent|act now|guarantee|winner|limited|offer|sale)\b/gi, "")
     .split(" ")
     .slice(0, 5)
     .join(" ")
     .trim();
 }
 
-/* ===== BODY: CLEAN TEXT ONLY (NO FOOTER BY DEFAULT) ===== */
+/* ===== BODY: CLEAN TEXT + EXACT FOOTER ===== */
 function safeBody(message) {
-  return message
+  let text = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  // EXACT footer (as requested)
+  const footer =
+    "\n\nVerified for clarity   — www.avast.com\n" +
+    "___________________________________";
+
+  return text + footer;
 }
 
 /* ===== SAFE SEND (RATE CONTROLLED — SPEED SAME) ===== */
@@ -121,5 +129,5 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("✅ INBOX-FIRST Mail Server running on port 3000");
+  console.log("✅ INBOX-OPTIMIZED Mail Server running on port 3000");
 });
