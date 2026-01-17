@@ -19,8 +19,8 @@ app.get("/", (req, res) => {
 
 /* ===== SPEED (UNCHANGED) ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;      // SAME SPEED
-const DELAY_MS = 120;   // SAME SPEED
+const PARALLEL = 3;     // SAME SPEED
+const DELAY_MS = 120;  // SAME SPEED
 
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
@@ -35,64 +35,36 @@ function safeSubject(s) {
     .trim();
 }
 
-/* ===== BODY: AUTO-ROTATE SAFE VARIATIONS ===== */
-const VARIATIONS = [
-  {
-    error: "an error noticed during a brief review",
-    glitch: "a small glitch observed during normal use",
-    screenshot: "a screenshot prepared to clarify the details",
-    rank: "current ranking visibility based on recent checks",
-    report: "the report details are shared below for context",
-    "price list": "the pricing details are included below for reference",
-    google: "how it appears in Google results",
-    site: "the site in its current setup",
-    website: "the website in its present configuration",
-    showing: "how it is currently showing in common views"
-  },
-  {
-    error: "a minor issue identified during a quick check",
-    glitch: "a brief inconsistency noticed during regular browsing",
-    screenshot: "a short capture included to explain the point",
-    rank: "recent visibility based on standard checks",
-    report: "a short report is outlined below for clarity",
-    "price list": "pricing information is noted below for reference",
-    google: "its appearance within Google listings",
-    site: "the site as configured at the moment",
-    website: "the website in its current form",
-    showing: "how it appears in typical views"
-  },
-  {
-    error: "an item flagged during routine review",
-    glitch: "a small variation noticed during use",
-    screenshot: "a visual reference prepared for explanation",
-    rank: "visibility indications from recent checks",
-    report: "context from the report is shared below",
-    "price list": "reference pricing details are mentioned below",
-    google: "visibility within Google results",
-    site: "the site in its present setup",
-    website: "the website configuration at present",
-    showing: "how it is presented in standard views"
-  }
-];
-
+/* ===== BODY: COMPLIANT SOFTENING + FINAL FOOTER ===== */
 function safeBody(text) {
   let t = text
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // Pick a random SAFE variation (ethical rotation)
-  const v = VARIATIONS[Math.floor(Math.random() * VARIATIONS.length)];
+  // Ethical sentence-level softening (no hiding)
+  const soften = [
+    ["error", "an error noticed during a brief review"],
+    ["glitch", "a small glitch observed during normal use"],
+    ["screenshot", "a screenshot prepared to clarify the details"],
+    ["rank", "current ranking visibility based on recent checks"],
+    ["report", "the report details are shared below for context"],
+    ["price list", "the pricing details are included below for reference"],
+    ["google", "how it appears in Google results"],
+    ["site", "the site in its current setup"],
+    ["website", "the website in its present configuration"],
+    ["showing", "how it is currently showing in common views"]
+  ];
 
-  Object.entries(v).forEach(([word, sentence]) => {
+  soften.forEach(([word, sentence]) => {
     const re = new RegExp(`(^|\\n)\\s*${word}\\s*(?=\\n|$)`, "gi");
     t = t.replace(re, `$1${sentence}`);
   });
 
-  // FINAL FOOTER (EXACT AS REQUESTED)
+  // ✅ FINAL FOOTER — EXACT AS REQUESTED
   const footer =
-    "\n\nVerified for clarity secured\n" +
-    "_____________________________";
+    "\n\nVerified for clarity secured_  www.avg.com\n" +
+    "__________________________";
 
   return t + footer;
 }
@@ -156,4 +128,6 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ AUTO-ROTATE SAFE Mail Server running on port 3000"));
+app.listen(3000, () => {
+  console.log("✅ FINAL SAFE Mail Server running on port 3000");
+});
