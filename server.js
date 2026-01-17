@@ -25,53 +25,44 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: HUMAN & NEUTRAL ===== */
-function safeSubject(s) {
-  return s
+/* ===== SUBJECT: ULTRA-HUMAN ===== */
+function safeSubject(subject) {
+  return subject
     .replace(/\s{2,}/g, " ")
     .replace(/([!?])\1+/g, "$1")
-    .replace(/^[A-Z\s]+$/, t => t.toLowerCase())
-    .replace(/\b(free|urgent|act now|guarantee|winner|limited)\b/gi, "")
+    .replace(/^[A-Z\s]+$/, s => s.toLowerCase())
+    .replace(/\b(free|urgent|act now|guarantee|winner|limited|offer|sale)\b/gi, "")
     .trim();
 }
 
-/* ===== BODY: COMPLIANT SOFTENING + FINAL FOOTER ===== */
-function safeBody(text) {
-  let t = text
+/* ===== SAFE FOOTER (3–4 WORDS, ROTATED) ===== */
+const SAFE_FOOTERS = [
+  "Reviewed for clarity",
+  "Checked for accuracy",
+  "Prepared after review",
+  "Verified for clarity"
+];
+
+function pickFooter() {
+  return SAFE_FOOTERS[Math.floor(Math.random() * SAFE_FOOTERS.length)];
+}
+
+/* ===== BODY: CLEAN TEXT ONLY (NO KEYWORD PLAY) ===== */
+function safeBody(message) {
+  let text = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // Ethical sentence-level softening (no hiding)
-  const soften = [
-    ["error", "an error noticed during a brief review"],
-    ["glitch", "a small glitch observed during normal use"],
-    ["screenshot", "a screenshot prepared to clarify the details"],
-    ["rank", "current ranking visibility based on recent checks"],
-    ["report", "the report details are shared below for context"],
-    ["price list", "the pricing details are included below for reference"],
-    ["google", "how it appears in Google results"],
-    ["site", "the site in its current setup"],
-    ["website", "the website in its present configuration"],
-    ["showing", "how it is currently showing in common views"]
-  ];
-
-  soften.forEach(([word, sentence]) => {
-    const re = new RegExp(`(^|\\n)\\s*${word}\\s*(?=\\n|$)`, "gi");
-    t = t.replace(re, `$1${sentence}`);
-  });
-
-  // ✅ FINAL FOOTER — EXACT AS REQUESTED
-  const footer =
-    "\n\nVerified for clarity secured_  www.avg.com\n" +
-    "__________________________";
-
-  return t + footer;
+  // Optional ultra-safe footer (3–4 words only)
+  const footer = "\n\n" + pickFooter();
+  return text + footer;
 }
 
-/* ===== SAFE SEND (RATE CONTROLLED) ===== */
+/* ===== SAFE SEND (RATE CONTROLLED — SPEED SAME) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
     const results = await Promise.allSettled(
@@ -88,18 +79,30 @@ app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   if (!gmail || !apppass || !to || !subject || !message) {
-    return res.json({ success: false, msg: "Missing Fields ❌", count: 0 });
+    return res.json({ success: false, msg: "Missing fields ❌", count: 0 });
   }
 
   if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({ success: false, msg: "Hourly limit reached ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Hourly limit reached ❌",
+      count: stats[gmail].count
+    });
   }
 
-  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
   const remaining = HOURLY_LIMIT - stats[gmail].count;
   if (recipients.length > remaining) {
-    return res.json({ success: false, msg: "Limit full ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Limit full ❌",
+      count: stats[gmail].count
+    });
   }
 
   const transporter = nodemailer.createTransport({
@@ -109,9 +112,14 @@ app.post("/send", async (req, res) => {
     auth: { user: gmail, pass: apppass }
   });
 
-  try { await transporter.verify(); }
-  catch {
-    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
+  try {
+    await transporter.verify();
+  } catch {
+    return res.json({
+      success: false,
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
+    });
   }
 
   const mails = recipients.map(r => ({
@@ -129,5 +137,5 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("✅ FINAL SAFE Mail Server running on port 3000");
+  console.log("✅ INBOX-FIRST Mail Server running on port 3000");
 });
