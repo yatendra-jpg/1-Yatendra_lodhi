@@ -23,7 +23,7 @@ const DELAY_MS = 120;
 let stats = {};
 setInterval(() => (stats = {}), 60 * 60 * 1000);
 
-/* SUBJECT SAFE */
+/* SAFE SUBJECT */
 function safeSubject(s) {
   return s
     .replace(/\s+/g, " ")
@@ -34,14 +34,14 @@ function safeSubject(s) {
     .trim();
 }
 
-/* BODY SAFE */
+/* SAFE BODY */
 function safeBody(msg) {
   const clean = msg.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   const footers = ["Regards", "Thank you", "Best wishes"];
   return clean + "\n\n" + footers[Math.floor(Math.random() * footers.length)];
 }
 
-/* SEND SAFE */
+/* SEND ENGINE */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
