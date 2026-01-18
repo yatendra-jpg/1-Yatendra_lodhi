@@ -15,24 +15,22 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== LIMITS & SPEED (UNCHANGED) ===== */
+/* ===== LIMITS & SPEED (SAFE FAST) ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;     // SAME
-const DELAY_MS = 120;  // SAME
+const PARALLEL = 4;     // slightly faster, still safe
+const DELAY_MS = 90;   // slightly faster, still safe
 
 /* Hourly reset */
 let stats = {};
-setInterval(() => {
-  stats = {};
-}, 60 * 60 * 1000);
+setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SAFE SUBJECT (SHORT & NEUTRAL) ===== */
+/* ===== SAFE SUBJECT (SHORT, NEUTRAL) ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
     .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner|google|seo)\b/gi, "")
     .split(" ")
-    .slice(0, 4)
+    .slice(0, 3)
     .join(" ")
     .trim();
 }
@@ -44,6 +42,7 @@ function safeBody(message) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+  // neutral footer (harmless)
   const footer = "Scanned & secured________";
   return clean + "\n\n" + footer;
 }
@@ -51,7 +50,6 @@ function safeBody(message) {
 /* ===== SEND ENGINE (INDIVIDUAL SENDS) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
-
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
     const results = await Promise.allSettled(
@@ -60,7 +58,6 @@ async function sendSafely(transporter, mails) {
     results.forEach(r => r.status === "fulfilled" && sent++);
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
-
   return sent;
 }
 
@@ -130,6 +127,4 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => {
-  console.log("Server running (safe mode)");
-});
+app.listen(3000, () => console.log("Server running (safe fast mode)"));
