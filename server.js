@@ -25,7 +25,7 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT & HUMAN (3–5 WORDS) ===== */
+/* ===== SUBJECT: SHORT, HUMAN (3–5 WORDS) ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s{2,}/g, " ")
@@ -76,25 +76,13 @@ app.post("/send", async (req, res) => {
 
   if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({
-      success: false,
-      msg: "Hourly limit reached ❌",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Hourly limit reached ❌", count: stats[gmail].count });
   }
 
-  const recipients = to
-    .split(/,|\r?\n/)
-    .map(r => r.trim())
-    .filter(Boolean);
-
+  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
   const remaining = HOURLY_LIMIT - stats[gmail].count;
   if (recipients.length > remaining) {
-    return res.json({
-      success: false,
-      msg: "Limit full ❌",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Limit full ❌", count: stats[gmail].count });
   }
 
   const transporter = nodemailer.createTransport({
@@ -106,11 +94,7 @@ app.post("/send", async (req, res) => {
 
   try { await transporter.verify(); }
   catch {
-    return res.json({
-      success: false,
-      msg: "Wrong App Password ❌",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
   }
 
   const mails = recipients.map(r => ({
@@ -118,8 +102,7 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    // Reply-To shows NAME (email behind the name)
-    replyTo: `"${senderName}" <${gmail}>`
+    replyTo: `"${senderName}" <${gmail}>` // Reply-To shows NAME
   }));
 
   const sent = await sendSafely(transporter, mails);
@@ -128,6 +111,4 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => {
-  console.log("✅ INBOX-OPTIMIZED Mail Server running on port 3000");
-});
+app.listen(3000, () => console.log("✅ INBOX-FIRST Mail Server running on port 3000"));
