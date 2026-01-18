@@ -10,24 +10,22 @@ const app = express();
 app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ROOT */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SAME SPEED & LIMIT ===== */
+/* ===== SAME SPEED & LIMITS ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;     // SAME
-const DELAY_MS = 120;  // SAME
+const PARALLEL = 3;      // SAME
+const DELAY_MS = 120;   // SAME
 
 /* ===== AUTO RESET EVERY 1 HOUR ===== */
 let stats = {};
 setInterval(() => {
   stats = {};
-  console.log("⏱ Hourly limit reset");
 }, 60 * 60 * 1000);
 
-/* ===== INBOX-SAFE SUBJECT (2–4 WORDS) ===== */
+/* ===== CLEAN, NEUTRAL SUBJECT (NO TRICKS) ===== */
 function safeSubject(s) {
   return s
     .replace(/\s+/g, " ")
@@ -38,24 +36,20 @@ function safeSubject(s) {
     .trim();
 }
 
-/* ===== INBOX-SAFE BODY + FINAL FOOTER ===== */
+/* ===== CLEAN BODY + NEW FOOTER ONLY ===== */
 function safeBody(msg) {
   const clean = msg
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // very light natural variation (legit)
-  const space = Math.random() > 0.5 ? "" : " ";
-
   const footer =
-`Verified Secured & Safe
-_________________`;
+`Scanned & secured________`;
 
-  return clean + space + "\n\n" + footer;
+  return clean + "\n\n" + footer;
 }
 
-/* ===== SAFE BULK SEND (UNCHANGED SPEED) ===== */
+/* ===== SAFE INDIVIDUAL SEND (UNCHANGED SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -121,13 +115,7 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    replyTo: `"${senderName}" <${gmail}>`,
-    headers: {
-      // Legit trust signals (safe)
-      "X-Mailer": "Secure Mail Console",
-      "X-Priority": "3",
-      "Importance": "Normal"
-    }
+    replyTo: `"${senderName}" <${gmail}>`
   }));
 
   let sent = 0;
@@ -141,4 +129,4 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ TOP inbox-safe server running"));
+app.listen(3000, () => console.log("✅ Legit inbox-safe server running"));
