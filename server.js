@@ -25,7 +25,7 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT, HUMAN (3–5 WORDS) ===== */
+/* ===== SUBJECT: SHORT & HUMAN (3–5 WORDS) ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s{2,}/g, " ")
@@ -47,8 +47,8 @@ function safeBody(message) {
 
   // EXACT footer (as requested)
   const footer =
-    "\n\nVerified for clarity   — www.avast.com\n" +
-    "___________________________________";
+    "\n\nClarity secure for 📧 email Verified\n" +
+    "____________________________________";
 
   return text + footer;
 }
