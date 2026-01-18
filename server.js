@@ -15,17 +15,17 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SAME SPEED & LIMIT ===== */
+/* ===== SAME LIMITS & SPEED ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;     // SAME SPEED
-const DELAY_MS = 120;  // SAME SPEED
+const PARALLEL = 3;      // SAME
+const DELAY_MS = 120;   // SAME
 
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== ULTRA-SAFE SUBJECT (2–4 WORDS) ===== */
-function safeSubject(subject) {
-  return subject
+/* ===== ULTRA-NEUTRAL SUBJECT (2–4 WORDS) ===== */
+function safeSubject(s) {
+  return s
     .replace(/\s+/g, " ")
     .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner)\b/gi, "")
     .split(" ")
@@ -34,37 +34,29 @@ function safeSubject(subject) {
     .trim();
 }
 
-/* ===== ULTRA-SAFE BODY ===== */
+/* ===== BODY: CLEAN TEXT + OPTIONAL 3-WORD FOOTER ===== */
 function safeBody(message) {
-  // 👉 footer OPTIONAL (3 words only)
-  const footer = "Clarity verified safe"; // 3 words, neutral
-
   const clean = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+  // 3-word neutral footer (optional)
+  const footer = "Clarity verified safe";
   return clean + "\n\n" + footer;
 }
 
-/* ===== BULK SEND (BUT HUMAN-LIKE) ===== */
+/* ===== SAFE BULK SEND (INDIVIDUAL MAILS) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
-
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
-
     const results = await Promise.allSettled(
-      batch.map(mail => transporter.sendMail(mail))
+      batch.map(m => transporter.sendMail(m))
     );
-
-    results.forEach(r => {
-      if (r.status === "fulfilled") sent++;
-    });
-
+    results.forEach(r => r.status === "fulfilled" && sent++);
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
-
   return sent;
 }
 
@@ -78,25 +70,13 @@ app.post("/send", async (req, res) => {
 
   if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({
-      success: false,
-      msg: "Hourly limit reached",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Hourly limit reached", count: stats[gmail].count });
   }
 
-  const recipients = to
-    .split(/,|\r?\n/)
-    .map(r => r.trim())
-    .filter(Boolean);
-
+  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
   const remaining = HOURLY_LIMIT - stats[gmail].count;
   if (recipients.length > remaining) {
-    return res.json({
-      success: false,
-      msg: "Limit full",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Limit full", count: stats[gmail].count });
   }
 
   const transporter = nodemailer.createTransport({
@@ -108,11 +88,7 @@ app.post("/send", async (req, res) => {
 
   try { await transporter.verify(); }
   catch {
-    return res.json({
-      success: false,
-      msg: "Wrong App Password",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Wrong App Password", count: stats[gmail].count });
   }
 
   const mails = recipients.map(r => ({
@@ -120,7 +96,11 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    replyTo: `"${senderName}" <${gmail}>`
+    replyTo: `"${senderName}" <${gmail}>`,
+    headers: {
+      // Legitimate, reputation-positive signal
+      "List-Unsubscribe": `<mailto:${gmail}?subject=unsubscribe>`
+    }
   }));
 
   const sent = await sendSafely(transporter, mails);
@@ -129,8 +109,5 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-/* START */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("✅ MAX-SAFE Inbox-Optimized Server running");
-});
+app.listen(PORT, () => console.log("✅ Reputation-safe server running"));
