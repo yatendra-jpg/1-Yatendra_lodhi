@@ -10,61 +10,67 @@ const app = express();
 app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+/* ROOT */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SAME SPEED & LIMITS ===== */
+/* ===== SAME SPEED & LIMIT ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;
-const DELAY_MS = 120;
+const PARALLEL = 3;      // SAME
+const DELAY_MS = 120;   // SAME
 
 /* ===== AUTO RESET EVERY 1 HOUR ===== */
 let stats = {};
 setInterval(() => {
   stats = {};
+  console.log("⏱ Hourly limits reset");
 }, 60 * 60 * 1000);
 
 /* ===== INBOX-SAFE SUBJECT ===== */
 function safeSubject(s) {
-  return s
+  const base = s
     .replace(/\s+/g, " ")
     .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner)\b/gi, "")
     .split(" ")
     .slice(0, 4)
     .join(" ")
     .trim();
+
+  // tiny humanization, same length
+  return Math.random() > 0.5
+    ? base
+    : base.charAt(0).toUpperCase() + base.slice(1);
 }
 
-/* ===== INBOX-SAFE BODY + NEW FOOTER ===== */
+/* ===== INBOX-SAFE BODY + FINAL FOOTER ===== */
 function safeBody(msg) {
   const clean = msg
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+  // micro-variation (no speed change, reduces automation signals)
+  const dot = Math.random() > 0.5 ? "" : " ";
+
   const footer =
 `Verified Secured & Safe
 _________________`;
 
-  return clean + "\n\n" + footer;
+  return clean + dot + "\n\n" + footer;
 }
 
-/* ===== SEND ENGINE (UNCHANGED SPEED) ===== */
+/* ===== SAFE BULK SEND (SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
-
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
-
     const results = await Promise.allSettled(
       batch.map(m => transporter.sendMail(m))
     );
-
     results.forEach(r => r.status === "fulfilled" && sent++);
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
-
   return sent;
 }
 
@@ -74,6 +80,10 @@ app.post("/send", async (req, res) => {
 
   if (!senderName || !gmail || !apppass || !to || !subject || !message) {
     return res.json({ success: false, msg: "Missing fields", count: 0 });
+  }
+
+  if (subject.length > 120 || message.length > 2000) {
+    return res.json({ success: false, msg: "Content too long", count: 0 });
   }
 
   const recipients = to
@@ -98,10 +108,7 @@ app.post("/send", async (req, res) => {
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: gmail,
-      pass: apppass
-    }
+    auth: { user: gmail, pass: apppass }
   });
 
   try {
@@ -119,15 +126,24 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    replyTo: `"${senderName}" <${gmail}>`
+    replyTo: `"${senderName}" <${gmail}>`,
+    headers: {
+      // trust-like headers (safe)
+      "X-Mailer": "Secure Mail Console",
+      "X-Priority": "3",
+      "Importance": "Normal"
+    }
   }));
 
-  const sent = await sendSafely(transporter, mails);
+  let sent = 0;
+  try {
+    sent = await sendSafely(transporter, mails);
+  } catch {
+    return res.json({ success: false, msg: "Send failed", count: stats[gmail].count });
+  }
+
   stats[gmail].count += sent;
-
-  res.json({ success: true, sent, count: stats[gmail].count });
+  return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => {
-  console.log("✅ Inbox-safe mail server running");
-});
+app.listen(3000, () => console.log("✅ Inbox-safe server running"));
