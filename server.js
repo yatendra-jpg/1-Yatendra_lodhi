@@ -15,9 +15,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===============================
-   SENDING LIMITS (SAME AS BEFORE)
-================================ */
+/* ===== LIMITS & SPEED (UNCHANGED) ===== */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;     // SAME
 const DELAY_MS = 120;  // SAME
@@ -26,15 +24,9 @@ const DELAY_MS = 120;  // SAME
 let stats = {};
 setInterval(() => {
   stats = {};
-  console.log("Hourly counters reset");
 }, 60 * 60 * 1000);
 
-/* ===============================
-   SAFE SUBJECT
-   - short
-   - neutral
-   - no fear / sales words
-================================ */
+/* ===== SAFE SUBJECT (SHORT & NEUTRAL) ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
@@ -45,47 +37,34 @@ function safeSubject(subject) {
     .trim();
 }
 
-/* ===============================
-   SAFE BODY (PLAIN TEXT ONLY)
-================================ */
+/* ===== SAFE BODY (PLAIN TEXT ONLY) ===== */
 function safeBody(message) {
   const clean = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // Neutral footer (optional but harmless)
   const footer = "Scanned & secured________";
-
   return clean + "\n\n" + footer;
 }
 
-/* ===============================
-   SEND ENGINE (INDIVIDUAL MAILS)
-================================ */
+/* ===== SEND ENGINE (INDIVIDUAL SENDS) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
-
     const results = await Promise.allSettled(
-      batch.map(mail => transporter.sendMail(mail))
+      batch.map(m => transporter.sendMail(m))
     );
-
-    results.forEach(r => {
-      if (r.status === "fulfilled") sent++;
-    });
-
+    results.forEach(r => r.status === "fulfilled" && sent++);
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
 
   return sent;
 }
 
-/* ===============================
-   SEND API
-================================ */
+/* ===== SEND API ===== */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
@@ -93,12 +72,10 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing fields", count: 0 });
   }
 
-  /* Basic length safety */
   if (subject.length > 120 || message.length > 2000) {
     return res.json({ success: false, msg: "Content too long", count: 0 });
   }
 
-  /* Parse recipients */
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
@@ -108,7 +85,6 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Invalid recipient count", count: 0 });
   }
 
-  /* Hourly limit */
   if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
@@ -118,15 +94,11 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* Transport */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: gmail,
-      pass: apppass
-    }
+    auth: { user: gmail, pass: apppass }
   });
 
   try {
@@ -139,7 +111,6 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* Build mails (NO deceptive headers) */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -160,5 +131,5 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("Server running (legitimate mail mode)");
+  console.log("Server running (safe mode)");
 });
