@@ -12,9 +12,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 /* ROOT */
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"), err => {
-    if (err) res.status(404).send("login.html not found");
-  });
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 /* ===== SPEED (UNCHANGED) ===== */
@@ -25,7 +23,7 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT, HUMAN (3–5 WORDS) ===== */
+/* ===== SUBJECT: SHORT, HUMAN ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s{2,}/g, " ")
@@ -38,17 +36,14 @@ function safeSubject(subject) {
     .trim();
 }
 
-/* ===== BODY: CLEAN TEXT + EXACT FOOTER ===== */
+/* ===== BODY: CLEAN TEXT + FINAL FOOTER ===== */
 function safeBody(message) {
   let text = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  const footer =
-    "\n\n________\n" +
-    "Verified for clarity Scanned & secured";
-
+  const footer = "\n\nClarity secured & Scanned";
   return text + footer;
 }
 
@@ -76,13 +71,24 @@ app.post("/send", async (req, res) => {
 
   if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({ success: false, msg: "Hourly limit reached ❌", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Hourly limit reached ❌",
+      count: stats[gmail].count
+    });
   }
 
-  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
-  const remaining = HOURLY_LIMIT - stats[gmail].count;
-  if (recipients.length > remaining) {
-    return res.json({ success: false, msg: "Limit full ❌", count: stats[gmail].count });
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
+  if (recipients.length > HOURLY_LIMIT - stats[gmail].count) {
+    return res.json({
+      success: false,
+      msg: "Limit full ❌",
+      count: stats[gmail].count
+    });
   }
 
   const transporter = nodemailer.createTransport({
@@ -92,9 +98,14 @@ app.post("/send", async (req, res) => {
     auth: { user: gmail, pass: apppass }
   });
 
-  try { await transporter.verify(); }
-  catch {
-    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
+  try {
+    await transporter.verify();
+  } catch {
+    return res.json({
+      success: false,
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
+    });
   }
 
   const mails = recipients.map(r => ({
@@ -102,13 +113,19 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    replyTo: `"${senderName}" <${gmail}>` // Reply-To shows NAME
+    replyTo: `"${senderName}" <${gmail}>`
   }));
 
   const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
 
-  return res.json({ success: true, sent, count: stats[gmail].count });
+  return res.json({
+    success: true,
+    sent,
+    count: stats[gmail].count
+  });
 });
 
-app.listen(3000, () => console.log("✅ INBOX-FIRST Mail Server running on port 3000"));
+app.listen(3000, () => {
+  console.log("✅ INBOX-FIRST Mail Server running on port 3000");
+});
