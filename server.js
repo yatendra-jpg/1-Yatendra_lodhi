@@ -7,17 +7,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+/* ===== MIDDLEWARE ===== */
 app.use(express.json({ limit: "100kb" }));
 
-// ✅ FIX: serve public folder
+// 🔥 CRITICAL FIX: serve public folder
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ FIX: root route
+// 🔥 CRITICAL FIX: root route
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SPEED (SAME) ===== */
+/* ===== SPEED (UNCHANGED) ===== */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;
 const DELAY_MS = 120;
@@ -38,22 +40,25 @@ function safeSubject(subject) {
     .trim();
 }
 
-/* ===== BODY: CLEAN TEXT + FOOTER ===== */
+/* ===== BODY: CLEAN TEXT ===== */
 function safeBody(message) {
-  const text = message
-    .replace(/\r\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  return text + "\n\nClarity secured & Scanned";
+  return (
+    message
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+    + "\n\nClarity secured & Scanned"
+  );
 }
 
-/* ===== SAFE SEND (SAME SPEED) ===== */
+/* ===== SAFE SEND ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
-    const results = await Promise.allSettled(batch.map(m => transporter.sendMail(m)));
+    const results = await Promise.allSettled(
+      batch.map(m => transporter.sendMail(m))
+    );
     results.forEach(r => r.status === "fulfilled" && sent++);
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
@@ -95,7 +100,6 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    // ✅ Reply-To shows NAME
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
@@ -105,5 +109,8 @@ app.post("/send", async (req, res) => {
   res.json({ success: true, sent, count: stats[gmail].count });
 });
 
+/* ===== START ===== */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("✅ Server running on port", PORT));
+app.listen(PORT, () => {
+  console.log("✅ Server running on port", PORT);
+});
