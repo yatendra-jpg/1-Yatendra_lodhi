@@ -15,28 +15,28 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== LIMITS (SAME AS YOUR OLD CODE) ===== */
+/* ===== SAME LIMITS & SPEED ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;     // SAME SPEED
-const DELAY_MS = 120;  // SAME SPEED
+const PARALLEL = 3;     // SAME
+const DELAY_MS = 120;  // SAME
 
 let stats = {};
 setInterval(() => {
-  stats = {};           // auto reset every 1 hour
+  stats = {}; // reset every hour
 }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT, NEUTRAL ===== */
+/* ===== ULTRA-SAFE SUBJECT ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
     .replace(/\b(free|urgent|offer|sale|guarantee|winner|deal)\b/gi, "")
     .split(" ")
-    .slice(0, 5)
+    .slice(0, 4)
     .join(" ")
     .trim();
 }
 
-/* ===== BODY: CLEAN TEXT + NEUTRAL FOOTER ===== */
+/* ===== ULTRA-SAFE BODY ===== */
 function safeBody(message) {
   const clean = message
     .replace(/\r\n/g, "\n")
@@ -46,7 +46,7 @@ function safeBody(message) {
   return clean + "\n\nClarity secured & Scanned";
 }
 
-/* ===== BULK SEND (INDIVIDUAL MAILS, SAME SPEED) ===== */
+/* ===== BULK SEND (BUT HUMAN-LIKE) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
@@ -54,7 +54,7 @@ async function sendSafely(transporter, mails) {
     const batch = mails.slice(i, i + PARALLEL);
 
     const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
+      batch.map(mail => transporter.sendMail(mail))
     );
 
     results.forEach(r => {
@@ -85,7 +85,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* recipients list (bulk allowed, but sent individually) */
+  /* BULK LIST */
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
@@ -120,7 +120,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* IMPORTANT: each recipient = separate mail */
+  /* IMPORTANT: EACH MAIL SEPARATE */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
