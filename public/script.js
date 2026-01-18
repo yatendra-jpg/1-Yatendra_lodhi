@@ -1,10 +1,21 @@
-sendBtn.onclick = async () => {
+let sending = false;
+
+sendBtn.addEventListener("click", () => {
+  if (!sending) sendMail();
+});
+
+logoutBtn.addEventListener("dblclick", () => {
+  if (!sending) location.href = "/login.html";
+});
+
+async function sendMail() {
+  sending = true;
   sendBtn.disabled = true;
   sendBtn.innerText = "Sending…";
 
-  const r = await fetch("/send", {
+  const res = await fetch("/send", {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       senderName: senderName.value,
       gmail: gmail.value,
@@ -15,9 +26,13 @@ sendBtn.onclick = async () => {
     })
   });
 
-  const d = await r.json();
+  const data = await res.json();
+
+  sending = false;
   sendBtn.disabled = false;
   sendBtn.innerText = "Send";
-  limitText.innerText = `${d.count}/28`;
-  alert(d.success ? "Sent" : d.msg);
-};
+
+  limitText.innerText = `${data.count}/28`;
+  if (!data.success) return alert(data.msg);
+  alert(`Mail sent ✅ (${data.sent})`);
+}
