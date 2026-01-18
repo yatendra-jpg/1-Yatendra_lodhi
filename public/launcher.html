@@ -9,8 +9,7 @@
 <script>
   const ONE_HOUR = 60 * 60 * 1000;
   const loginTime = localStorage.getItem("loginTime");
-
-  if (!loginTime || Date.now() - loginTime > ONE_HOUR) {
+  if (!loginTime || Date.now() - Number(loginTime) > ONE_HOUR) {
     localStorage.removeItem("loginTime");
     location.replace("/login.html");
   }
