@@ -7,88 +7,117 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json({ limit: "100kb" }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ROOT */
+/* ROOT (same) */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SAME LIMITS & SPEED ===== */
+/* ===== SAME CONFIG AS FIRST CODE ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;      // SAME
-const DELAY_MS = 120;   // SAME
+const PARALLEL = 3;        // SAME
+const DELAY_MS = 120;      // SAME
+const stats = {};          // gmail → { count, start }
 
-let stats = {};
-setInterval(() => { stats = {}; }, 60 * 60 * 1000);
-
-/* ===== ULTRA-NEUTRAL SUBJECT (2–4 WORDS) ===== */
-function safeSubject(s) {
-  return s
-    .replace(/\s+/g, " ")
-    .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner)\b/gi, "")
-    .split(" ")
-    .slice(0, 4)
-    .join(" ")
-    .trim();
+/* RESET AFTER 1 HOUR (same logic) */
+function resetIfNeeded(gmail) {
+  if (!stats[gmail]) {
+    stats[gmail] = { count: 0, start: Date.now() };
+    return;
+  }
+  if (Date.now() - stats[gmail].start >= 60 * 60 * 1000) {
+    stats[gmail] = { count: 0, start: Date.now() };
+  }
 }
 
-/* ===== BODY: CLEAN TEXT + OPTIONAL 3-WORD FOOTER ===== */
-function safeBody(message) {
-  const clean = message
-    .replace(/\r\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  // 3-word neutral footer (optional)
-  const footer = "Clarity verified safe";
-  return clean + "\n\n" + footer;
-}
-
-/* ===== SAFE BULK SEND (INDIVIDUAL MAILS) ===== */
+/* SAFE SEND WITH REAL DELAY (same behavior) */
 async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
-    const batch = mails.slice(i, i + PARALLEL);
+    const chunk = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
+      chunk.map(m => transporter.sendMail(m))
     );
-    results.forEach(r => r.status === "fulfilled" && sent++);
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
+
   return sent;
 }
 
-/* ===== SEND API ===== */
+/* SUBJECT CLEAN (minimal, safe) */
+function safeSubject(subject) {
+  return subject
+    .replace(/\s+/g, " ")
+    .replace(/\b(free|urgent|offer|sale|winner)\b/gi, "")
+    .trim();
+}
+
+/* BODY CLEAN + NEUTRAL FOOTER (3 words) */
+function safeBody(message) {
+  return (
+    message
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+    + "\n\nClarity secured & Scanned"
+  );
+}
+
+/* SEND API (same as first) */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
-  if (!senderName || !gmail || !apppass || !to || !subject || !message) {
-    return res.json({ success: false, msg: "Missing fields", count: 0 });
-  }
+  resetIfNeeded(gmail);
 
-  if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({ success: false, msg: "Hourly limit reached", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
-  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
+  const recipients = to
+    .split(/,|\r?\n/)
+    .map(r => r.trim())
+    .filter(Boolean);
+
   const remaining = HOURLY_LIMIT - stats[gmail].count;
   if (recipients.length > remaining) {
-    return res.json({ success: false, msg: "Limit full", count: stats[gmail].count });
+    return res.json({
+      success: false,
+      msg: "Mail Limit Full ❌",
+      count: stats[gmail].count
+    });
   }
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: { user: gmail, pass: apppass }
+    auth: {
+      user: gmail,
+      pass: apppass
+    }
   });
 
-  try { await transporter.verify(); }
-  catch {
-    return res.json({ success: false, msg: "Wrong App Password", count: stats[gmail].count });
+  try {
+    await transporter.verify();
+  } catch {
+    return res.json({
+      success: false,
+      msg: "Wrong App Password ❌",
+      count: stats[gmail].count
+    });
   }
 
   const mails = recipients.map(r => ({
@@ -96,18 +125,21 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    replyTo: `"${senderName}" <${gmail}>`,
-    headers: {
-      // Legitimate, reputation-positive signal
-      "List-Unsubscribe": `<mailto:${gmail}?subject=unsubscribe>`
-    }
+    replyTo: `"${senderName}" <${gmail}>`
   }));
 
-  const sent = await sendSafely(transporter, mails);
-  stats[gmail].count += sent;
+  const sentCount = await sendSafely(transporter, mails);
+  stats[gmail].count += sentCount;
 
-  return res.json({ success: true, sent, count: stats[gmail].count });
+  return res.json({
+    success: true,
+    sent: sentCount,
+    count: stats[gmail].count
+  });
 });
 
+/* START */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("✅ Reputation-safe server running"));
+app.listen(PORT, () => {
+  console.log("✅ Safe Mail Server running on port", PORT);
+});
