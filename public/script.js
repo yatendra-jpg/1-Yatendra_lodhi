@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const ONE_HOUR = 60 * 60 * 1000;
   setTimeout(() => {
-    alert("Session expired. Login again.");
     localStorage.removeItem("loginTime");
     location.replace("/login.html");
   }, ONE_HOUR);
@@ -23,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!sending) sendMail();
   });
 
-  // REAL double-click logout
   logoutBtn.addEventListener("dblclick", () => {
     if (sending) return;
     localStorage.removeItem("loginTime");
@@ -64,8 +62,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       limitText.innerText = `${data.count || 0} / 28`;
 
-      if (!data.success) alert(data.msg || "Send failed");
-      else alert(`Mail Sent ✅\nSent: ${data.sent}`);
+      if (!data.success) alert(data.msg);
+      else alert(`Mail Sent\nSent: ${data.sent}`);
     } catch {
       alert("Network error");
     } finally {
