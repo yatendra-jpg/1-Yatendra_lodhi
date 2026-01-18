@@ -20,12 +20,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const message = document.getElementById("message");
   const to = document.getElementById("to");
 
-  /* SEND */
   sendBtn.addEventListener("click", () => {
     if (!sending) sendMail();
   });
 
-  /* REAL DOUBLE CLICK LOGOUT */
+  // REAL double-click logout
   logoutBtn.addEventListener("dblclick", () => {
     if (sending) return;
     localStorage.removeItem("loginTime");
@@ -66,11 +65,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       limitText.innerText = `${data.count || 0} / 28`;
 
-      if (!data.success) {
-        alert(data.msg);
-      } else {
-        alert(`Mail Sent ✅\nSent: ${data.sent}`);
-      }
+      if (!data.success) alert(data.msg || "Send failed");
+      else alert(`Mail Sent ✅\nSent: ${data.sent}`);
     } catch {
       alert("Network error");
     } finally {
