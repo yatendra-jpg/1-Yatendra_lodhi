@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   let sending = false;
 
-  /* AUTO LOGOUT AFTER 1 HOUR */
   const ONE_HOUR = 60 * 60 * 1000;
   setTimeout(() => {
     alert("Session expired. Login again.");
