@@ -1,5 +1,9 @@
 let sending = false;
 
+const sendBtn = document.getElementById("sendBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const limitText = document.getElementById("limitText");
+
 sendBtn.addEventListener("click", () => {
   if (!sending) sendMail();
 });
@@ -30,9 +34,9 @@ async function sendMail() {
 
   sending = false;
   sendBtn.disabled = false;
-  sendBtn.innerText = "Send";
+  sendBtn.innerText = "Send All";
 
   limitText.innerText = `${data.count}/28`;
   if (!data.success) return alert(data.msg);
-  alert(`Mail sent ✅ (${data.sent})`);
+  alert(`Mail Send Successful ✅\nSent: ${data.sent}`);
 }
