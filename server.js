@@ -14,14 +14,17 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* LIMITS (SAME) */
+/* ===== SAME SPEED & LIMIT ===== */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;
 const DELAY_MS = 120;
 
-/* STATS */
+/* ===== AUTO RESET EVERY 1 HOUR ===== */
 let stats = {};
-setInterval(() => (stats = {}), 60 * 60 * 1000);
+setInterval(() => {
+  stats = {};
+  console.log("⏱ Hourly limit reset");
+}, 60 * 60 * 1000);
 
 /* SAFE SUBJECT */
 function safeSubject(s) {
@@ -55,7 +58,7 @@ async function sendSafely(transporter, mails) {
   return sent;
 }
 
-/* API */
+/* SEND API */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
