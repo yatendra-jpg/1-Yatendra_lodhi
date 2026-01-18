@@ -1,21 +1,10 @@
 import express from "express";
 import nodemailer from "nodemailer";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: "100kb" }));
-app.use(express.static(path.join(__dirname, "public")));
 
-/* ROOT */
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
-/* ===== SPEED (UNCHANGED) ===== */
+/* ===== SPEED (SAME AS BEFORE) ===== */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;     // SAME SPEED
 const DELAY_MS = 120;  // SAME SPEED
@@ -23,7 +12,7 @@ const DELAY_MS = 120;  // SAME SPEED
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT, HUMAN ===== */
+/* ===== SUBJECT: SHORT & HUMAN (3–5 WORDS) ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s{2,}/g, " ")
@@ -36,13 +25,14 @@ function safeSubject(subject) {
     .trim();
 }
 
-/* ===== BODY: CLEAN TEXT + FINAL FOOTER ===== */
+/* ===== BODY: CLEAN TEXT + SAFE FOOTER ===== */
 function safeBody(message) {
   let text = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+  // EXACT footer you asked for
   const footer = "\n\nClarity secured & Scanned";
   return text + footer;
 }
@@ -83,7 +73,8 @@ app.post("/send", async (req, res) => {
     .map(r => r.trim())
     .filter(Boolean);
 
-  if (recipients.length > HOURLY_LIMIT - stats[gmail].count) {
+  const remaining = HOURLY_LIMIT - stats[gmail].count;
+  if (recipients.length > remaining) {
     return res.json({
       success: false,
       msg: "Limit full ❌",
@@ -98,9 +89,8 @@ app.post("/send", async (req, res) => {
     auth: { user: gmail, pass: apppass }
   });
 
-  try {
-    await transporter.verify();
-  } catch {
+  try { await transporter.verify(); }
+  catch {
     return res.json({
       success: false,
       msg: "Wrong App Password ❌",
@@ -113,17 +103,14 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
+    // Reply-To shows NAME (email behind the name in UI)
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
   const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
 
-  return res.json({
-    success: true,
-    sent,
-    count: stats[gmail].count
-  });
+  return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
 app.listen(3000, () => {
