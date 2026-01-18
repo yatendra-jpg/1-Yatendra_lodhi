@@ -15,38 +15,42 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SAME LIMITS & SPEED ===== */
-const HOURLY_LIMIT = 28;
-const PARALLEL = 3;     // SAME
-const DELAY_MS = 120;  // SAME
+/* ===== LIMITS & SPEED (SAME AS OLD CODE) ===== */
+const HOURLY_LIMIT = 28;   // 1 Gmail = 28 mails / hour
+const PARALLEL = 3;       // SAME SPEED
+const DELAY_MS = 120;     // SAME SPEED
 
 let stats = {};
 setInterval(() => {
-  stats = {}; // reset every hour
+  stats = {}; // auto reset every 1 hour
 }, 60 * 60 * 1000);
 
-/* ===== ULTRA-SAFE SUBJECT ===== */
+/* ===== SUBJECT: SHORT & HUMAN ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
     .replace(/\b(free|urgent|offer|sale|guarantee|winner|deal)\b/gi, "")
     .split(" ")
-    .slice(0, 4)
+    .slice(0, 5)
     .join(" ")
     .trim();
 }
 
-/* ===== ULTRA-SAFE BODY ===== */
+/* ===== BODY + EXACT FOOTER ===== */
 function safeBody(message) {
   const clean = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  return clean + "\n\nClarity secured & Scanned";
+  return (
+    clean +
+    "\n\nClarity secured & Scanned\n" +
+    "____________________________"
+  );
 }
 
-/* ===== BULK SEND (BUT HUMAN-LIKE) ===== */
+/* ===== SAFE BULK SEND (INDIVIDUAL MAILS, SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
@@ -54,7 +58,7 @@ async function sendSafely(transporter, mails) {
     const batch = mails.slice(i, i + PARALLEL);
 
     const results = await Promise.allSettled(
-      batch.map(mail => transporter.sendMail(mail))
+      batch.map(m => transporter.sendMail(m))
     );
 
     results.forEach(r => {
@@ -85,7 +89,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* BULK LIST */
+  /* BULK LIST (same behavior as old code) */
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
@@ -120,7 +124,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* IMPORTANT: EACH MAIL SEPARATE */
+  /* EACH RECIPIENT = SEPARATE MAIL (INBOX FRIENDLY) */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -142,5 +146,5 @@ app.post("/send", async (req, res) => {
 /* START */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ MAX-SAFE BULK Mail Server running on port", PORT);
+  console.log("✅ Safe Bulk Mail Server running on port", PORT);
 });
