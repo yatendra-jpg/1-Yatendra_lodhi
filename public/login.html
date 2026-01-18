@@ -18,7 +18,7 @@ function login(){
     uid.value === "Lodhiyatendra@#" &&
     upass.value === "Lodhiyatendra@#"
   ) {
-    localStorage.setItem("loginTime", Date.now());
+    localStorage.setItem("loginTime", Date.now().toString());
     location.replace("/launcher.html");
   } else {
     alert("Invalid credentials");
