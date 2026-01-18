@@ -26,7 +26,7 @@ setInterval(() => {
   console.log("⏱ Hourly limit reset");
 }, 60 * 60 * 1000);
 
-/* SAFE SUBJECT */
+/* ===== SAFE SUBJECT ===== */
 function safeSubject(s) {
   return s
     .replace(/\s+/g, " ")
@@ -37,14 +37,21 @@ function safeSubject(s) {
     .trim();
 }
 
-/* SAFE BODY */
+/* ===== SAFE BODY + FIXED FOOTER ===== */
 function safeBody(msg) {
-  const clean = msg.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  const footers = ["Regards", "Thank you", "Best wishes"];
-  return clean + "\n\n" + footers[Math.floor(Math.random() * footers.length)];
+  const clean = msg
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  const footer =
+`✔ Verified • Secured • Trusted • Safe
+______________________________________`;
+
+  return clean + "\n\n" + footer;
 }
 
-/* SEND ENGINE */
+/* ===== SEND ENGINE ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -58,7 +65,7 @@ async function sendSafely(transporter, mails) {
   return sent;
 }
 
-/* SEND API */
+/* ===== SEND API ===== */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
