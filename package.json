@@ -1,18 +1,15 @@
 {
   "name": "inbox-first-mail-server",
   "version": "1.0.0",
-  "description": "Plain-text, inbox-optimized mail sender using Gmail SMTP",
+  "description": "Plain-text, inbox-optimized mail sender",
   "type": "module",
   "private": true,
-
   "engines": {
     "node": ">=18.0.0"
   },
-
   "scripts": {
     "start": "node server.js"
   },
-
   "dependencies": {
     "express": "^4.19.2",
     "nodemailer": "^6.9.9"
