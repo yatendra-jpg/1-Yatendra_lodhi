@@ -11,10 +11,19 @@
   <input id="upass" type="password" placeholder="Password">
   <button onclick="login()">Login</button>
 </div>
+
 <script>
 function login(){
-  if(uid.value && upass.value) location.href="/launcher.html";
-  else alert("Invalid");
+  if (
+    uid.value === "Lodhiyatendra@#" &&
+    upass.value === "Lodhiyatendra@#"
+  ) {
+    uid.value = "";
+    upass.value = "";
+    location.replace("/launcher.html");
+  } else {
+    alert("Invalid credentials");
+  }
 }
 </script>
 </body>
