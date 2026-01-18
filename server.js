@@ -10,60 +10,82 @@ const app = express();
 app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+/* ROOT */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SAME SPEED & LIMITS ===== */
+/* ===============================
+   SENDING LIMITS (SAME AS BEFORE)
+================================ */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;      // SAME
-const DELAY_MS = 120;   // SAME
+const PARALLEL = 3;     // SAME
+const DELAY_MS = 120;  // SAME
 
-/* ===== AUTO RESET EVERY 1 HOUR ===== */
+/* Hourly reset */
 let stats = {};
 setInterval(() => {
   stats = {};
+  console.log("Hourly counters reset");
 }, 60 * 60 * 1000);
 
-/* ===== CLEAN, NEUTRAL SUBJECT (NO TRICKS) ===== */
-function safeSubject(s) {
-  return s
+/* ===============================
+   SAFE SUBJECT
+   - short
+   - neutral
+   - no fear / sales words
+================================ */
+function safeSubject(subject) {
+  return subject
     .replace(/\s+/g, " ")
-    .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner)\b/gi, "")
+    .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner|google|seo)\b/gi, "")
     .split(" ")
     .slice(0, 4)
     .join(" ")
     .trim();
 }
 
-/* ===== CLEAN BODY + NEW FOOTER ONLY ===== */
-function safeBody(msg) {
-  const clean = msg
+/* ===============================
+   SAFE BODY (PLAIN TEXT ONLY)
+================================ */
+function safeBody(message) {
+  const clean = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  const footer =
-`Scanned & secured________`;
+  // Neutral footer (optional but harmless)
+  const footer = "Scanned & secured________";
 
   return clean + "\n\n" + footer;
 }
 
-/* ===== SAFE INDIVIDUAL SEND (UNCHANGED SPEED) ===== */
+/* ===============================
+   SEND ENGINE (INDIVIDUAL MAILS)
+================================ */
 async function sendSafely(transporter, mails) {
   let sent = 0;
+
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
+      batch.map(mail => transporter.sendMail(mail))
     );
-    results.forEach(r => r.status === "fulfilled" && sent++);
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
+
   return sent;
 }
 
-/* ===== SEND API ===== */
+/* ===============================
+   SEND API
+================================ */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
@@ -71,19 +93,22 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing fields", count: 0 });
   }
 
+  /* Basic length safety */
   if (subject.length > 120 || message.length > 2000) {
     return res.json({ success: false, msg: "Content too long", count: 0 });
   }
 
+  /* Parse recipients */
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
     .filter(Boolean);
 
-  if (recipients.length > 30) {
-    return res.json({ success: false, msg: "Too many recipients", count: 0 });
+  if (recipients.length === 0 || recipients.length > 30) {
+    return res.json({ success: false, msg: "Invalid recipient count", count: 0 });
   }
 
+  /* Hourly limit */
   if (!stats[gmail]) stats[gmail] = { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
@@ -93,11 +118,15 @@ app.post("/send", async (req, res) => {
     });
   }
 
+  /* Transport */
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: { user: gmail, pass: apppass }
+    auth: {
+      user: gmail,
+      pass: apppass
+    }
   });
 
   try {
@@ -105,11 +134,12 @@ app.post("/send", async (req, res) => {
   } catch {
     return res.json({
       success: false,
-      msg: "Wrong App Password",
+      msg: "Invalid Gmail or App Password",
       count: stats[gmail].count
     });
   }
 
+  /* Build mails (NO deceptive headers) */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -129,4 +159,6 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ Legit inbox-safe server running"));
+app.listen(3000, () => {
+  console.log("Server running (legitimate mail mode)");
+});
