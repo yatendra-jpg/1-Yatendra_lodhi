@@ -38,12 +38,18 @@ function safeSubject(subject) {
     .trim();
 }
 
-/* ===== BODY: CLEAN TEXT ONLY (BEST INBOX) ===== */
+/* ===== BODY: CLEAN TEXT + EXACT FOOTER ===== */
 function safeBody(message) {
-  return message
+  let text = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  const footer =
+    "\n\n________\n" +
+    "Verified for clarity Scanned & secured";
+
+  return text + footer;
 }
 
 /* ===== SAFE SEND (RATE CONTROLLED — SPEED SAME) ===== */
@@ -64,7 +70,7 @@ async function sendSafely(transporter, mails) {
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
-  if (!gmail || !apppass || !to || !subject || !message || !senderName) {
+  if (!senderName || !gmail || !apppass || !to || !subject || !message) {
     return res.json({ success: false, msg: "Missing fields ❌", count: 0 });
   }
 
@@ -112,8 +118,7 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-
-    // ✅ FIX: Reply-To with NAME (email hidden behind name in UI)
+    // Reply-To shows NAME (email behind the name)
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
