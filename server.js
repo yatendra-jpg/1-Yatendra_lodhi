@@ -14,19 +14,18 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== SAME SPEED & LIMIT ===== */
+/* SAME LIMITS */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;
 const DELAY_MS = 120;
 
-/* ===== AUTO RESET EVERY 1 HOUR ===== */
+/* AUTO RESET 1 HOUR */
 let stats = {};
 setInterval(() => {
   stats = {};
-  console.log("⏱ Hourly limit reset");
 }, 60 * 60 * 1000);
 
-/* ===== SAFE SUBJECT ===== */
+/* SAFE SUBJECT */
 function safeSubject(s) {
   return s
     .replace(/\s+/g, " ")
@@ -37,7 +36,7 @@ function safeSubject(s) {
     .trim();
 }
 
-/* ===== SAFE BODY + FIXED FOOTER ===== */
+/* SAFE BODY + NEW FOOTER (INBOX FRIENDLY) */
 function safeBody(msg) {
   const clean = msg
     .replace(/\r\n/g, "\n")
@@ -45,13 +44,13 @@ function safeBody(msg) {
     .trim();
 
   const footer =
-`✔ Verified • Secured • Trusted • Safe
+`✔ Verified Secured & Safe
 ______________________________________`;
 
   return clean + "\n\n" + footer;
 }
 
-/* ===== SEND ENGINE ===== */
+/* SEND ENGINE */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -65,15 +64,12 @@ async function sendSafely(transporter, mails) {
   return sent;
 }
 
-/* ===== SEND API ===== */
+/* SEND API */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   if (!senderName || !gmail || !apppass || !to || !subject || !message)
     return res.json({ success: false, msg: "Missing fields", count: 0 });
-
-  if (subject.length > 120 || message.length > 2000)
-    return res.json({ success: false, msg: "Content too long", count: 0 });
 
   const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
   if (recipients.length > 30)
@@ -103,14 +99,10 @@ app.post("/send", async (req, res) => {
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
-  let sent = 0;
-  try { sent = await sendSafely(transporter, mails); }
-  catch {
-    return res.json({ success: false, msg: "Send failed", count: stats[gmail].count });
-  }
-
+  const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
+
   res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ Safe mail server running"));
+app.listen(3000, () => console.log("✅ Server running"));
