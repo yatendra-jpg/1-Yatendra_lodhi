@@ -1,5 +1,13 @@
 let sending = false;
 
+/* AUTO LOGOUT AFTER 1 HOUR */
+const ONE_HOUR = 60 * 60 * 1000;
+setTimeout(() => {
+  alert("Session expired. Login again.");
+  localStorage.removeItem("loginTime");
+  location.replace("/login.html");
+}, ONE_HOUR);
+
 const sendBtn = document.getElementById("sendBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const limitText = document.getElementById("limitText");
@@ -16,18 +24,13 @@ sendBtn.addEventListener("click", () => {
 });
 
 logoutBtn.addEventListener("dblclick", () => {
-  if (!sending) location.replace("/login.html");
+  localStorage.removeItem("loginTime");
+  location.replace("/login.html");
 });
 
 async function sendMail() {
-  if (
-    !senderName.value ||
-    !gmail.value ||
-    !apppass.value ||
-    !subject.value ||
-    !message.value ||
-    !to.value
-  ) {
+  if (!senderName.value || !gmail.value || !apppass.value ||
+      !subject.value || !message.value || !to.value) {
     alert("All fields required");
     return;
   }
@@ -53,8 +56,8 @@ async function sendMail() {
     const data = await res.json();
     limitText.innerText = `${data.count}/28`;
 
-    if (!data.success) return alert(data.msg);
-    alert(`Mail Sent ✅\nSent: ${data.sent}`);
+    if (!data.success) alert(data.msg);
+    else alert(`Mail Sent ✅\nSent: ${data.sent}`);
   } catch {
     alert("Network error");
   } finally {
