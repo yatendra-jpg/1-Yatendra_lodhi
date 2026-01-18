@@ -1,18 +1,31 @@
 import express from "express";
 import nodemailer from "nodemailer";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: "100kb" }));
 
-/* ===== SPEED (SAME AS BEFORE) ===== */
+// ✅ FIX: serve public folder
+app.use(express.static(path.join(__dirname, "public")));
+
+// ✅ FIX: root route
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+/* ===== SPEED (SAME) ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;     // SAME SPEED
-const DELAY_MS = 120;  // SAME SPEED
+const PARALLEL = 3;
+const DELAY_MS = 120;
 
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT & HUMAN (3–5 WORDS) ===== */
+/* ===== SUBJECT: SHORT & HUMAN ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s{2,}/g, " ")
@@ -25,26 +38,22 @@ function safeSubject(subject) {
     .trim();
 }
 
-/* ===== BODY: CLEAN TEXT + SAFE FOOTER ===== */
+/* ===== BODY: CLEAN TEXT + FOOTER ===== */
 function safeBody(message) {
-  let text = message
+  const text = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // EXACT footer you asked for
-  const footer = "\n\nClarity secured & Scanned";
-  return text + footer;
+  return text + "\n\nClarity secured & Scanned";
 }
 
-/* ===== SAFE SEND (RATE CONTROLLED — SPEED SAME) ===== */
+/* ===== SAFE SEND (SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
-    const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
-    );
+    const results = await Promise.allSettled(batch.map(m => transporter.sendMail(m)));
     results.forEach(r => r.status === "fulfilled" && sent++);
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
@@ -59,27 +68,14 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing fields ❌", count: 0 });
   }
 
-  if (!stats[gmail]) stats[gmail] = { count: 0 };
+  stats[gmail] ??= { count: 0 };
   if (stats[gmail].count >= HOURLY_LIMIT) {
-    return res.json({
-      success: false,
-      msg: "Hourly limit reached ❌",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Hourly limit reached ❌", count: stats[gmail].count });
   }
 
-  const recipients = to
-    .split(/,|\r?\n/)
-    .map(r => r.trim())
-    .filter(Boolean);
-
-  const remaining = HOURLY_LIMIT - stats[gmail].count;
-  if (recipients.length > remaining) {
-    return res.json({
-      success: false,
-      msg: "Limit full ❌",
-      count: stats[gmail].count
-    });
+  const recipients = to.split(/,|\r?\n/).map(r => r.trim()).filter(Boolean);
+  if (recipients.length > HOURLY_LIMIT - stats[gmail].count) {
+    return res.json({ success: false, msg: "Limit full ❌", count: stats[gmail].count });
   }
 
   const transporter = nodemailer.createTransport({
@@ -91,11 +87,7 @@ app.post("/send", async (req, res) => {
 
   try { await transporter.verify(); }
   catch {
-    return res.json({
-      success: false,
-      msg: "Wrong App Password ❌",
-      count: stats[gmail].count
-    });
+    return res.json({ success: false, msg: "Wrong App Password ❌", count: stats[gmail].count });
   }
 
   const mails = recipients.map(r => ({
@@ -103,16 +95,15 @@ app.post("/send", async (req, res) => {
     to: r,
     subject: safeSubject(subject),
     text: safeBody(message),
-    // Reply-To shows NAME (email behind the name in UI)
+    // ✅ Reply-To shows NAME
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
   const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
 
-  return res.json({ success: true, sent, count: stats[gmail].count });
+  res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => {
-  console.log("✅ INBOX-FIRST Mail Server running on port 3000");
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("✅ Server running on port", PORT));
