@@ -15,28 +15,28 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== LIMITS (SAME AS OLD CODE) ===== */
-const HOURLY_LIMIT = 28;   // 1 Gmail = 28 mails / hour
-const PARALLEL = 3;       // SAME speed
-const DELAY_MS = 120;     // SAME speed
+/* ===== LIMITS (SAME AS YOUR OLD CODE) ===== */
+const HOURLY_LIMIT = 28;
+const PARALLEL = 3;     // SAME SPEED
+const DELAY_MS = 120;  // SAME SPEED
 
 let stats = {};
 setInterval(() => {
-  stats = {}; // auto reset every 1 hour
+  stats = {};           // auto reset every 1 hour
 }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT & HUMAN ===== */
+/* ===== SUBJECT: SHORT, NEUTRAL ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
-    .replace(/\b(free|urgent|offer|sale|guarantee|winner)\b/gi, "")
+    .replace(/\b(free|urgent|offer|sale|guarantee|winner|deal)\b/gi, "")
     .split(" ")
     .slice(0, 5)
     .join(" ")
     .trim();
 }
 
-/* ===== BODY + FOOTER ===== */
+/* ===== BODY: CLEAN TEXT + NEUTRAL FOOTER ===== */
 function safeBody(message) {
   const clean = message
     .replace(/\r\n/g, "\n")
@@ -46,7 +46,7 @@ function safeBody(message) {
   return clean + "\n\nClarity secured & Scanned";
 }
 
-/* ===== SAFE BATCH SEND (SAME SPEED) ===== */
+/* ===== BULK SEND (INDIVIDUAL MAILS, SAME SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
@@ -75,7 +75,6 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing fields ❌", count: 0 });
   }
 
-  // init stats
   if (!stats[gmail]) stats[gmail] = { count: 0 };
 
   if (stats[gmail].count >= HOURLY_LIMIT) {
@@ -86,7 +85,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  // recipients list (same as old code)
+  /* recipients list (bulk allowed, but sent individually) */
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
@@ -121,6 +120,7 @@ app.post("/send", async (req, res) => {
     });
   }
 
+  /* IMPORTANT: each recipient = separate mail */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -142,5 +142,5 @@ app.post("/send", async (req, res) => {
 /* START */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe Mail Server running on port", PORT);
+  console.log("✅ MAX-SAFE BULK Mail Server running on port", PORT);
 });
