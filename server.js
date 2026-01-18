@@ -17,30 +17,25 @@ app.get("/", (req, res) => {
 
 /* ===== SAME SPEED & LIMIT ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 3;      // SAME
-const DELAY_MS = 120;   // SAME
+const PARALLEL = 3;     // SAME
+const DELAY_MS = 120;  // SAME
 
 /* ===== AUTO RESET EVERY 1 HOUR ===== */
 let stats = {};
 setInterval(() => {
   stats = {};
-  console.log("⏱ Hourly limits reset");
+  console.log("⏱ Hourly limit reset");
 }, 60 * 60 * 1000);
 
-/* ===== INBOX-SAFE SUBJECT ===== */
+/* ===== INBOX-SAFE SUBJECT (2–4 WORDS) ===== */
 function safeSubject(s) {
-  const base = s
+  return s
     .replace(/\s+/g, " ")
     .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner)\b/gi, "")
     .split(" ")
     .slice(0, 4)
     .join(" ")
     .trim();
-
-  // tiny humanization, same length
-  return Math.random() > 0.5
-    ? base
-    : base.charAt(0).toUpperCase() + base.slice(1);
 }
 
 /* ===== INBOX-SAFE BODY + FINAL FOOTER ===== */
@@ -50,17 +45,17 @@ function safeBody(msg) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // micro-variation (no speed change, reduces automation signals)
-  const dot = Math.random() > 0.5 ? "" : " ";
+  // very light natural variation (legit)
+  const space = Math.random() > 0.5 ? "" : " ";
 
   const footer =
 `Verified Secured & Safe
 _________________`;
 
-  return clean + dot + "\n\n" + footer;
+  return clean + space + "\n\n" + footer;
 }
 
-/* ===== SAFE BULK SEND (SAME SPEED) ===== */
+/* ===== SAFE BULK SEND (UNCHANGED SPEED) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
   for (let i = 0; i < mails.length; i += PARALLEL) {
@@ -128,7 +123,7 @@ app.post("/send", async (req, res) => {
     text: safeBody(message),
     replyTo: `"${senderName}" <${gmail}>`,
     headers: {
-      // trust-like headers (safe)
+      // Legit trust signals (safe)
       "X-Mailer": "Secure Mail Console",
       "X-Priority": "3",
       "Importance": "Normal"
@@ -146,4 +141,4 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("✅ Inbox-safe server running"));
+app.listen(3000, () => console.log("✅ TOP inbox-safe server running"));
