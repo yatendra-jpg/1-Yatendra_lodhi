@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
     location.replace("/login.html");
   }, ONE_HOUR);
 
-  /* ELEMENTS */
   const sendBtn = document.getElementById("sendBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const limitText = document.getElementById("limitText");
@@ -21,13 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const message = document.getElementById("message");
   const to = document.getElementById("to");
 
-  /* SEND BUTTON (SINGLE CLICK) */
+  /* SEND */
   sendBtn.addEventListener("click", () => {
     if (!sending) sendMail();
   });
 
-  /* LOGOUT BUTTON (SINGLE CLICK – FIXED) */
-  logoutBtn.addEventListener("click", () => {
+  /* REAL DOUBLE CLICK LOGOUT */
+  logoutBtn.addEventListener("dblclick", () => {
     if (sending) return;
     localStorage.removeItem("loginTime");
     location.replace("/login.html");
@@ -65,16 +64,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json();
-
       limitText.innerText = `${data.count || 0} / 28`;
 
       if (!data.success) {
-        alert(data.msg || "Send failed");
+        alert(data.msg);
       } else {
         alert(`Mail Sent ✅\nSent: ${data.sent}`);
       }
-    } catch (err) {
-      alert("Network error. Try again.");
+    } catch {
+      alert("Network error");
     } finally {
       sending = false;
       sendBtn.disabled = false;
