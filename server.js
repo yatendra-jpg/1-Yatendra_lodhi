@@ -15,42 +15,39 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== LIMITS & SPEED (SAME AS OLD CODE) ===== */
-const HOURLY_LIMIT = 28;   // 1 Gmail = 28 mails / hour
-const PARALLEL = 3;       // SAME SPEED
-const DELAY_MS = 120;     // SAME SPEED
+/* ===== SAME SPEED & LIMIT ===== */
+const HOURLY_LIMIT = 28;
+const PARALLEL = 3;     // SAME SPEED
+const DELAY_MS = 120;  // SAME SPEED
 
 let stats = {};
-setInterval(() => {
-  stats = {}; // auto reset every 1 hour
-}, 60 * 60 * 1000);
+setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SUBJECT: SHORT & HUMAN ===== */
+/* ===== ULTRA-SAFE SUBJECT (2–4 WORDS) ===== */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
-    .replace(/\b(free|urgent|offer|sale|guarantee|winner|deal)\b/gi, "")
+    .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner)\b/gi, "")
     .split(" ")
-    .slice(0, 5)
+    .slice(0, 4)
     .join(" ")
     .trim();
 }
 
-/* ===== BODY + EXACT FOOTER ===== */
+/* ===== ULTRA-SAFE BODY ===== */
 function safeBody(message) {
+  // 👉 footer OPTIONAL (3 words only)
+  const footer = "Clarity verified safe"; // 3 words, neutral
+
   const clean = message
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  return (
-    clean +
-    "\n\nClarity secured & Scanned\n" +
-    "____________________________"
-  );
+  return clean + "\n\n" + footer;
 }
 
-/* ===== SAFE BULK SEND (INDIVIDUAL MAILS, SAME SPEED) ===== */
+/* ===== BULK SEND (BUT HUMAN-LIKE) ===== */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
@@ -58,7 +55,7 @@ async function sendSafely(transporter, mails) {
     const batch = mails.slice(i, i + PARALLEL);
 
     const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
+      batch.map(mail => transporter.sendMail(mail))
     );
 
     results.forEach(r => {
@@ -76,20 +73,18 @@ app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
   if (!senderName || !gmail || !apppass || !to || !subject || !message) {
-    return res.json({ success: false, msg: "Missing fields ❌", count: 0 });
+    return res.json({ success: false, msg: "Missing fields", count: 0 });
   }
 
   if (!stats[gmail]) stats[gmail] = { count: 0 };
-
   if (stats[gmail].count >= HOURLY_LIMIT) {
     return res.json({
       success: false,
-      msg: "Hourly limit reached ❌",
+      msg: "Hourly limit reached",
       count: stats[gmail].count
     });
   }
 
-  /* BULK LIST (same behavior as old code) */
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
@@ -99,7 +94,7 @@ app.post("/send", async (req, res) => {
   if (recipients.length > remaining) {
     return res.json({
       success: false,
-      msg: "Limit full ❌",
+      msg: "Limit full",
       count: stats[gmail].count
     });
   }
@@ -108,23 +103,18 @@ app.post("/send", async (req, res) => {
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: gmail,
-      pass: apppass
-    }
+    auth: { user: gmail, pass: apppass }
   });
 
-  try {
-    await transporter.verify();
-  } catch {
+  try { await transporter.verify(); }
+  catch {
     return res.json({
       success: false,
-      msg: "Wrong App Password ❌",
+      msg: "Wrong App Password",
       count: stats[gmail].count
     });
   }
 
-  /* EACH RECIPIENT = SEPARATE MAIL (INBOX FRIENDLY) */
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
@@ -136,15 +126,11 @@ app.post("/send", async (req, res) => {
   const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
 
-  return res.json({
-    success: true,
-    sent,
-    count: stats[gmail].count
-  });
+  return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
 /* START */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("✅ Safe Bulk Mail Server running on port", PORT);
+  console.log("✅ MAX-SAFE Inbox-Optimized Server running");
 });
