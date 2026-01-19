@@ -27,37 +27,21 @@ let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
 /* =========================
-   SUBJECT: ULTRA-NEUTRAL
-   (short, no fear/marketing)
+   SUBJECT: PASS-THROUGH
+   (NO word removal/change)
 ========================= */
 function safeSubject(subject) {
-  return subject
-    .replace(/\s+/g, " ")
-    .replace(
-      /\b(free|urgent|offer|sale|deal|guarantee|winner|google|seo|issue|problem|error|fix|alert)\b/gi,
-      ""
-    )
-    .split(" ")
-    .slice(0, 2)
-    .join(" ")
-    .trim();
+  // Only normalize whitespace at edges (words SAME)
+  return subject.trim();
 }
 
 /* =========================
-   BODY: PLAIN TEXT ONLY
-   (no tricks, no hiding)
+   BODY: PASS-THROUGH
+   (NO footer, NO word change)
 ========================= */
 function safeBody(message) {
-  const clean = message
-    .replace(/\r\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  const footer =
-`—
-Clean Scanned & secured`;
-
-  return clean + "\n\n" + footer;
+  // Preserve content exactly; only normalize line endings
+  return message.replace(/\r\n/g, "\n");
 }
 
 /* =========================
@@ -95,7 +79,8 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing fields", count: 0 });
   }
 
-  if (subject.length > 120 || message.length > 2000) {
+  // Basic safety limits (do NOT change content)
+  if (subject.length > 200 || message.length > 5000) {
     return res.json({ success: false, msg: "Content too long", count: 0 });
   }
 
@@ -137,8 +122,8 @@ app.post("/send", async (req, res) => {
   const mails = recipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
-    subject: safeSubject(subject),
-    text: safeBody(message),
+    subject: safeSubject(subject), // EXACT words
+    text: safeBody(message),       // EXACT words
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
@@ -154,5 +139,5 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("Server running (maximum legit safety)");
+  console.log("Server running (pass-through safe mode)");
 });
