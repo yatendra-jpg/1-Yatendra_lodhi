@@ -29,14 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   async function sendMail() {
-    if (
-      !senderName.value.trim() ||
-      !gmail.value.trim() ||
-      !apppass.value.trim() ||
-      !subject.value.trim() ||
-      !message.value.trim() ||
-      !to.value.trim()
-    ) {
+    if (!senderName.value || !gmail.value || !apppass.value ||
+        !subject.value || !message.value || !to.value) {
       alert("All fields required");
       return;
     }
