@@ -15,7 +15,9 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== LIMITS & SPEED (UNCHANGED) ===== */
+/* =========================
+   LIMITS & SPEED (UNCHANGED)
+========================= */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;     // SAME
 const DELAY_MS = 120;  // SAME
@@ -24,18 +26,26 @@ const DELAY_MS = 120;  // SAME
 let stats = {};
 setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
-/* ===== SAFE SUBJECT (VERY NEUTRAL) ===== */
+/* =========================
+   SUBJECT: ULTRA-NEUTRAL
+   - short
+   - no fear/marketing words
+========================= */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
-    .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner|google|seo|issue|problem|error)\b/gi, "")
+    .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner|google|seo|issue|problem|error|fix|alert)\b/gi, "")
     .split(" ")
-    .slice(0, 3)
+    .slice(0, 2)
     .join(" ")
     .trim();
 }
 
-/* ===== SAFE BODY (PLAIN TEXT) + NEW FOOTER ===== */
+/* =========================
+   BODY: PLAIN TEXT ONLY
+   - no tricks
+   - no hidden chars
+========================= */
 function safeBody(message) {
   const clean = message
     .replace(/\r\n/g, "\n")
@@ -49,23 +59,34 @@ Clean Scanned & secured`;
   return clean + "\n\n" + footer;
 }
 
-/* ===== SEND ENGINE (INDIVIDUAL SENDS) ===== */
+/* =========================
+   SEND ENGINE
+   - individual mails
+   - steady pace
+========================= */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
+
     const results = await Promise.allSettled(
       batch.map(m => transporter.sendMail(m))
     );
-    results.forEach(r => r.status === "fulfilled" && sent++);
+
+    results.forEach(r => {
+      if (r.status === "fulfilled") sent++;
+    });
+
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
 
   return sent;
 }
 
-/* ===== SEND API ===== */
+/* =========================
+   SEND API
+========================= */
 app.post("/send", async (req, res) => {
   const { senderName, gmail, apppass, to, subject, message } = req.body;
 
@@ -131,4 +152,6 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("Server running (extra-safe mode)"));
+app.listen(3000, () => {
+  console.log("Server running (maximum legit safety)");
+});
