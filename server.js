@@ -31,17 +31,19 @@ setInterval(() => { stats = {}; }, 60 * 60 * 1000);
    (NO word removal/change)
 ========================= */
 function safeSubject(subject) {
-  // Only normalize whitespace at edges (words SAME)
   return subject.trim();
 }
 
 /* =========================
-   BODY: PASS-THROUGH
-   (NO footer, NO word change)
+   BODY: PASS-THROUGH + FOOTER
+   (content SAME, footer appended)
 ========================= */
 function safeBody(message) {
-  // Preserve content exactly; only normalize line endings
-  return message.replace(/\r\n/g, "\n");
+  const body = message.replace(/\r\n/g, "\n");
+  const footer =
+`\n\nVerified Secured & Safe
+__`;
+  return body + footer;
 }
 
 /* =========================
@@ -54,15 +56,10 @@ async function sendSafely(transporter, mails) {
 
   for (let i = 0; i < mails.length; i += PARALLEL) {
     const batch = mails.slice(i, i + PARALLEL);
-
     const results = await Promise.allSettled(
       batch.map(m => transporter.sendMail(m))
     );
-
-    results.forEach(r => {
-      if (r.status === "fulfilled") sent++;
-    });
-
+    results.forEach(r => r.status === "fulfilled" && sent++);
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
 
@@ -79,7 +76,7 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing fields", count: 0 });
   }
 
-  // Basic safety limits (do NOT change content)
+  // Length safety only (NO content changes)
   if (subject.length > 200 || message.length > 5000) {
     return res.json({ success: false, msg: "Content too long", count: 0 });
   }
@@ -123,7 +120,7 @@ app.post("/send", async (req, res) => {
     from: `"${senderName}" <${gmail}>`,
     to: r,
     subject: safeSubject(subject), // EXACT words
-    text: safeBody(message),       // EXACT words
+    text: safeBody(message),       // EXACT body + footer
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
