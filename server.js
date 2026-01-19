@@ -28,13 +28,15 @@ setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
 /* =========================
    SUBJECT: ULTRA-NEUTRAL
-   - short
-   - no fear/marketing words
+   (short, no fear/marketing)
 ========================= */
 function safeSubject(subject) {
   return subject
     .replace(/\s+/g, " ")
-    .replace(/\b(free|urgent|offer|sale|deal|guarantee|winner|google|seo|issue|problem|error|fix|alert)\b/gi, "")
+    .replace(
+      /\b(free|urgent|offer|sale|deal|guarantee|winner|google|seo|issue|problem|error|fix|alert)\b/gi,
+      ""
+    )
     .split(" ")
     .slice(0, 2)
     .join(" ")
@@ -43,8 +45,7 @@ function safeSubject(subject) {
 
 /* =========================
    BODY: PLAIN TEXT ONLY
-   - no tricks
-   - no hidden chars
+   (no tricks, no hiding)
 ========================= */
 function safeBody(message) {
   const clean = message
@@ -61,7 +62,7 @@ Clean Scanned & secured`;
 
 /* =========================
    SEND ENGINE
-   - individual mails
+   - individual sends
    - steady pace
 ========================= */
 async function sendSafely(transporter, mails) {
