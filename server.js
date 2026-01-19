@@ -15,10 +15,10 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-/* ===== LIMITS & SPEED (SAFE FAST) ===== */
+/* ===== LIMITS & SPEED (UNCHANGED) ===== */
 const HOURLY_LIMIT = 28;
-const PARALLEL = 4;     // slightly faster, still safe
-const DELAY_MS = 90;   // slightly faster, still safe
+const PARALLEL = 3;     // SAME
+const DELAY_MS = 120;  // SAME
 
 /* Hourly reset */
 let stats = {};
@@ -42,7 +42,6 @@ function safeBody(message) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // neutral footer (harmless)
   const footer = "Scanned & secured________";
   return clean + "\n\n" + footer;
 }
@@ -127,4 +126,4 @@ app.post("/send", async (req, res) => {
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
-app.listen(3000, () => console.log("Server running (safe fast mode)"));
+app.listen(3000, () => console.log("Server running (safe mode)"));
