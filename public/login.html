@@ -14,7 +14,7 @@
 
 <script>
 function login(){
-  if (uid.value === "Lodhiyatendra@#" && upass.value === "Lodhiyatendra@#") {
+  if (uid.value && upass.value) {
     localStorage.setItem("loginTime", Date.now().toString());
     location.replace("/launcher.html");
   } else {
