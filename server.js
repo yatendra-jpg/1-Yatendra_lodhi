@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
 });
 
 /* =========================
-   LIMITS & SPEED (SAME)
+   LIMITS & SPEED (UNCHANGED)
 ========================= */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;     // SAME
@@ -28,25 +28,25 @@ setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
 /* =========================
    SUBJECT: PASS-THROUGH
+   (no change, no filtering)
 ========================= */
 function safeSubject(subject) {
-  return subject.trim(); // words EXACT
+  return subject.trim();
 }
 
 /* =========================
-   BODY: PASS-THROUGH + FOOTER
+   BODY: PASS-THROUGH + NEW FOOTER
 ========================= */
 function safeBody(message) {
   const body = message.replace(/\r\n/g, "\n");
   const footer =
-`\n\nVerified Secured & Safe
-__`;
+`\n\nSecured & Safe - www.onrender.com`;
   return body + footer;
 }
 
 /* =========================
    SEND ENGINE
-   (one recipient at a time)
+   (ONE MAIL AT A TIME)
 ========================= */
 async function sendSafely(transporter, mails) {
   let sent = 0;
@@ -110,12 +110,11 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  /* Build mails: ONE recipient per mail */
   const mails = finalRecipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
-    subject: safeSubject(subject),
-    text: safeBody(message),
+    subject: safeSubject(subject),   // EXACT words
+    text: safeBody(message),         // EXACT body + new footer
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
@@ -126,5 +125,5 @@ app.post("/send", async (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("Server running (maximum conservative safety)");
+  console.log("Server running (maximum conservative inbox-safe mode)");
 });
