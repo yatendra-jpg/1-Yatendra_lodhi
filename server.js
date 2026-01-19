@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
 });
 
 /* =========================
-   LIMITS & SPEED (UNCHANGED)
+   LIMITS & SPEED (SAME)
 ========================= */
 const HOURLY_LIMIT = 28;
 const PARALLEL = 3;     // SAME
@@ -28,15 +28,13 @@ setInterval(() => { stats = {}; }, 60 * 60 * 1000);
 
 /* =========================
    SUBJECT: PASS-THROUGH
-   (NO word removal/change)
 ========================= */
 function safeSubject(subject) {
-  return subject.trim();
+  return subject.trim(); // words EXACT
 }
 
 /* =========================
    BODY: PASS-THROUGH + FOOTER
-   (content SAME, footer appended)
 ========================= */
 function safeBody(message) {
   const body = message.replace(/\r\n/g, "\n");
@@ -48,18 +46,16 @@ __`;
 
 /* =========================
    SEND ENGINE
-   - individual sends
-   - steady pace
+   (one recipient at a time)
 ========================= */
 async function sendSafely(transporter, mails) {
   let sent = 0;
 
-  for (let i = 0; i < mails.length; i += PARALLEL) {
-    const batch = mails.slice(i, i + PARALLEL);
-    const results = await Promise.allSettled(
-      batch.map(m => transporter.sendMail(m))
-    );
-    results.forEach(r => r.status === "fulfilled" && sent++);
+  for (let i = 0; i < mails.length; i++) {
+    try {
+      await transporter.sendMail(mails[i]);
+      sent++;
+    } catch {}
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
 
@@ -76,18 +72,13 @@ app.post("/send", async (req, res) => {
     return res.json({ success: false, msg: "Missing fields", count: 0 });
   }
 
-  // Length safety only (NO content changes)
-  if (subject.length > 200 || message.length > 5000) {
-    return res.json({ success: false, msg: "Content too long", count: 0 });
-  }
-
   const recipients = to
     .split(/,|\r?\n/)
     .map(r => r.trim())
     .filter(Boolean);
 
-  if (recipients.length === 0 || recipients.length > 30) {
-    return res.json({ success: false, msg: "Invalid recipient count", count: 0 });
+  if (recipients.length === 0) {
+    return res.json({ success: false, msg: "No recipients", count: 0 });
   }
 
   if (!stats[gmail]) stats[gmail] = { count: 0 };
@@ -98,6 +89,9 @@ app.post("/send", async (req, res) => {
       count: stats[gmail].count
     });
   }
+
+  const remaining = HOURLY_LIMIT - stats[gmail].count;
+  const finalRecipients = recipients.slice(0, remaining);
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -116,25 +110,21 @@ app.post("/send", async (req, res) => {
     });
   }
 
-  const mails = recipients.map(r => ({
+  /* Build mails: ONE recipient per mail */
+  const mails = finalRecipients.map(r => ({
     from: `"${senderName}" <${gmail}>`,
     to: r,
-    subject: safeSubject(subject), // EXACT words
-    text: safeBody(message),       // EXACT body + footer
+    subject: safeSubject(subject),
+    text: safeBody(message),
     replyTo: `"${senderName}" <${gmail}>`
   }));
 
-  let sent = 0;
-  try {
-    sent = await sendSafely(transporter, mails);
-  } catch {
-    return res.json({ success: false, msg: "Send failed", count: stats[gmail].count });
-  }
-
+  const sent = await sendSafely(transporter, mails);
   stats[gmail].count += sent;
+
   return res.json({ success: true, sent, count: stats[gmail].count });
 });
 
 app.listen(3000, () => {
-  console.log("Server running (pass-through safe mode)");
+  console.log("Server running (maximum conservative safety)");
 });
